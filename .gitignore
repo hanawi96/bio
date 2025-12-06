@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+frontend/.svelte-kit/
+frontend/build/
+backend/tmp/
+*.exe
+
+# Environment
+.env
+.env.local
+*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+
+# Uploads
+uploads/
