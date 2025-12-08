@@ -1,6 +1,8 @@
 package api
 
 import (
+	"fmt"
+	
 	"github.com/gofiber/fiber/v2"
 	"github.com/yourusername/linkbio/service"
 )
@@ -15,10 +17,23 @@ func NewLinkHandler(linkService *service.LinkService) *LinkHandler {
 
 func (h *LinkHandler) GetLinks(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(string)
-	links, err := h.linkService.GetByUserID(userID)
+	
+	// Get query parameters
+	search := c.Query("search", "")
+	status := c.Query("status", "")
+	layoutType := c.Query("layout_type", "")
+	sortBy := c.Query("sort_by", "")
+	
+	// Debug log
+	fmt.Printf("🔍 GetLinks - search: '%s', status: '%s', layoutType: '%s', sortBy: '%s'\n", search, status, layoutType, sortBy)
+	
+	links, err := h.linkService.GetByUserIDWithFilters(userID, search, status, layoutType, sortBy)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
+	
+	fmt.Printf("✅ Found %d links\n", len(links))
+	
 	// Return empty array instead of null
 	if links == nil {
 		return c.JSON([]interface{}{})

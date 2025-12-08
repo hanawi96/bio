@@ -16,6 +16,8 @@
 	let profile: Profile | null = null;
 	let links: Link[] = [];
 	let initialLoading = true;
+	let uploadingAvatar = false;
+	let fileInput: HTMLInputElement;
 
 	onMount(async () => {
 		await loadData();
@@ -57,6 +59,22 @@
 			toast.success('Profile updated!');
 		} catch (error: any) {
 			toast.error(error.message || 'Failed to update profile');
+		}
+	}
+
+	async function handleAvatarUpload(event: Event) {
+		const target = event.target as HTMLInputElement;
+		const file = target.files?.[0];
+		if (!file || !profile) return;
+
+		uploadingAvatar = true;
+		try {
+			profile = await profileApi.uploadAvatar(file, $auth.token!);
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to upload avatar');
+		} finally {
+			uploadingAvatar = false;
+			if (fileInput) fileInput.value = '';
 		}
 	}
 
@@ -110,12 +128,33 @@
 						<div>
 							<Label>Profile Picture</Label>
 							<div class="flex items-center gap-4 mt-2">
-								<Avatar 
-									src={profile.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + profile.username}
-									alt="Avatar"
-									class="w-20 h-20"
+								<div class="relative">
+									<Avatar 
+										src={profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`}
+										alt="Avatar"
+										class="w-20 h-20"
+									/>
+									{#if uploadingAvatar}
+										<div class="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+											<div class="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+										</div>
+									{/if}
+								</div>
+								<input
+									bind:this={fileInput}
+									type="file"
+									accept="image/jpeg,image/png,image/webp,image/gif"
+									onchange={handleAvatarUpload}
+									class="hidden"
 								/>
-								<Button variant="outline">Change Avatar</Button>
+								<button
+									type="button"
+									onclick={() => fileInput?.click()}
+									disabled={uploadingAvatar}
+									class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 transition-colors"
+								>
+									{uploadingAvatar ? 'Uploading...' : 'Change Avatar'}
+								</button>
 							</div>
 						</div>
 
@@ -130,16 +169,7 @@
 							/>
 						</div>
 
-						<div>
-							<Label>Theme</Label>
-							<div class="grid grid-cols-3 gap-3 mt-2">
-								<button class="aspect-square rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 hover:scale-105 transition-transform border-2 border-purple-600"></button>
-								<button class="aspect-square rounded-xl bg-gradient-to-br from-pink-500 to-orange-500 hover:scale-105 transition-transform"></button>
-								<button class="aspect-square rounded-xl bg-gradient-to-br from-green-500 to-indigo-500 hover:scale-105 transition-transform"></button>
-							</div>
-						</div>
-
-						<Button class="w-full" on:click={handleUpdateProfile}>Save Changes</Button>
+						<Button class="w-full" onclick={handleUpdateProfile}>Save Changes</Button>
 					</div>
 					{/if}
 				</div>

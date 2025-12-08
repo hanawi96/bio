@@ -16,12 +16,12 @@ func NewProfileHandler(profileService *service.ProfileService) *ProfileHandler {
 func (h *ProfileHandler) GetPublicProfile(c *fiber.Ctx) error {
 	username := c.Params("username")
 	
-	profile, err := h.profileService.GetByUsername(username)
+	data, err := h.profileService.GetPublicProfileWithLinks(username)
 	if err != nil {
 		return fiber.NewError(fiber.StatusNotFound, "Profile not found")
 	}
 
-	return c.JSON(profile)
+	return c.JSON(data)
 }
 
 func (h *ProfileHandler) GetMyProfile(c *fiber.Ctx) error {

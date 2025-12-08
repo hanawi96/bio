@@ -26,12 +26,9 @@ func main() {
 	// Initialize database
 	db, err := config.InitDB(cfg)
 	if err != nil {
-		log.Println("Warning: Failed to connect to database:", err)
-		log.Println("Running without database connection...")
+		log.Fatal("Failed to connect to database:", err)
 	}
-	if db != nil {
-		defer db.Close()
-	}
+	defer db.Close()
 
 	// Create Fiber app
 	app := fiber.New(fiber.Config{

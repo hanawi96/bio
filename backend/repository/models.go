@@ -15,15 +15,18 @@ type Profile struct {
 }
 
 type Link struct {
-	ID          string     `json:"id"`
-	ProfileID   string     `json:"profile_id"`
-	Title       string     `json:"title"`
-	URL         string     `json:"url"`
-	Position    int        `json:"position"`
-	Clicks      int        `json:"clicks"`
-	IsActive    bool       `json:"is_active"`
-	ScheduledAt *time.Time `json:"scheduled_at"`
-	ExpiresAt   *time.Time `json:"expires_at"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	ID           string     `json:"id"`
+	ProfileID    string     `json:"profile_id"`
+	Title        string     `json:"title"`
+	URL          string     `json:"url"`
+	ThumbnailURL *string    `json:"thumbnail_url"`
+	LayoutType   string     `json:"layout_type"`
+	Position     int        `json:"position"`
+	Clicks       int        `json:"clicks"`
+	IsActive     bool       `json:"is_active"`
+	IsPinned     bool       `json:"is_pinned"`
+	ScheduledAt  *time.Time `json:"scheduled_at"`
+	ExpiresAt    *time.Time `json:"expires_at"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
 }

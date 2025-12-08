@@ -18,13 +18,14 @@ func SetupRoutes(api fiber.Router, db *sql.DB, cfg *config.Config) {
 
 	// Initialize services
 	authService := service.NewAuthService(userRepo, cfg)
-	profileService := service.NewProfileService(profileRepo, userRepo)
+	profileService := service.NewProfileService(profileRepo, userRepo, linkRepo)
 	linkService := service.NewLinkService(linkRepo)
 
 	// Initialize handlers
 	authHandler := NewAuthHandler(authService)
 	profileHandler := NewProfileHandler(profileService)
 	linkHandler := NewLinkHandler(linkService)
+	uploadHandler := NewUploadHandler(linkService, profileService)
 
 	// Public routes
 	auth := api.Group("/auth")
@@ -45,8 +46,16 @@ func SetupRoutes(api fiber.Router, db *sql.DB, cfg *config.Config) {
 	protected.Get("/links", linkHandler.GetLinks)
 	protected.Post("/links", linkHandler.CreateLink)
 	protected.Put("/links/reorder", linkHandler.ReorderLinks)
+	protected.Post("/links/bulk", linkHandler.BulkAction)
+	protected.Post("/links/:id/duplicate", linkHandler.DuplicateLink)
+	protected.Post("/links/:id/pin", linkHandler.TogglePin)
 	protected.Put("/links/:id", linkHandler.UpdateLink)
 	protected.Delete("/links/:id", linkHandler.DeleteLink)
+
+	// Upload management
+	protected.Post("/links/:id/thumbnail", uploadHandler.UploadLinkThumbnail)
+	protected.Delete("/links/:id/thumbnail", uploadHandler.DeleteLinkThumbnail)
+	protected.Post("/profile/avatar", uploadHandler.UploadAvatar)
 
 	// Analytics
 	protected.Get("/analytics", linkHandler.GetAnalytics)

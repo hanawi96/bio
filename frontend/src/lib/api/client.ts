@@ -42,6 +42,8 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 }
 
 export const api = {
+	baseURL: API_BASE,
+	
 	get: <T>(endpoint: string, token?: string) => 
 		request<T>(endpoint, { method: 'GET', token }),
 	

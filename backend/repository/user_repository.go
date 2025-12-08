@@ -85,3 +85,15 @@ func (r *UserRepository) GetByID(id string) (*User, error) {
 	}
 	return &user, nil
 }
+
+func (r *UserRepository) GetByUsername(username string) (*User, error) {
+	var user User
+	query := `SELECT id, email, username, password_hash FROM users WHERE username = $1`
+	err := r.db.QueryRow(query, username).Scan(
+		&user.ID, &user.Email, &user.Username, &user.PasswordHash,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
