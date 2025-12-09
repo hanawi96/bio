@@ -349,6 +349,44 @@
 		}
 	}
 
+	async function handleToggleLinkVisibility(event: CustomEvent) {
+		const linkId = event.detail;
+		try {
+			// Find current state
+			let currentState = false;
+			for (const link of links) {
+				if (link.is_group && link.children) {
+					const child = link.children.find(c => c.id === linkId);
+					if (child) {
+						currentState = child.is_active || false;
+						break;
+					}
+				}
+			}
+			
+			// Toggle
+			const newState = !currentState;
+			await linksApi.updateLink(linkId, { is_active: newState }, $auth.token!);
+			
+			// Update local state without reloading - keep UI expanded
+			links = links.map(link => {
+				if (link.is_group && link.children) {
+					return {
+						...link,
+						children: link.children.map(child => 
+							child.id === linkId ? { ...child, is_active: newState } : child
+						)
+					};
+				}
+				return link;
+			});
+			
+			toast.success(newState ? 'Link shown!' : 'Link hidden!');
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to toggle visibility');
+		}
+	}
+
 	function handleEditGroupLink(event: CustomEvent) {
 		editingGroupLink = event.detail;
 		showEditGroupLinkDialog = true;
@@ -1129,6 +1167,7 @@
 									on:uploadThumbnail={handleUploadGroupLinkThumbnail}
 									on:toggleNewTab={handleToggleNewTab}
 									on:reorderlinks={handleReorderGroupLinks}
+									on:togglelinkvisibility={handleToggleLinkVisibility}
 								/>
 							{:else if item.data.block_type === 'text'}
 								<TextBlock 

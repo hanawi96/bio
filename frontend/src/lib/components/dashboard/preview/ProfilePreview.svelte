@@ -95,7 +95,7 @@
 								{#if link.children && link.children.length > 0}
 									{#if link.group_layout === 'grid'}
 										<div class="grid grid-cols-2 gap-3">
-											{#each link.children as child}
+											{#each link.children.filter(c => c.is_active) as child}
 												<a
 													href={child.url}
 													target="_blank"
@@ -112,7 +112,7 @@
 									{:else if link.group_layout === 'carousel'}
 										<div class="overflow-x-auto -mx-6 px-6">
 											<div class="flex gap-3 pb-2">
-												{#each link.children as child}
+												{#each link.children.filter(c => c.is_active) as child}
 													<a
 														href={child.url}
 														target="_blank"
@@ -130,7 +130,7 @@
 									{:else}
 										<!-- List layout (default) -->
 										<div class="space-y-2">
-											{#each link.children as child}
+											{#each link.children.filter(c => c.is_active) as child}
 												<a
 													href={child.url}
 													target="_blank"

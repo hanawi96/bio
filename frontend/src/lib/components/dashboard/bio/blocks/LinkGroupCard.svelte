@@ -21,7 +21,28 @@
 	// Drag & drop items
 	type DndItem = { id: string; data: Link };
 	let dndItems: DndItem[] = [];
-	$: dndItems = children.map(link => ({ id: link.id, data: link }));
+	
+	// Sync dndItems from children, but update data without changing order during drag
+	$: {
+		if (dndItems.length === 0 || dndItems.length !== children.length) {
+			// Initial load or children count changed (add/remove)
+			dndItems = children
+				.slice()
+				.sort((a, b) => {
+					// Pinned items first, then by position
+					if (a.is_pinned && !b.is_pinned) return -1;
+					if (!a.is_pinned && b.is_pinned) return 1;
+					return a.position - b.position;
+				})
+				.map(link => ({ id: link.id, data: link }));
+		} else {
+			// Update data for existing items without changing order
+			dndItems = dndItems.map(item => {
+				const updated = children.find(c => c.id === item.id);
+				return updated ? { ...item, data: updated } : item;
+			});
+		}
+	}
 	
 	function handleThumbnailClick(linkId: string) {
 		uploadingLinkId = linkId;
@@ -42,7 +63,15 @@
 	}
 	
 	function handleDndFinalize(e: CustomEvent) {
-		dndItems = e.detail.items;
+		const newItems = e.detail.items;
+		
+		// Separate pinned and unpinned items
+		const pinnedItems = newItems.filter((item: DndItem) => item.data.is_pinned);
+		const unpinnedItems = newItems.filter((item: DndItem) => !item.data.is_pinned);
+		
+		// Reconstruct order: pinned first, then unpinned
+		dndItems = [...pinnedItems, ...unpinnedItems];
+		
 		// Dispatch event to parent to save new order
 		const linkIds = dndItems.map(item => item.id);
 		dispatch('reorderlinks', { groupId: group.id, linkIds });
@@ -447,10 +476,18 @@
 									</div>
 									
 									<div class="w-px h-4 bg-gray-200 mx-0.5"></div>
-									<button class="p-1.5 hover:bg-gray-100 rounded-md transition-colors" title="Visibility">
+									<button 
+										onclick={() => dispatch('togglelinkvisibility', link.id)}
+										class="p-1.5 hover:bg-gray-100 rounded-md transition-colors" 
+										title={link.is_active ? 'Hide' : 'Show'}
+									>
 										<svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+											{#if link.is_active}
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+											{:else}
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+											{/if}
 										</svg>
 									</button>
 								</div>
