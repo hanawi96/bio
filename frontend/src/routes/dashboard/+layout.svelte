@@ -11,10 +11,10 @@
 	];
 
 	const linkBioMenu = {
-		name: 'Link in Bio & Website',
+		name: 'My Bio',
 		icon: 'M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1V5z',
 		children: [
-			{ name: 'Links', href: '/dashboard/links' },
+			{ name: 'Content', href: '/dashboard/bio' },
 			{ name: 'Appearance', href: '/dashboard/appearance' }
 		]
 	};
@@ -27,7 +27,7 @@
 	}
 
 	$: currentPath = $page.url.pathname;
-	$: isLinkBioActive = currentPath.includes('/dashboard/links') || currentPath.includes('/dashboard/appearance');
+	$: isLinkBioActive = currentPath.includes('/dashboard/bio') || currentPath.includes('/dashboard/appearance');
 </script>
 
 <div class="flex h-screen bg-gray-50">

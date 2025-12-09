@@ -10,21 +10,31 @@ import (
 	"github.com/yourusername/linkbio/service"
 )
 
+var schedulerInstance *service.SchedulerService
+
+func GetScheduler() *service.SchedulerService {
+	return schedulerInstance
+}
+
 func SetupRoutes(api fiber.Router, db *sql.DB, cfg *config.Config) {
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
 	profileRepo := repository.NewProfileRepository(db)
 	linkRepo := repository.NewLinkRepository(db)
+	blockRepo := repository.NewBlockRepository(db)
 
 	// Initialize services
 	authService := service.NewAuthService(userRepo, cfg)
 	profileService := service.NewProfileService(profileRepo, userRepo, linkRepo)
 	linkService := service.NewLinkService(linkRepo)
+	blockService := service.NewBlockService(blockRepo)
+	schedulerInstance = service.NewSchedulerService(db)
 
 	// Initialize handlers
 	authHandler := NewAuthHandler(authService)
 	profileHandler := NewProfileHandler(profileService)
 	linkHandler := NewLinkHandler(linkService)
+	blockHandler := NewBlockHandler(blockService)
 	uploadHandler := NewUploadHandler(linkService, profileService)
 
 	// Public routes
@@ -56,6 +66,14 @@ func SetupRoutes(api fiber.Router, db *sql.DB, cfg *config.Config) {
 	protected.Post("/links/:id/thumbnail", uploadHandler.UploadLinkThumbnail)
 	protected.Delete("/links/:id/thumbnail", uploadHandler.DeleteLinkThumbnail)
 	protected.Post("/profile/avatar", uploadHandler.UploadAvatar)
+
+	// Block management
+	protected.Get("/blocks", blockHandler.GetBlocks)
+	protected.Post("/blocks", blockHandler.CreateBlock)
+	protected.Put("/blocks/reorder", blockHandler.ReorderBlocks)
+	protected.Post("/blocks/bulk-delete", blockHandler.BulkDelete)
+	protected.Put("/blocks/:id", blockHandler.UpdateBlock)
+	protected.Delete("/blocks/:id", blockHandler.DeleteBlock)
 
 	// Analytics
 	protected.Get("/analytics", linkHandler.GetAnalytics)

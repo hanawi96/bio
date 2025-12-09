@@ -7,7 +7,7 @@
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { toast } from 'svelte-sonner';
 	
-	import ProfilePreview from '$lib/components/dashboard/ProfilePreview.svelte';
+	import ProfilePreview from '$lib/components/dashboard/preview/ProfilePreview.svelte';
 	import { profileApi } from '$lib/api/profile';
 	import { linksApi } from '$lib/api/links';
 	import type { Profile } from '$lib/api/profile';

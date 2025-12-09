@@ -1,0 +1,168 @@
+<script lang="ts">
+	import Avatar from '$lib/components/ui/avatar.svelte';
+	import Badge from '$lib/components/ui/badge/badge.svelte';
+	import type { Profile } from '$lib/api/profile';
+	import type { Link } from '$lib/api/links';
+	import type { Block } from '$lib/api/blocks';
+
+	export let profile: Partial<Profile> = {};
+	export let links: Link[] = [];
+	export let blocks: Block[] = [];
+	export let showInactive: boolean = true;
+
+	// Combine and sort items by position
+	type Item = { type: 'link'; data: Link } | { type: 'block'; data: Block };
+	$: items = [
+		...(links || []).map(link => ({ type: 'link' as const, data: link, position: link.position })),
+		...(blocks || []).map(block => ({ type: 'block' as const, data: block, position: block.position }))
+	].sort((a, b) => a.position - b.position);
+</script>
+
+<div class="w-full max-w-md mx-auto">
+	<!-- Phone Frame -->
+	<div class="relative bg-gray-900 rounded-[3rem] p-3 shadow-2xl">
+		<!-- Notch -->
+		<div class="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-7 bg-gray-900 rounded-b-3xl z-10"></div>
+		
+		<!-- Screen -->
+		<div class="relative bg-gradient-to-br from-purple-50 to-blue-50 rounded-[2.5rem] overflow-hidden h-[600px]">
+			<div class="h-full overflow-y-auto p-6 space-y-6">
+				<!-- Profile Header -->
+				<div class="text-center space-y-3">
+					<div class="flex justify-center">
+						<div class="relative">
+							<Avatar 
+								src={profile.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (profile.username || 'user')}
+								alt="Avatar"
+								class="w-24 h-24 border-4 border-white shadow-lg"
+							/>
+							<div class="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 border-2 border-white rounded-full"></div>
+						</div>
+					</div>
+					<div>
+						<h2 class="text-xl font-bold text-gray-900">@{profile.username || 'username'}</h2>
+						{#if profile.bio}
+							<p class="text-sm text-gray-600 mt-1">{profile.bio}</p>
+						{/if}
+					</div>
+				</div>
+
+				<!-- Links & Blocks -->
+				<div class="space-y-3">
+					{#each items as item}
+						{#if item.type === 'block' && (showInactive || item.data.is_active)}
+							{#if item.data.block_type === 'text'}
+								{@const styleConfig = item.data.style ? JSON.parse(item.data.style) : {}}
+								<div 
+									class="w-full"
+									style="
+										font-size: {
+											styleConfig.fontSize === 'text-small' ? '14px' : 
+											styleConfig.fontSize === 'text-medium' ? '16px' : 
+											styleConfig.fontSize === 'text-large' ? '18px' :
+											styleConfig.fontSize === 'headline-small' ? '20px' :
+											styleConfig.fontSize === 'headline-medium' ? '24px' :
+											styleConfig.fontSize === 'headline-large' ? '32px' :
+											styleConfig.fontSize === 'small' ? '14px' :
+											styleConfig.fontSize === 'large' ? '20px' : '16px'
+										};
+										text-align: {styleConfig.textAlign || 'left'};
+										font-weight: {styleConfig.fontSize?.startsWith('headline') || styleConfig.isBold ? 'bold' : 'normal'};
+										font-style: {styleConfig.isItalic ? 'italic' : 'normal'};
+										text-decoration: {styleConfig.isUnderline && styleConfig.isStrikethrough ? 'underline line-through' : styleConfig.isUnderline ? 'underline' : styleConfig.isStrikethrough ? 'line-through' : 'none'};
+										color: {styleConfig.textColor || '#000000'};
+									"
+								>
+									{item.data.content || 'Empty text'}
+								</div>
+							{:else if item.data.block_type === 'divider'}
+								{#if item.data.divider_style === 'line'}
+									<div class="border-t border-gray-200"></div>
+								{:else if item.data.divider_style === 'dots'}
+									<div class="flex justify-center gap-1">
+										<div class="w-1.5 h-1.5 rounded-full bg-gray-300"></div>
+										<div class="w-1.5 h-1.5 rounded-full bg-gray-300"></div>
+										<div class="w-1.5 h-1.5 rounded-full bg-gray-300"></div>
+									</div>
+								{:else}
+									<div class="h-4"></div>
+								{/if}
+							{/if}
+						{:else if item.type === 'link' && (showInactive || item.data.is_active)}
+							{@const link = item.data}
+							{#if link.layout_type === 'featured'}
+							<!-- Featured Layout -->
+							<a
+								href={link.url}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="block w-full bg-white hover:bg-gray-50 rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-200 border border-gray-100 {!link.is_active ? 'opacity-50' : ''}"
+							>
+								{#if link.thumbnail_url}
+									<div class="relative h-32 bg-gradient-to-br from-indigo-100 to-blue-100">
+										<img 
+											src={link.thumbnail_url} 
+											alt={link.title}
+											class="w-full h-full object-cover"
+										/>
+										<div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+										<div class="absolute bottom-0 left-0 right-0 p-3">
+											<span class="font-bold text-white text-sm drop-shadow-lg">{link.title}</span>
+										</div>
+									</div>
+								{:else}
+									<div class="relative h-32 bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+										<div class="absolute bottom-0 left-0 right-0 p-3">
+											<span class="font-bold text-white text-sm drop-shadow-lg">{link.title}</span>
+										</div>
+									</div>
+								{/if}
+							</a>
+							{:else}
+								<!-- Classic Layout -->
+								<a
+									href={link.url}
+									target="_blank"
+									rel="noopener noreferrer"
+									class="block w-full bg-white hover:bg-gray-50 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100 {!link.is_active ? 'opacity-50' : ''}"
+								>
+									<div class="flex items-center gap-3">
+										{#if link.thumbnail_url}
+											<div class="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+												<img 
+													src={link.thumbnail_url} 
+													alt={link.title}
+													class="w-full h-full object-cover"
+												/>
+											</div>
+										{/if}
+										<span class="font-medium text-gray-900 flex-1">{link.title}</span>
+										<svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+										</svg>
+									</div>
+								</a>
+							{/if}
+						{/if}
+					{/each}
+					
+					{#if items.length === 0}
+						<div class="text-center py-8 text-gray-400">
+							<svg class="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+							</svg>
+							<p class="text-sm">No content yet</p>
+						</div>
+					{/if}
+				</div>
+
+				<!-- Footer -->
+				<div class="text-center pt-4">
+					<Badge variant="secondary" class="text-xs">
+						Made with LinkBio
+					</Badge>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

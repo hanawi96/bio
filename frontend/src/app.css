@@ -77,3 +77,15 @@ section > div:focus,
 section > div:focus-visible {
 	outline: none !important;
 }
+
+/* Remove all focus borders/rings from inputs globally */
+input:focus,
+textarea:focus,
+select:focus,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+	outline: none !important;
+	box-shadow: none !important;
+	border-color: inherit !important;
+}

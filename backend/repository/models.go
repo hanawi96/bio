@@ -30,3 +30,25 @@ type Link struct {
 	CreatedAt    time.Time  `json:"created_at"`
 	UpdatedAt    time.Time  `json:"updated_at"`
 }
+
+type Block struct {
+	ID            string                   `json:"id"`
+	ProfileID     string                   `json:"profile_id"`
+	BlockType     string                   `json:"block_type"`
+	Position      int                      `json:"position"`
+	IsActive      bool                     `json:"is_active"`
+	Content       *string                  `json:"content,omitempty"`
+	TextStyle     *string                  `json:"text_style,omitempty"`
+	Style         *string                  `json:"style,omitempty"`
+	ImageURL      *string                  `json:"image_url,omitempty"`
+	AltText       *string                  `json:"alt_text,omitempty"`
+	VideoURL      *string                  `json:"video_url,omitempty"`
+	SocialLinks   []map[string]interface{} `json:"social_links,omitempty"`
+	DividerStyle  *string                  `json:"divider_style,omitempty"`
+	Placeholder   *string                  `json:"placeholder,omitempty"`
+	EmbedURL      *string                  `json:"embed_url,omitempty"`
+	EmbedType     *string                  `json:"embed_type,omitempty"`
+	LinkID        *string                  `json:"link_id,omitempty"`
+	CreatedAt     time.Time                `json:"created_at"`
+	UpdatedAt     time.Time                `json:"updated_at"`
+}

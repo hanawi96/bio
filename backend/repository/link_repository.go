@@ -102,12 +102,12 @@ func (r *LinkRepository) Create(userID string, data map[string]interface{}) (*Li
 	query := `
 		INSERT INTO links (profile_id, title, url, position)
 		VALUES ($1, $2, $3, COALESCE($4, 0))
-		RETURNING id, profile_id, title, url, thumbnail_url, layout_type, position, clicks, is_active,
+		RETURNING id, profile_id, title, url, thumbnail_url, layout_type, position, clicks, is_active, is_pinned,
 		          scheduled_at, expires_at, created_at, updated_at
 	`
 	err = r.db.QueryRow(query, profileID, data["title"], data["url"], data["position"]).Scan(
 		&link.ID, &link.ProfileID, &link.Title, &link.URL, &link.ThumbnailURL, &link.LayoutType, &link.Position,
-		&link.Clicks, &link.IsActive, &link.ScheduledAt, &link.ExpiresAt,
+		&link.Clicks, &link.IsActive, &link.IsPinned, &link.ScheduledAt, &link.ExpiresAt,
 		&link.CreatedAt, &link.UpdatedAt,
 	)
 	if err != nil {
@@ -124,15 +124,17 @@ func (r *LinkRepository) Update(linkID string, data map[string]interface{}) (*Li
 		    thumbnail_url = COALESCE($4, thumbnail_url),
 		    layout_type = COALESCE($5, layout_type),
 		    is_active = COALESCE($6, is_active),
+		    scheduled_at = CASE WHEN $7::text IS NOT NULL THEN $7::timestamp ELSE scheduled_at END,
+		    expires_at = CASE WHEN $8::text IS NOT NULL THEN $8::timestamp ELSE expires_at END,
 		    updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1
-		RETURNING id, profile_id, title, url, thumbnail_url, layout_type, position, clicks, is_active,
+		RETURNING id, profile_id, title, url, thumbnail_url, layout_type, position, clicks, is_active, is_pinned,
 		          scheduled_at, expires_at, created_at, updated_at
 	`
 	var link Link
-	err := r.db.QueryRow(query, linkID, data["title"], data["url"], data["thumbnail_url"], data["layout_type"], data["is_active"]).Scan(
+	err := r.db.QueryRow(query, linkID, data["title"], data["url"], data["thumbnail_url"], data["layout_type"], data["is_active"], data["scheduled_at"], data["expires_at"]).Scan(
 		&link.ID, &link.ProfileID, &link.Title, &link.URL, &link.ThumbnailURL, &link.LayoutType, &link.Position,
-		&link.Clicks, &link.IsActive, &link.ScheduledAt, &link.ExpiresAt,
+		&link.Clicks, &link.IsActive, &link.IsPinned, &link.ScheduledAt, &link.ExpiresAt,
 		&link.CreatedAt, &link.UpdatedAt,
 	)
 	if err != nil {
@@ -173,14 +175,14 @@ func (r *LinkRepository) Duplicate(userID string, linkID string) (*Link, error) 
 	var original Link
 	query := `
 		SELECT l.id, l.profile_id, l.title, l.url, l.thumbnail_url, l.layout_type, l.position, l.clicks,
-		       l.is_active, l.scheduled_at, l.expires_at, l.created_at, l.updated_at
+		       l.is_active, l.is_pinned, l.scheduled_at, l.expires_at, l.created_at, l.updated_at
 		FROM links l
 		JOIN profiles p ON l.profile_id = p.id
 		WHERE l.id = $1 AND p.user_id = $2
 	`
 	err := r.db.QueryRow(query, linkID, userID).Scan(
 		&original.ID, &original.ProfileID, &original.Title, &original.URL, &original.ThumbnailURL,
-		&original.LayoutType, &original.Position, &original.Clicks, &original.IsActive,
+		&original.LayoutType, &original.Position, &original.Clicks, &original.IsActive, &original.IsPinned,
 		&original.ScheduledAt, &original.ExpiresAt, &original.CreatedAt, &original.UpdatedAt,
 	)
 	if err != nil {
@@ -201,7 +203,7 @@ func (r *LinkRepository) Duplicate(userID string, linkID string) (*Link, error) 
 	insertQuery := `
 		INSERT INTO links (profile_id, title, url, thumbnail_url, layout_type, position, is_active)
 		VALUES ($1, $2, $3, $4, $5, $6, false)
-		RETURNING id, profile_id, title, url, thumbnail_url, layout_type, position, clicks, is_active,
+		RETURNING id, profile_id, title, url, thumbnail_url, layout_type, position, clicks, is_active, is_pinned,
 		          scheduled_at, expires_at, created_at, updated_at
 	`
 	newTitle := original.Title + " (Copy)"
@@ -215,7 +217,7 @@ func (r *LinkRepository) Duplicate(userID string, linkID string) (*Link, error) 
 		maxPosition+1,
 	).Scan(
 		&duplicate.ID, &duplicate.ProfileID, &duplicate.Title, &duplicate.URL, &duplicate.ThumbnailURL,
-		&duplicate.LayoutType, &duplicate.Position, &duplicate.Clicks, &duplicate.IsActive,
+		&duplicate.LayoutType, &duplicate.Position, &duplicate.Clicks, &duplicate.IsActive, &duplicate.IsPinned,
 		&duplicate.ScheduledAt, &duplicate.ExpiresAt, &duplicate.CreatedAt, &duplicate.UpdatedAt,
 	)
 	if err != nil {

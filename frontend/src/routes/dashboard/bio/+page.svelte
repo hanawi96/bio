@@ -8,20 +8,34 @@
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { toast } from 'svelte-sonner';
 	
-	import LinkCard from '$lib/components/dashboard/LinkCard.svelte';
-	import ProfilePreview from '$lib/components/dashboard/ProfilePreview.svelte';
+	import { LinkBlock, TextBlock, ImageBlock, VideoBlock, SocialBlock, DividerBlock, EmailCollectorBlock, EmbedBlock } from '$lib/components/dashboard/bio/blocks';
+	import { AddBlockDialog } from '$lib/components/dashboard/bio/dialogs';
+	import TextBlockDialog from '$lib/components/dashboard/bio/dialogs/TextBlockDialog.svelte';
+	import ProfilePreview from '$lib/components/dashboard/preview/ProfilePreview.svelte';
 	import ImageUploader from '$lib/components/ui/ImageUploader.svelte';
-	import LinksToolbar from '$lib/components/dashboard/LinksToolbar.svelte';
+	import BioToolbar from '$lib/components/dashboard/bio/BioToolbar.svelte';
+	import CalendarView from '$lib/components/dashboard/bio/CalendarView.svelte';
 	import { profileApi } from '$lib/api/profile';
 	import { linksApi, type LinkFilters } from '$lib/api/links';
+	import { blocksApi, type Block } from '$lib/api/blocks';
 	import type { Profile } from '$lib/api/profile';
 	import type { Link } from '$lib/api/links';
 
 	let profile: Profile | null = null;
 	let links: Link[] = [];
-	let allLinks: Link[] = []; // Store unfiltered links
+	let allLinks: Link[] = [];
+	let blocks: Block[] = [];
 	let initialLoading = true;
 	let selectedIds = new Set<string>();
+
+	// Combined items for drag & drop
+	type CombinedItem = { type: 'link'; data: Link } | { type: 'block'; data: Block };
+	let items: CombinedItem[] = [];
+	
+	$: items = [
+		...(links || []).map(link => ({ type: 'link' as const, data: link, id: link.id, position: link.position })),
+		...(blocks || []).map(block => ({ type: 'block' as const, data: block, id: block.id, position: block.position }))
+	].sort((a, b) => a.position - b.position);
 
 	// Search & Filter state
 	let searchQuery = '';
@@ -29,6 +43,7 @@
 	let layoutFilter: 'classic' | 'featured' | '' = '';
 	let sortBy: 'position' | 'clicks' | 'created' | 'updated' | 'title' | '' = '';
 	let showFilters = false;
+	let showCalendar = false;
 
 	$: selectedCount = selectedIds.size;
 	$: hasActiveFilters = searchQuery || statusFilter || layoutFilter || sortBy;
@@ -47,12 +62,14 @@
 		});
 	}
 
-	let showAddLinkDialog = false;
-	let newLink = { title: '', url: '' };
+	let showAddBlockDialog = false;
+	let showTextBlockDialog = false;
+	let editingTextBlock: Block | null = null;
 	
 	let showThumbnailDialog = false;
 	let editingLinkId: string | null = null;
 	let uploadingThumbnail = false;
+	let showCalendarView = false;
 
 	onMount(async () => {
 		console.log('🎬 Component mounted');
@@ -70,6 +87,7 @@
 			
 			let profileData = null;
 			let linksData: Link[] = [];
+			let blocksData: Block[] = [];
 			
 			try {
 				profileData = await profileApi.getMyProfile($auth.token!);
@@ -84,9 +102,19 @@
 				linksData = [];
 			}
 			
+			try {
+				blocksData = await blocksApi.getBlocks($auth.token!);
+				console.log('✅ Blocks loaded:', blocksData);
+			} catch (blocksError: any) {
+				console.error('❌ Failed to load blocks:', blocksError);
+				blocksData = [];
+			}
+			
 			profile = profileData;
 			links = linksData;
-			allLinks = linksData; // Store original unfiltered list
+			allLinks = linksData;
+			blocks = blocksData;
+			console.log('📦 Final blocks state:', blocks);
 		} catch (error: any) {
 			console.error('Failed to load dashboard data:', error);
 			toast.error(error.message || 'Failed to load data');
@@ -145,43 +173,6 @@
 		if (isInitialized && (statusFilter !== undefined || layoutFilter !== undefined || sortBy !== undefined)) {
 			console.log('🚀 Calling applyFilters from filter change');
 			applyFilters();
-		}
-	}
-
-	async function handleAddLink() {
-		if (!newLink.title || !newLink.url) {
-			toast.error('Please fill in all fields');
-			return;
-		}
-
-		// Validate URL format
-		try {
-			new URL(newLink.url);
-		} catch {
-			toast.error('Please enter a valid URL (e.g., https://example.com)');
-			return;
-		}
-		
-		try {
-			await linksApi.createLink({
-				title: newLink.title,
-				url: newLink.url,
-				position: allLinks.length,
-				is_active: true
-			}, $auth.token!);
-			
-			// Reload data to get fresh list
-			await loadData();
-			if (hasActiveFilters) {
-				await applyFilters();
-			}
-			
-			newLink = { title: '', url: '' };
-			showAddLinkDialog = false;
-			toast.success('Link added successfully!');
-		} catch (error: any) {
-			console.error('Add link error:', error);
-			toast.error(error.message || 'Failed to add link');
 		}
 	}
 
@@ -272,6 +263,18 @@
 		}
 	}
 
+	async function handleUpdateSchedule(event: CustomEvent) {
+		const { id, scheduled_at, expires_at } = event.detail;
+		try {
+			const updated = await linksApi.updateLink(id, { scheduled_at, expires_at }, $auth.token!);
+			links = links.map(l => l.id === id ? updated : l);
+			allLinks = allLinks.map(l => l.id === id ? updated : l);
+			toast.success('Schedule updated!');
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to update schedule');
+		}
+	}
+
 	async function handleDuplicate(event: CustomEvent) {
 		const id = event.detail;
 		try {
@@ -347,6 +350,24 @@
 		}
 	}
 
+	async function bulkChangeLayout(layoutType: 'classic' | 'featured') {
+		if (selectedIds.size === 0) return;
+		
+		try {
+			const updatePromises = Array.from(selectedIds).map(id => 
+				linksApi.updateLink(id, { layout_type: layoutType }, $auth.token!)
+			);
+			await Promise.all(updatePromises);
+			
+			links = links.map(l => selectedIds.has(l.id) ? {...l, layout_type: layoutType} : l);
+			allLinks = allLinks.map(l => selectedIds.has(l.id) ? {...l, layout_type: layoutType} : l);
+			toast.success(`Changed ${selectedIds.size} links to ${layoutType} layout`);
+			clearSelection();
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to change layout');
+		}
+	}
+
 	async function handlePin(event: CustomEvent) {
 		const id = event.detail;
 		try {
@@ -356,6 +377,160 @@
 			toast.success(updated.is_pinned ? 'Link pinned!' : 'Link unpinned!');
 		} catch (error: any) {
 			toast.error(error.message || 'Failed to pin link');
+		}
+	}
+
+	// Block handlers
+	async function handleAddBlock(event: CustomEvent) {
+		const { type } = event.detail;
+		
+		// If text block, show the text dialog instead
+		if (type === 'text') {
+			showTextBlockDialog = true;
+			return;
+		}
+		
+		try {
+			let blockData: any = {
+				block_type: type,
+				is_active: true
+			};
+
+			// Set default values based on type - only include relevant fields
+			switch (type) {
+				case 'image':
+					blockData.image_url = '';
+					blockData.alt_text = '';
+					break;
+				case 'video':
+					blockData.video_url = '';
+					break;
+				case 'social':
+					blockData.social_links = [{ platform: 'facebook', url: '' }];
+					break;
+				case 'divider':
+					blockData.divider_style = 'line';
+					break;
+				case 'email':
+					blockData.content = 'Subscribe to my newsletter';
+					blockData.placeholder = 'Enter your email';
+					break;
+				case 'embed':
+					blockData.embed_url = '';
+					blockData.embed_type = 'spotify';
+					break;
+			}
+
+			await blocksApi.createBlock(blockData, $auth.token!);
+			await loadData();
+			toast.success('Block added!');
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to add block');
+		}
+	}
+
+	async function handleSaveTextBlock(event: CustomEvent) {
+		const { content, fontSize, textAlign, isBold, isItalic, isUnderline, isStrikethrough, textColor } = event.detail;
+		
+		try {
+			const style = JSON.stringify({
+				fontSize,
+				textAlign,
+				isBold,
+				isItalic,
+				isUnderline,
+				isStrikethrough,
+				textColor
+			});
+
+			if (editingTextBlock) {
+				// Update existing block
+				await blocksApi.updateBlock(editingTextBlock.id, {
+					content,
+					text_style: fontSize.startsWith('headline') ? 'heading' : 'paragraph',
+					style
+				}, $auth.token!);
+				await loadData();
+				toast.success('Text block updated!');
+				editingTextBlock = null;
+			} else {
+				// Create new block
+				await blocksApi.createBlock({
+					block_type: 'text',
+					is_active: true,
+					content,
+					text_style: fontSize.startsWith('headline') ? 'heading' : 'paragraph',
+					style
+				}, $auth.token!);
+				await loadData();
+				toast.success('Text block added!');
+			}
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to save text block');
+		}
+	}
+
+	function handleEditTextBlock(event: CustomEvent) {
+		editingTextBlock = event.detail;
+		showTextBlockDialog = true;
+	}
+
+	async function handleUpdateBlock(event: CustomEvent) {
+		const { id, ...data } = event.detail;
+		try {
+			await blocksApi.updateBlock(id, data, $auth.token!);
+			blocks = blocks.map(b => b.id === id ? { ...b, ...data } : b);
+			toast.success('Block updated!');
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to update block');
+		}
+	}
+
+	async function handleDeleteBlock(event: CustomEvent) {
+		const id = event.detail;
+		try {
+			await blocksApi.deleteBlock(id, $auth.token!);
+			blocks = blocks.filter(b => b.id !== id);
+			toast.success('Block deleted!');
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to delete block');
+		}
+	}
+
+	function handleSelectBlock(event: CustomEvent) {
+		const id = event.detail;
+		if (selectedIds.has(id)) {
+			selectedIds.delete(id);
+		} else {
+			selectedIds.add(id);
+		}
+		selectedIds = selectedIds;
+	}
+
+	// Drag & Drop handlers
+	function handleDndConsider(e: CustomEvent) {
+		items = e.detail.items;
+	}
+
+	async function handleDndFinalize(e: CustomEvent) {
+		items = e.detail.items;
+		
+		// Extract IDs in new order
+		const linkIds = items.filter(item => item.type === 'link').map(item => item.id);
+		const blockIds = items.filter(item => item.type === 'block').map(item => item.id);
+		
+		try {
+			// Update positions on backend
+			if (linkIds.length > 0) {
+				await linksApi.reorderLinks(linkIds, $auth.token!);
+			}
+			if (blockIds.length > 0) {
+				await blocksApi.reorderBlocks(blockIds, $auth.token!);
+			}
+			await loadData();
+		} catch (error: any) {
+			toast.error('Failed to reorder items');
+			console.error(error);
 		}
 	}
 
@@ -373,7 +548,7 @@
 </script>
 
 <svelte:head>
-	<title>Links - LinkBio</title>
+	<title>My Bio - LinkBio</title>
 </svelte:head>
 
 <style>
@@ -422,8 +597,8 @@
 	<div class="bg-white/80 backdrop-blur-xl border-b border-gray-200/50 px-8 h-16 sticky top-0 z-10">
 		<div class="flex items-center justify-between h-full">
 			<div>
-				<h1 class="text-xl font-bold text-gray-900">Links</h1>
-				<p class="text-xs text-gray-500">Manage and organize your links</p>
+				<h1 class="text-xl font-bold text-gray-900">My Bio</h1>
+				<p class="text-xs text-gray-500">Build and customize your bio page</p>
 			</div>
 			<div class="flex items-center gap-3">
 				<div class="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm min-w-[280px]">
@@ -497,78 +672,103 @@
 			<!-- Links Section (2/3) -->
 			<div class="lg:col-span-2 space-y-6">
 				<!-- Compact Toolbar -->
-				<LinksToolbar
+				<BioToolbar
 					bind:searchQuery
 					bind:showFilters
-					hasActiveFilters={[searchQuery, statusFilter, layoutFilter, sortBy].filter(Boolean).length}
+					bind:showCalendar
+					hasActiveFilters={!!searchQuery || !!statusFilter || !!layoutFilter || !!sortBy}
 					linksCount={links.length}
 					on:toggleFilters={() => showFilters = !showFilters}
+					on:toggleCalendar={() => showCalendar = !showCalendar}
 					on:selectAll={selectAll}
 					on:addCollection={() => toast.info('Add collection feature coming soon!')}
 					on:viewArchive={() => toast.info('View archive feature coming soon!')}
 				/>
 
+				<!-- Calendar View -->
+				{#if showCalendar}
+					<div class="animate-in">
+						<CalendarView {links} on:selectDate={(e) => {
+							const dateStr = new Date(currentYear, currentMonth, e.detail.date).toLocaleDateString();
+							toast.info(`${e.detail.links.length} link(s) on ${dateStr}`);
+						}} />
+					</div>
+				{/if}
+
 				<!-- Filter Options (when expanded) -->
 				{#if showFilters}
-					<div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm animate-in">
-						<div class="flex items-center gap-3 flex-wrap">
-							<!-- Status Filter -->
+					<div class="flex items-center gap-2 py-3 animate-in">
+						<!-- Status Filter -->
+						<div class="relative">
 							<select
 								bind:value={statusFilter}
-								class="flex-1 sm:flex-none px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer"
+								class="appearance-none pl-4 pr-9 py-2.5 bg-gray-50 border-0 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all cursor-pointer"
 							>
 								<option value="">All Status</option>
-								<option value="active">✓ Active</option>
-								<option value="inactive">✕ Inactive</option>
+								<option value="active">Active</option>
+								<option value="inactive">Inactive</option>
 							</select>
+							<svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+							</svg>
+						</div>
 
-							<!-- Layout Filter -->
+						<!-- Layout Filter -->
+						<div class="relative">
 							<select
 								bind:value={layoutFilter}
-								class="flex-1 sm:flex-none px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer"
+								class="appearance-none pl-4 pr-9 py-2.5 bg-gray-50 border-0 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all cursor-pointer"
 							>
 								<option value="">All Layouts</option>
 								<option value="classic">Classic</option>
 								<option value="featured">Featured</option>
 							</select>
+							<svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+							</svg>
+						</div>
 
-							<!-- Sort By -->
+						<!-- Sort By -->
+						<div class="relative">
 							<select
 								bind:value={sortBy}
-								class="flex-1 sm:flex-none px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer"
+								class="appearance-none pl-4 pr-9 py-2.5 bg-gray-50 border-0 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all cursor-pointer"
 							>
 								<option value="">Default Order</option>
-								<option value="clicks">🔥 Most Clicks</option>
-								<option value="created">🆕 Newest First</option>
-								<option value="updated">⏱️ Recently Updated</option>
-								<option value="title">🔤 Alphabetical</option>
+								<option value="clicks">Most Clicks</option>
+								<option value="created">Newest First</option>
+								<option value="updated">Recently Updated</option>
+								<option value="title">Alphabetical</option>
 							</select>
-
-							<!-- Clear Filters -->
-							{#if hasActiveFilters}
-								<button
-									onclick={clearFilters}
-									class="ml-auto flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-								>
-									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-									</svg>
-									Clear All
-								</button>
-							{/if}
+							<svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+							</svg>
 						</div>
+
+						<!-- Clear Filters -->
+						{#if hasActiveFilters}
+							<button
+								onclick={clearFilters}
+								class="ml-auto flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+							>
+								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+								</svg>
+								Clear
+							</button>
+						{/if}
 					</div>
 				{/if}
 
-				<!-- Add Link Button - Full Width -->
+				<!-- Add Block Button - Minimal -->
 				<button
-					onclick={() => showAddLinkDialog = true}
-					class="w-full flex items-center justify-center gap-3 px-6 py-8 bg-white hover:bg-gray-50 border border-dashed border-gray-300 hover:border-indigo-400 rounded-2xl text-gray-600 hover:text-indigo-600 font-semibold transition-all group"
+					onclick={() => showAddBlockDialog = true}
+					class="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gray-50 hover:bg-gray-100 rounded-xl text-gray-600 hover:text-gray-900 text-sm font-medium transition-all group"
 				>
-					<svg class="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
 					</svg>
-					<span class="text-lg">Add</span>
+					<span>Add</span>
 				</button>
 
 				<!-- Drag Disabled Notice -->
@@ -583,103 +783,116 @@
 					</div>
 				{/if}
 
-				<!-- Links List -->
+				<!-- Combined Links & Blocks List -->
 				<section 
 					class="space-y-3"
-					use:dndzone={{ 
-						items: links,
-						dragDisabled: hasActiveFilters,
-						dropTargetStyle: {},
-						type: 'links',
-						flipDurationMs: 0
-					}}
-					onconsider={(e) => {
-						links = e.detail.items;
-					}}
-					onfinalize={async (e) => {
-						const newOrder = e.detail.items;
-						const oldIds = links.map(l => l.id).join(',');
-						const newIds = newOrder.map(l => l.id).join(',');
-						const hasChanged = oldIds !== newIds;
-						
-						links = newOrder;
-						allLinks = newOrder;
-						
-						if (hasChanged) {
-							try {
-								await linksApi.reorderLinks(newOrder.map(l => l.id), $auth.token!);
-							} catch (error) {
-								console.error('Failed to reorder:', error);
-								toast.error('Failed to reorder links');
-							}
-						}
-					}}
+					use:dndzone={{items, flipDurationMs: 200, dropTargetStyle: {}, disabled: hasActiveFilters}}
+					onconsider={handleDndConsider}
+					onfinalize={handleDndFinalize}
 				>
-					{#each links as link (link.id)}
+					{#each items as item (item.id)}
 						<div style="outline: none;">
-							<LinkCard 
-								{link}
-								selected={selectedIds.has(link.id)}
-								on:update={handleUpdateLink}
-								on:delete={handleDeleteLink}
-								on:toggle={handleToggleLink}
-								on:editThumbnail={handleEditThumbnail}
-								on:updateLayout={handleUpdateLayout}
-								on:duplicate={handleDuplicate}
-								on:select={handleSelect}
-								on:pin={handlePin}
-							/>
+							{#if item.type === 'link'}
+								<LinkBlock 
+									link={item.data}
+									selected={selectedIds.has(item.id)}
+									on:update={handleUpdateLink}
+									on:delete={handleDeleteLink}
+									on:toggle={handleToggleLink}
+									on:editThumbnail={handleEditThumbnail}
+									on:updateLayout={handleUpdateLayout}
+									on:updateSchedule={handleUpdateSchedule}
+									on:duplicate={handleDuplicate}
+									on:select={handleSelect}
+									on:pin={handlePin}
+								/>
+							{:else if item.data.block_type === 'text'}
+								<TextBlock 
+									block={item.data}
+									selected={selectedIds.has(item.id)}
+									on:edit={handleEditTextBlock}
+									on:delete={handleDeleteBlock}
+									on:select={handleSelectBlock}
+								/>
+							{:else if item.data.block_type === 'image'}
+								<ImageBlock 
+									block={item.data}
+									selected={selectedIds.has(item.id)}
+									on:update={handleUpdateBlock}
+									on:delete={handleDeleteBlock}
+									on:select={handleSelectBlock}
+								/>
+							{:else if item.data.block_type === 'video'}
+								<VideoBlock 
+									block={item.data}
+									selected={selectedIds.has(item.id)}
+									on:update={handleUpdateBlock}
+									on:delete={handleDeleteBlock}
+									on:select={handleSelectBlock}
+								/>
+							{:else if item.data.block_type === 'social'}
+								<SocialBlock 
+									block={item.data}
+									selected={selectedIds.has(item.id)}
+									on:update={handleUpdateBlock}
+									on:delete={handleDeleteBlock}
+									on:select={handleSelectBlock}
+								/>
+							{:else if item.data.block_type === 'divider'}
+								<DividerBlock 
+									block={item.data}
+									selected={selectedIds.has(item.id)}
+									on:delete={handleDeleteBlock}
+									on:select={handleSelectBlock}
+								/>
+							{:else if item.data.block_type === 'email'}
+								<EmailCollectorBlock 
+									block={item.data}
+									selected={selectedIds.has(item.id)}
+									on:update={handleUpdateBlock}
+									on:delete={handleDeleteBlock}
+									on:select={handleSelectBlock}
+								/>
+							{:else if item.data.block_type === 'embed'}
+								<EmbedBlock 
+									block={item.data}
+									selected={selectedIds.has(item.id)}
+									on:update={handleUpdateBlock}
+									on:delete={handleDeleteBlock}
+									on:select={handleSelectBlock}
+								/>
+							{/if}
 						</div>
 					{/each}
 				</section>
 
-				{#if links.length === 0}
-					{#if hasActiveFilters}
-						<!-- No Results from Filter -->
-						<div class="relative bg-white rounded-2xl p-12 text-center border border-gray-200">
-							<div class="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-								<svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+				{#if items.length === 0}
+					<!-- No Content at All -->
+					<div class="relative bg-gradient-to-br from-indigo-50 via-white to-blue-50 rounded-2xl p-16 text-center border-2 border-dashed border-indigo-200 overflow-hidden">
+						<div class="absolute top-0 right-0 w-32 h-32 bg-indigo-100 rounded-full -mr-16 -mt-16 opacity-50"></div>
+						<div class="absolute bottom-0 left-0 w-24 h-24 bg-blue-100 rounded-full -ml-12 -mb-12 opacity-50"></div>
+						
+						<div class="relative">
+							<div class="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-indigo-500 to-blue-700 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-500/30">
+								<svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
 								</svg>
 							</div>
-							<h3 class="text-lg font-bold text-gray-900 mb-2">No links found</h3>
-							<p class="text-gray-600 mb-4">Try adjusting your filters or search query</p>
+							<h3 class="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent mb-2">
+								No content yet
+							</h3>
+							<p class="text-gray-600 mb-6 max-w-sm mx-auto">Get started by adding your first block to build your bio page</p>
 							<Button 
-								onclick={clearFilters}
-								variant="outline"
-								class="border-gray-300"
+								onclick={() => showAddBlockDialog = true}
+								class="bg-gradient-to-r from-indigo-700 to-blue-700 hover:from-indigo-800 hover:to-blue-800 shadow-lg shadow-indigo-500/30"
 							>
-								Clear Filters
+								<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+								</svg>
+								Add Your First Block
 							</Button>
 						</div>
-					{:else}
-						<!-- No Links at All -->
-						<div class="relative bg-gradient-to-br from-indigo-50 via-white to-blue-50 rounded-2xl p-16 text-center border-2 border-dashed border-indigo-200 overflow-hidden">
-							<div class="absolute top-0 right-0 w-32 h-32 bg-indigo-100 rounded-full -mr-16 -mt-16 opacity-50"></div>
-							<div class="absolute bottom-0 left-0 w-24 h-24 bg-blue-100 rounded-full -ml-12 -mb-12 opacity-50"></div>
-							
-							<div class="relative">
-								<div class="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-indigo-500 to-blue-700 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-500/30">
-									<svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
-									</svg>
-								</div>
-								<h3 class="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent mb-2">
-									No links yet
-								</h3>
-								<p class="text-gray-600 mb-6 max-w-sm mx-auto">Get started by adding your first link and share it with the world</p>
-								<Button 
-									onclick={() => showAddLinkDialog = true}
-									class="bg-gradient-to-r from-indigo-700 to-blue-700 hover:from-indigo-800 hover:to-blue-800 shadow-lg shadow-indigo-500/30"
-								>
-									<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-									</svg>
-									Add Your First Link
-								</Button>
-							</div>
-						</div>
-					{/if}
+					</div>
 				{/if}
 			</div>
 
@@ -695,7 +908,7 @@
 					<div class="relative">
 						<div class="absolute inset-0 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-3xl blur-2xl opacity-20"></div>
 						<div class="relative">
-							<ProfilePreview profile={displayProfile} {links} />
+							<ProfilePreview profile={displayProfile} {links} {blocks} />
 						</div>
 					</div>
 
@@ -719,32 +932,6 @@
 		{/if}
 	</div>
 </div>
-
-<!-- Add Link Dialog -->
-<Dialog.Root bind:open={showAddLinkDialog}>
-	<Dialog.Content class="sm:max-w-md">
-		<Dialog.Header>
-			<Dialog.Title>Add New Link</Dialog.Title>
-			<Dialog.Description>
-				Add a new link to your profile. It will be visible to your visitors.
-			</Dialog.Description>
-		</Dialog.Header>
-		<div class="space-y-4 py-4">
-			<div>
-				<Label for="link-title">Title</Label>
-				<Input id="link-title" bind:value={newLink.title} placeholder="My Awesome Link" class="mt-2" />
-			</div>
-			<div>
-				<Label for="link-url">URL</Label>
-				<Input id="link-url" bind:value={newLink.url} placeholder="https://example.com" class="mt-2" />
-			</div>
-		</div>
-		<Dialog.Footer>
-			<Button variant="outline" onclick={() => showAddLinkDialog = false}>Cancel</Button>
-			<Button onclick={handleAddLink} class="bg-gradient-to-r from-indigo-700 to-blue-700 hover:from-indigo-800 hover:to-blue-800 shadow-lg shadow-indigo-500/30">Add Link</Button>
-		</Dialog.Footer>
-	</Dialog.Content>
-</Dialog.Root>
 
 <!-- Floating Bulk Action Bar -->
 {#if selectedCount > 0}
@@ -777,6 +964,26 @@
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
 					</svg>
 					Hide
+				</button>
+				
+				<button
+					onclick={() => bulkChangeLayout('classic')}
+					class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+				>
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+					</svg>
+					Classic
+				</button>
+				
+				<button
+					onclick={() => bulkChangeLayout('featured')}
+					class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+				>
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+					</svg>
+					Featured
 				</button>
 				
 				<button
@@ -827,3 +1034,19 @@
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
+
+<!-- Add Block Dialog -->
+<AddBlockDialog bind:open={showAddBlockDialog} on:select={handleAddBlock} />
+
+<!-- Text Block Dialog -->
+<TextBlockDialog 
+	bind:open={showTextBlockDialog} 
+	editingBlock={editingTextBlock}
+	on:save={handleSaveTextBlock}
+	on:close={() => editingTextBlock = null}
+/>
+
+<!-- Calendar View -->
+{#if showCalendarView}
+	<CalendarView links={allLinks} onClose={() => showCalendarView = false} />
+{/if}

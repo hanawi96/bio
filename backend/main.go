@@ -55,6 +55,12 @@ func main() {
 	apiGroup := app.Group("/api")
 	api.SetupRoutes(apiGroup, db, cfg)
 
+	// Start scheduler for auto-publish/unpublish
+	scheduler := api.GetScheduler()
+	if scheduler != nil {
+		scheduler.Start()
+	}
+
 	// Start server
 	port := os.Getenv("PORT")
 	if port == "" {
