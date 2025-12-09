@@ -302,9 +302,9 @@
 				<!-- Add Link Button -->
 				<button
 					onclick={() => dispatch('addlink', group.id)}
-					class="w-full px-6 py-4 bg-gray-900 hover:bg-gray-800 text-white rounded-xl transition-all flex items-center justify-center gap-2 text-base font-semibold shadow-sm mb-6"
+					class="w-full px-4 py-3 text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 text-sm font-medium mb-6"
 				>
-					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
 						<path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
 					</svg>
 					Add link
@@ -319,7 +319,7 @@
 				>
 					{#each dndItems as item (item.id)}
 						{@const link = item.data}
-						<div class="bg-white rounded-xl shadow-sm p-3">
+						<div class="bg-gray-50 rounded-xl shadow-sm p-3">
 							<div class="flex gap-3 items-start">
 								<!-- Drag Handle -->
 								<button class="drag-handle pt-0.5 cursor-grab active:cursor-grabbing">

@@ -4,7 +4,6 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import type { Link } from '$lib/api/links';
-	import ImageUploader from '$lib/components/ui/ImageUploader.svelte';
 	
 	export let open = false;
 	export let link: Link | null = null;
@@ -14,8 +13,7 @@
 	
 	let title = '';
 	let url = '';
-	let thumbnailUrl: string | null = null;
-	let uploadingThumbnail = false;
+	let urlError = '';
 	
 	// Mode: 'add' or 'edit'
 	$: mode = link ? 'edit' : 'add';
@@ -23,18 +21,42 @@
 	$: if (link && open) {
 		title = link.title;
 		url = link.url;
-		thumbnailUrl = link.thumbnail_url || null;
+		urlError = '';
+	}
+	
+	function isValidUrl(urlString: string): boolean {
+		try {
+			const urlObj = new URL(urlString);
+			return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+		} catch {
+			return false;
+		}
+	}
+	
+	function validateUrl() {
+		if (!url.trim()) {
+			urlError = '';
+			return;
+		}
+		
+		if (!isValidUrl(url.trim())) {
+			urlError = 'Please enter a valid URL (e.g., https://example.com)';
+		} else {
+			urlError = '';
+		}
 	}
 	
 	function handleSave() {
 		if (!title.trim() || !url.trim()) return;
 		
+		validateUrl();
+		if (urlError) return;
+		
 		if (mode === 'edit' && link) {
 			dispatch('save', {
 				id: link.id,
 				title: title.trim(),
-				url: url.trim(),
-				thumbnail_url: thumbnailUrl
+				url: url.trim()
 			});
 		} else {
 			dispatch('add', {
@@ -46,29 +68,10 @@
 		open = false;
 	}
 	
-	async function handleUploadThumbnail(event: CustomEvent) {
-		const file = event.detail as File;
-		uploadingThumbnail = true;
-		
-		// Dispatch to parent to handle actual upload
-		dispatch('uploadThumbnail', { linkId: link?.id, file });
-	}
-	
-	// Reset uploading state when thumbnail changes (upload complete)
-	$: if (link?.thumbnail_url && uploadingThumbnail && thumbnailUrl !== link.thumbnail_url) {
-		thumbnailUrl = link.thumbnail_url;
-		uploadingThumbnail = false;
-	}
-	
-	function handleRemoveThumbnail() {
-		thumbnailUrl = null;
-		dispatch('removeThumbnail', link?.id);
-	}
-	
 	function resetForm() {
 		title = '';
 		url = '';
-		thumbnailUrl = null;
+		urlError = '';
 	}
 	
 	$: if (!open) {
@@ -113,23 +116,13 @@
 					type="url"
 					bind:value={url}
 					placeholder="https://example.com"
-					class="w-full"
+					class={urlError ? 'w-full border-red-500' : 'w-full'}
+					onblur={validateUrl}
 				/>
+				{#if urlError}
+					<p class="text-xs text-red-600">{urlError}</p>
+				{/if}
 			</div>
-
-			<!-- Thumbnail (only in edit mode) -->
-			{#if mode === 'edit'}
-				<div class="space-y-2">
-					<Label>Thumbnail Image</Label>
-					<ImageUploader 
-						currentImage={thumbnailUrl}
-						uploading={uploadingThumbnail}
-						on:upload={handleUploadThumbnail}
-						on:remove={handleRemoveThumbnail}
-					/>
-					<p class="text-xs text-gray-500">Recommended size: 400x400px</p>
-				</div>
-			{/if}
 		</div>
 
 		<Dialog.Footer>
@@ -143,7 +136,7 @@
 			<button 
 				type="button"
 				onclick={handleSave}
-				disabled={!title.trim() || !url.trim()}
+				disabled={!title.trim() || !url.trim() || !!urlError}
 				class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
 			>
 				{#if mode === 'add'}

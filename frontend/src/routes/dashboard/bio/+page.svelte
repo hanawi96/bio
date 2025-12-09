@@ -393,9 +393,9 @@
 	}
 
 	async function handleSaveGroupLink(event: CustomEvent) {
-		const { id, title, url, thumbnail_url } = event.detail;
+		const { id, title, url } = event.detail;
 		try {
-			await linksApi.updateLink(id, { title, url, thumbnail_url }, $auth.token!);
+			await linksApi.updateLink(id, { title, url }, $auth.token!);
 			
 			// Update local state immediately
 			links = links.map(link => {
@@ -404,7 +404,7 @@
 						...link,
 						children: link.children.map(child => 
 							child.id === id 
-								? { ...child, title, url, thumbnail_url } 
+								? { ...child, title, url } 
 								: child
 						)
 					};
@@ -417,7 +417,7 @@
 						...link,
 						children: link.children.map(child => 
 							child.id === id 
-								? { ...child, title, url, thumbnail_url } 
+								? { ...child, title, url } 
 								: child
 						)
 					};
@@ -1127,7 +1127,7 @@
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
 					</svg>
-					<span>Add</span>
+					<span>Add Block</span>
 				</button>
 
 				<!-- Drag Disabled Notice -->
@@ -1411,8 +1411,6 @@
 	bind:open={showEditGroupLinkDialog}
 	link={editingGroupLink}
 	on:save={handleSaveGroupLink}
-	on:uploadThumbnail={handleUploadGroupLinkThumbnail}
-	on:removeThumbnail={handleRemoveGroupLinkThumbnail}
 />
 
 

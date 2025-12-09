@@ -12,9 +12,35 @@
 	
 	let title = '';
 	let url = '';
+	let urlError = '';
+	
+	function isValidUrl(urlString: string): boolean {
+		try {
+			const urlObj = new URL(urlString);
+			return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+		} catch {
+			return false;
+		}
+	}
+	
+	function validateUrl() {
+		if (!url.trim()) {
+			urlError = '';
+			return;
+		}
+		
+		if (!isValidUrl(url.trim())) {
+			urlError = 'Please enter a valid URL (e.g., https://example.com)';
+		} else {
+			urlError = '';
+		}
+	}
 	
 	function handleAdd() {
 		if (!title.trim() || !url.trim()) return;
+		
+		validateUrl();
+		if (urlError) return;
 		
 		dispatch('add', { 
 			title: title.trim(), 
@@ -25,6 +51,7 @@
 	function resetForm() {
 		title = '';
 		url = '';
+		urlError = '';
 	}
 	
 	// Reset form when dialog closes
@@ -66,9 +93,13 @@
 					type="url"
 					bind:value={url}
 					placeholder="https://example.com"
-					class="w-full"
+					class={urlError ? 'w-full border-red-500' : 'w-full'}
+					onblur={validateUrl}
 					onkeydown={(e) => e.key === 'Enter' && handleAdd()}
 				/>
+				{#if urlError}
+					<p class="text-xs text-red-600">{urlError}</p>
+				{/if}
 			</div>
 		</div>
 
@@ -83,7 +114,7 @@
 			<button 
 				type="button"
 				onclick={handleAdd}
-				disabled={!title.trim() || !url.trim()}
+				disabled={!title.trim() || !url.trim() || !!urlError}
 				class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
 			>
 				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
