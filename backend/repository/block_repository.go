@@ -90,10 +90,16 @@ func (r *BlockRepository) Create(userID string, data map[string]interface{}) (*B
 		}
 	}
 
+	// Get is_active value, default to true
+	isActive := true
+	if val, ok := data["is_active"].(bool); ok {
+		isActive = val
+	}
+
 	var block Block
 	query := `
-		INSERT INTO blocks (profile_id, block_type, position, content, text_style, style, image_url, alt_text, video_url, social_links, divider_style, placeholder, embed_url, embed_type, link_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+		INSERT INTO blocks (profile_id, block_type, position, is_active, content, text_style, style, image_url, alt_text, video_url, social_links, divider_style, placeholder, embed_url, embed_type, link_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 		RETURNING id, profile_id, block_type, position, is_active, content, text_style, style, image_url, alt_text, video_url, social_links, divider_style, placeholder, embed_url, embed_type, link_id, created_at, updated_at
 	`
 	
@@ -103,6 +109,7 @@ func (r *BlockRepository) Create(userID string, data map[string]interface{}) (*B
 		profileID,
 		data["block_type"],
 		maxPosition+1,
+		isActive,
 		getVal("content"),
 		getVal("text_style"),
 		getVal("style"),

@@ -51,7 +51,7 @@
 			console.error('Failed to parse style:', e);
 		}
 
-		fontSize = styleConfig.fontSize || 'medium';
+		fontSize = styleConfig.fontSize || 'text-medium';
 		textAlign = styleConfig.textAlign || 'left';
 		isBold = styleConfig.isBold || false;
 		isItalic = styleConfig.isItalic || false;

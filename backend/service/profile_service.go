@@ -8,13 +8,15 @@ type ProfileService struct {
 	profileRepo *repository.ProfileRepository
 	userRepo    *repository.UserRepository
 	linkRepo    *repository.LinkRepository
+	blockRepo   *repository.BlockRepository
 }
 
-func NewProfileService(profileRepo *repository.ProfileRepository, userRepo *repository.UserRepository, linkRepo *repository.LinkRepository) *ProfileService {
+func NewProfileService(profileRepo *repository.ProfileRepository, userRepo *repository.UserRepository, linkRepo *repository.LinkRepository, blockRepo *repository.BlockRepository) *ProfileService {
 	return &ProfileService{
 		profileRepo: profileRepo,
 		userRepo:    userRepo,
 		linkRepo:    linkRepo,
+		blockRepo:   blockRepo,
 	}
 }
 
@@ -45,7 +47,7 @@ func (s *ProfileService) GetPublicProfileWithLinks(username string) (map[string]
 		return nil, err
 	}
 
-	// Get user to fetch links
+	// Get user to fetch links and blocks
 	user, err := s.userRepo.GetByUsername(username)
 	if err != nil {
 		return nil, err
@@ -56,8 +58,14 @@ func (s *ProfileService) GetPublicProfileWithLinks(username string) (map[string]
 		links = []repository.Link{}
 	}
 
+	blocks, err := s.blockRepo.GetByUserID(user.ID)
+	if err != nil {
+		blocks = []repository.Block{}
+	}
+
 	return map[string]interface{}{
 		"profile": profile,
 		"links":   links,
+		"blocks":  blocks,
 	}, nil
 }

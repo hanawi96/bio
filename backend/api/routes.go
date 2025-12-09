@@ -25,7 +25,7 @@ func SetupRoutes(api fiber.Router, db *sql.DB, cfg *config.Config) {
 
 	// Initialize services
 	authService := service.NewAuthService(userRepo, cfg)
-	profileService := service.NewProfileService(profileRepo, userRepo, linkRepo)
+	profileService := service.NewProfileService(profileRepo, userRepo, linkRepo, blockRepo)
 	linkService := service.NewLinkService(linkRepo)
 	blockService := service.NewBlockService(blockRepo)
 	schedulerInstance = service.NewSchedulerService(db)

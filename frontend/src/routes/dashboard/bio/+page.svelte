@@ -29,7 +29,9 @@
 	let selectedIds = new Set<string>();
 
 	// Combined items for drag & drop
-	type CombinedItem = { type: 'link'; data: Link } | { type: 'block'; data: Block };
+	type CombinedItem = 
+		| { type: 'link'; data: Link; id: string; position: number }
+		| { type: 'block'; data: Block; id: string; position: number };
 	let items: CombinedItem[] = [];
 	
 	$: items = [
@@ -46,7 +48,7 @@
 	let showCalendar = false;
 
 	$: selectedCount = selectedIds.size;
-	$: hasActiveFilters = searchQuery || statusFilter || layoutFilter || sortBy;
+	$: hasActiveFilters = !!(searchQuery || statusFilter || layoutFilter || sortBy);
 
 	function handleCopyUrl() {
 		if (!profile?.username) {
@@ -72,11 +74,8 @@
 	let showCalendarView = false;
 
 	onMount(async () => {
-		console.log('🎬 Component mounted');
 		await loadData();
-		// Set initialized after data loaded
 		setTimeout(() => {
-			console.log('✅ Setting isInitialized to true');
 			isInitialized = true;
 		}, 100);
 	});
@@ -104,9 +103,8 @@
 			
 			try {
 				blocksData = await blocksApi.getBlocks($auth.token!);
-				console.log('✅ Blocks loaded:', blocksData);
 			} catch (blocksError: any) {
-				console.error('❌ Failed to load blocks:', blocksError);
+				console.error('Failed to load blocks:', blocksError);
 				blocksData = [];
 			}
 			
@@ -114,7 +112,6 @@
 			links = linksData;
 			allLinks = linksData;
 			blocks = blocksData;
-			console.log('📦 Final blocks state:', blocks);
 		} catch (error: any) {
 			console.error('Failed to load dashboard data:', error);
 			toast.error(error.message || 'Failed to load data');
@@ -132,12 +129,7 @@
 				sort_by: sortBy || undefined
 			};
 			
-			console.log('🔍 Applying filters:', filters);
-			console.log('📊 Current links count before filter:', links.length);
-			
 			links = await linksApi.getLinks($auth.token!, filters);
-			
-			console.log('✅ Links after filter:', links.length, links);
 		} catch (error: any) {
 			console.error('❌ Failed to apply filters:', error);
 			toast.error('Failed to apply filters');
@@ -157,21 +149,16 @@
 	let isInitialized = false;
 	
 	$: {
-		console.log('🔄 Search query changed:', searchQuery, 'isInitialized:', isInitialized);
 		if (isInitialized && searchQuery !== undefined) {
 			clearTimeout(searchTimeout);
-			console.log('⏱️ Setting timeout for search...');
 			searchTimeout = setTimeout(() => {
-				console.log('🚀 Timeout fired, calling applyFilters');
 				applyFilters();
 			}, 300);
 		}
 	}
 
 	$: {
-		console.log('🔄 Filters changed - status:', statusFilter, 'layout:', layoutFilter, 'sort:', sortBy);
 		if (isInitialized && (statusFilter !== undefined || layoutFilter !== undefined || sortBy !== undefined)) {
-			console.log('🚀 Calling applyFilters from filter change');
 			applyFilters();
 		}
 	}
@@ -509,11 +496,18 @@
 
 	// Drag & Drop handlers
 	function handleDndConsider(e: CustomEvent) {
+		if (hasActiveFilters) return;
 		items = e.detail.items;
 	}
 
 	async function handleDndFinalize(e: CustomEvent) {
+		if (hasActiveFilters) return;
 		items = e.detail.items;
+		
+		// Update positions based on new order in combined items array
+		items.forEach((item, index) => {
+			item.data.position = index;
+		});
 		
 		// Extract IDs in new order
 		const linkIds = items.filter(item => item.type === 'link').map(item => item.id);
@@ -527,10 +521,14 @@
 			if (blockIds.length > 0) {
 				await blocksApi.reorderBlocks(blockIds, $auth.token!);
 			}
-			await loadData();
+			// Update local state
+			links = items.filter(item => item.type === 'link').map(item => item.data);
+			blocks = items.filter(item => item.type === 'block').map(item => item.data);
+			allLinks = [...links];
 		} catch (error: any) {
 			toast.error('Failed to reorder items');
 			console.error(error);
+			await loadData();
 		}
 	}
 
@@ -786,7 +784,7 @@
 				<!-- Combined Links & Blocks List -->
 				<section 
 					class="space-y-3"
-					use:dndzone={{items, flipDurationMs: 200, dropTargetStyle: {}, disabled: hasActiveFilters}}
+					use:dndzone={{items, flipDurationMs: 200, dropTargetStyle: {}}}
 					onconsider={handleDndConsider}
 					onfinalize={handleDndFinalize}
 				>
