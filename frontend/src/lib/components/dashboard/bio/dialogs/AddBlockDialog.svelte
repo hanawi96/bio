@@ -6,7 +6,7 @@
 	
 	const dispatch = createEventDispatcher();
 
-	type BlockType = 'text' | 'image' | 'video' | 'social' | 'divider' | 'email' | 'embed';
+	type BlockType = 'text' | 'image' | 'video' | 'social' | 'divider' | 'email' | 'embed' | 'group';
 
 	const blockTypes: Array<{
 		type: BlockType;
@@ -14,7 +14,16 @@
 		title: string;
 		description: string;
 		badge?: string;
+		gradient?: boolean;
 	}> = [
+		{
+			type: 'group',
+			icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10',
+			title: 'Link Group',
+			description: 'Organize multiple links together',
+			badge: 'NEW',
+			gradient: true
+		},
 		{
 			type: 'text',
 			icon: 'M4 6h16M4 12h16M4 18h7',
@@ -80,7 +89,16 @@
 			{#each blockTypes as block}
 				<button
 					onclick={() => selectBlock(block.type)}
-					class="group relative p-4 bg-gray-50 hover:bg-indigo-50 rounded-xl text-left transition-all border-2 border-transparent hover:border-indigo-200"
+					class="group relative p-4 rounded-xl text-left transition-all border-2"
+					class:bg-gradient-to-br={block.gradient}
+					class:from-indigo-50={block.gradient}
+					class:to-purple-50={block.gradient}
+					class:border-indigo-200={block.gradient}
+					class:hover:border-indigo-300={block.gradient}
+					class:bg-gray-50={!block.gradient}
+					class:hover:bg-indigo-50={!block.gradient}
+					class:border-transparent={!block.gradient}
+					class:hover:border-indigo-200={!block.gradient}
 				>
 					{#if block.badge}
 						<span class="absolute top-2 right-2 px-2 py-0.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-[10px] font-bold rounded-full">
@@ -88,14 +106,41 @@
 						</span>
 					{/if}
 					<div class="flex items-start gap-3">
-						<div class="flex-shrink-0 w-10 h-10 bg-white group-hover:bg-indigo-100 rounded-lg flex items-center justify-center transition-colors">
-							<svg class="w-5 h-5 text-gray-600 group-hover:text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<div 
+							class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-colors"
+							class:bg-gradient-to-br={block.gradient}
+							class:from-indigo-500={block.gradient}
+							class:to-purple-600={block.gradient}
+							class:bg-white={!block.gradient}
+							class:group-hover:bg-indigo-100={!block.gradient}
+						>
+							<svg 
+								class="w-5 h-5 transition-colors" 
+								class:text-white={block.gradient}
+								class:text-gray-600={!block.gradient}
+								class:group-hover:text-indigo-600={!block.gradient}
+								fill="none" 
+								stroke="currentColor" 
+								viewBox="0 0 24 24"
+							>
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={block.icon}/>
 							</svg>
 						</div>
 						<div class="flex-1 min-w-0">
-							<h3 class="text-sm font-semibold text-gray-900 mb-0.5">{block.title}</h3>
-							<p class="text-xs text-gray-500">{block.description}</p>
+							<h3 
+								class="text-sm font-semibold mb-0.5"
+								class:text-indigo-900={block.gradient}
+								class:text-gray-900={!block.gradient}
+							>
+								{block.title}
+							</h3>
+							<p 
+								class="text-xs"
+								class:text-indigo-700={block.gradient}
+								class:text-gray-500={!block.gradient}
+							>
+								{block.description}
+							</p>
 						</div>
 					</div>
 				</button>

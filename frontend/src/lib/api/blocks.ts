@@ -3,6 +3,10 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 export interface Block {
 	id: string;
 	profile_id: string;
+	parent_id?: string | null;
+	is_group: boolean;
+	group_title?: string | null;
+	group_layout: 'list' | 'grid' | 'carousel';
 	block_type: 'text' | 'image' | 'video' | 'social' | 'divider' | 'email' | 'embed' | 'link';
 	position: number;
 	is_active: boolean;
@@ -20,6 +24,7 @@ export interface Block {
 	link_id?: string;
 	created_at: Date;
 	updated_at: Date;
+	children?: Block[];
 }
 
 export const blocksApi = {

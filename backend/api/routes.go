@@ -55,11 +55,20 @@ func SetupRoutes(api fiber.Router, db *sql.DB, cfg *config.Config) {
 	// Link management
 	protected.Get("/links", linkHandler.GetLinks)
 	protected.Post("/links", linkHandler.CreateLink)
-	protected.Put("/links/reorder", linkHandler.ReorderLinks)
 	protected.Put("/items/reorder", linkHandler.ReorderAll)
 	protected.Post("/links/bulk", linkHandler.BulkAction)
+	
+	// Link group management (MUST be before /:id routes)
+	protected.Post("/links/groups", linkHandler.CreateGroup)
+	protected.Post("/links/groups/:groupId/items", linkHandler.AddToGroup)
+	protected.Post("/links/groups/:groupId/duplicate", linkHandler.DuplicateGroup)
+	protected.Put("/links/groups/:groupId/reorder", linkHandler.ReorderGroupLinks)
+	
+	// Link individual operations (with :id param)
 	protected.Post("/links/:id/duplicate", linkHandler.DuplicateLink)
 	protected.Post("/links/:id/pin", linkHandler.TogglePin)
+	protected.Put("/links/:id/move-to-group", linkHandler.MoveToGroup)
+	protected.Put("/links/:id/remove-from-group", linkHandler.RemoveFromGroup)
 	protected.Put("/links/:id", linkHandler.UpdateLink)
 	protected.Delete("/links/:id", linkHandler.DeleteLink)
 
@@ -75,7 +84,4 @@ func SetupRoutes(api fiber.Router, db *sql.DB, cfg *config.Config) {
 	protected.Post("/blocks/bulk-delete", blockHandler.BulkDelete)
 	protected.Put("/blocks/:id", blockHandler.UpdateBlock)
 	protected.Delete("/blocks/:id", blockHandler.DeleteBlock)
-
-	// Analytics
-	protected.Get("/analytics", linkHandler.GetAnalytics)
 }

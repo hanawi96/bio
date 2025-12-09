@@ -8,11 +8,13 @@
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { toast } from 'svelte-sonner';
 	
-	import { LinkBlock, TextBlock, ImageBlock, VideoBlock, SocialBlock, DividerBlock, EmailCollectorBlock, EmbedBlock } from '$lib/components/dashboard/bio/blocks';
+	import { LinkGroupCard, TextBlock, ImageBlock, VideoBlock, SocialBlock, DividerBlock, EmailCollectorBlock, EmbedBlock } from '$lib/components/dashboard/bio/blocks';
 	import { AddBlockDialog } from '$lib/components/dashboard/bio/dialogs';
 	import TextBlockDialog from '$lib/components/dashboard/bio/dialogs/TextBlockDialog.svelte';
+	import CreateGroupDialog from '$lib/components/dashboard/bio/dialogs/CreateGroupDialog.svelte';
+	import AddToGroupDialog from '$lib/components/dashboard/bio/dialogs/AddToGroupDialog.svelte';
+	import EditGroupLinkDialog from '$lib/components/dashboard/bio/dialogs/EditGroupLinkDialog.svelte';
 	import ProfilePreview from '$lib/components/dashboard/preview/ProfilePreview.svelte';
-	import ImageUploader from '$lib/components/ui/ImageUploader.svelte';
 	import BioToolbar from '$lib/components/dashboard/bio/BioToolbar.svelte';
 	import CalendarView from '$lib/components/dashboard/bio/CalendarView.svelte';
 	import { profileApi } from '$lib/api/profile';
@@ -38,6 +40,8 @@
 		...(links || []).map(link => ({ type: 'link' as const, data: link, id: link.id, position: link.position })),
 		...(blocks || []).map(block => ({ type: 'block' as const, data: block, id: block.id, position: block.position }))
 	].sort((a, b) => a.position - b.position);
+
+
 
 	// Search & Filter state
 	let searchQuery = '';
@@ -67,11 +71,15 @@
 	let showAddBlockDialog = false;
 	let showTextBlockDialog = false;
 	let editingTextBlock: Block | null = null;
-	
-	let showThumbnailDialog = false;
-	let editingLinkId: string | null = null;
-	let uploadingThumbnail = false;
 	let showCalendarView = false;
+	
+	let showCreateGroupDialog = false;
+	let showGroupLinkDialog = false;
+	let showAddToGroupDialog = false;
+	let showEditGroupLinkDialog = false;
+	let currentGroupId: string | null = null;
+	let currentGroupTitle: string = '';
+	let editingGroupLink: Link | null = null;
 
 	onMount(async () => {
 		await loadData();
@@ -163,118 +171,7 @@
 		}
 	}
 
-	async function handleUpdateLink(event: CustomEvent) {
-		const { id, title, url } = event.detail;
-		try {
-			const updated = await linksApi.updateLink(id, { title, url }, $auth.token!);
-			links = links.map(link => link.id === id ? updated : link);
-			allLinks = allLinks.map(link => link.id === id ? updated : link);
-			toast.success('Link updated!');
-		} catch (error: any) {
-			toast.error(error.message || 'Failed to update link');
-		}
-	}
 
-	async function handleDeleteLink(event: CustomEvent) {
-		const id = event.detail;
-		try {
-			await linksApi.deleteLink(id, $auth.token!);
-			links = links.filter(link => link.id !== id);
-			allLinks = allLinks.filter(link => link.id !== id);
-			toast.success('Link deleted!');
-		} catch (error: any) {
-			toast.error(error.message || 'Failed to delete link');
-		}
-	}
-
-	async function handleToggleLink(event: CustomEvent) {
-		const id = event.detail;
-		const link = links.find(l => l.id === id);
-		if (!link) return;
-		
-		try {
-			const updated = await linksApi.updateLink(id, { is_active: !link.is_active }, $auth.token!);
-			links = links.map(l => l.id === id ? updated : l);
-			allLinks = allLinks.map(l => l.id === id ? updated : l);
-		} catch (error: any) {
-			toast.error(error.message || 'Failed to toggle link');
-		}
-	}
-
-	function handleEditThumbnail(event: CustomEvent) {
-		editingLinkId = event.detail;
-		showThumbnailDialog = true;
-	}
-
-	async function handleUploadThumbnail(event: CustomEvent) {
-		if (!editingLinkId) return;
-		
-		const file = event.detail as File;
-		uploadingThumbnail = true;
-		
-		try {
-			const updated = await linksApi.uploadThumbnail(editingLinkId, file, $auth.token!);
-			links = links.map(l => l.id === editingLinkId ? updated : l);
-			allLinks = allLinks.map(l => l.id === editingLinkId ? updated : l);
-			toast.success('Thumbnail uploaded!');
-		} catch (error: any) {
-			toast.error(error.message || 'Failed to upload thumbnail');
-		} finally {
-			uploadingThumbnail = false;
-		}
-	}
-
-	async function handleRemoveThumbnail() {
-		if (!editingLinkId) return;
-		
-		try {
-			const updated: Link = await linksApi.deleteThumbnail(editingLinkId, $auth.token!);
-			links = links.map(l => l.id === editingLinkId ? updated : l);
-			allLinks = allLinks.map(l => l.id === editingLinkId ? updated : l);
-			toast.success('Thumbnail removed!');
-			showThumbnailDialog = false;
-		} catch (error: any) {
-			toast.error(error.message || 'Failed to remove thumbnail');
-		}
-	}
-
-	async function handleUpdateLayout(event: CustomEvent) {
-		const { id, layout_type } = event.detail;
-		try {
-			const updated = await linksApi.updateLink(id, { layout_type }, $auth.token!);
-			links = links.map(l => l.id === id ? updated : l);
-			allLinks = allLinks.map(l => l.id === id ? updated : l);
-			toast.success(`Layout changed to ${layout_type}!`);
-		} catch (error: any) {
-			toast.error(error.message || 'Failed to update layout');
-		}
-	}
-
-	async function handleUpdateSchedule(event: CustomEvent) {
-		const { id, scheduled_at, expires_at } = event.detail;
-		try {
-			const updated = await linksApi.updateLink(id, { scheduled_at, expires_at }, $auth.token!);
-			links = links.map(l => l.id === id ? updated : l);
-			allLinks = allLinks.map(l => l.id === id ? updated : l);
-			toast.success('Schedule updated!');
-		} catch (error: any) {
-			toast.error(error.message || 'Failed to update schedule');
-		}
-	}
-
-	async function handleDuplicate(event: CustomEvent) {
-		const id = event.detail;
-		try {
-			await linksApi.duplicateLink(id, $auth.token!);
-			await loadData();
-			if (hasActiveFilters) {
-				await applyFilters();
-			}
-			toast.success('Link duplicated successfully!');
-		} catch (error: any) {
-			toast.error(error.message || 'Failed to duplicate link');
-		}
-	}
 
 	function handleSelect(event: CustomEvent) {
 		const id = event.detail;
@@ -355,21 +252,374 @@
 		}
 	}
 
-	async function handlePin(event: CustomEvent) {
-		const id = event.detail;
+
+
+	// Group handlers
+	async function handleCreateGroup(event: CustomEvent) {
+		const { title, layout } = event.detail;
 		try {
-			const updated = await linksApi.togglePin(id, $auth.token!);
-			// Reload to get correct order
+			await linksApi.createGroup(title, layout, $auth.token!);
 			await loadData();
-			toast.success(updated.is_pinned ? 'Link pinned!' : 'Link unpinned!');
+			showCreateGroupDialog = false;
+			toast.success('Group created!');
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to create group');
+		}
+	}
+
+	function handleAddLinkToGroup(event: CustomEvent) {
+		const groupId = event.detail;
+		const group = links.find(l => l.id === groupId);
+		if (group) {
+			currentGroupId = groupId;
+			currentGroupTitle = group.group_title || 'Group';
+			showAddToGroupDialog = true;
+		}
+	}
+
+	async function handleAddToGroup(event: CustomEvent) {
+		if (!currentGroupId) return;
+		const { title, url } = event.detail;
+		try {
+			await linksApi.addToGroup(currentGroupId, { title, url }, $auth.token!);
+			await loadData();
+			showAddToGroupDialog = false;
+			toast.success('Link added to group!');
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to add link');
+		}
+	}
+
+	async function handleRemoveFromGroup(event: CustomEvent) {
+		const linkId = event.detail;
+		try {
+			await linksApi.removeFromGroup(linkId, $auth.token!);
+			// Update local state without reloading - keep UI expanded
+			links = links.map(link => {
+				if (link.is_group && link.children) {
+					return {
+						...link,
+						children: link.children.filter(child => child.id !== linkId)
+					};
+				}
+				return link;
+			});
+			allLinks = allLinks.filter(l => l.id !== linkId);
+			toast.success('Link removed!');
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to remove link');
+		}
+	}
+
+	async function handleToggleNewTab(event: CustomEvent) {
+		const linkId = event.detail;
+		try {
+			// Find current state
+			let currentState = false;
+			for (const link of links) {
+				if (link.is_group && link.children) {
+					const child = link.children.find(c => c.id === linkId);
+					if (child) {
+						currentState = child.open_in_new_tab || false;
+						break;
+					}
+				}
+			}
+			
+			// Toggle
+			const newState = !currentState;
+			await linksApi.updateLink(linkId, { open_in_new_tab: newState }, $auth.token!);
+			
+			// Update local state without reloading - keep UI expanded
+			links = links.map(link => {
+				if (link.is_group && link.children) {
+					return {
+						...link,
+						children: link.children.map(child => 
+							child.id === linkId ? { ...child, open_in_new_tab: newState } : child
+						)
+					};
+				}
+				return link;
+			});
+			
+			toast.success(newState ? 'Will open in new tab' : 'Will open in same tab');
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to update setting');
+		}
+	}
+
+	function handleEditGroupLink(event: CustomEvent) {
+		editingGroupLink = event.detail;
+		showEditGroupLinkDialog = true;
+	}
+
+	async function handleSaveGroupLink(event: CustomEvent) {
+		const { id, title, url, thumbnail_url } = event.detail;
+		try {
+			await linksApi.updateLink(id, { title, url, thumbnail_url }, $auth.token!);
+			
+			// Update local state immediately
+			links = links.map(link => {
+				if (link.is_group && link.children) {
+					return {
+						...link,
+						children: link.children.map(child => 
+							child.id === id 
+								? { ...child, title, url, thumbnail_url } 
+								: child
+						)
+					};
+				}
+				return link;
+			});
+			allLinks = allLinks.map(link => {
+				if (link.is_group && link.children) {
+					return {
+						...link,
+						children: link.children.map(child => 
+							child.id === id 
+								? { ...child, title, url, thumbnail_url } 
+								: child
+						)
+					};
+				}
+				return link;
+			});
+			
+			toast.success('Link updated!');
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to update link');
+		}
+	}
+
+	async function handleUploadGroupLinkThumbnail(event: CustomEvent) {
+		const { linkId, file } = event.detail;
+		try {
+			const updatedLink = await linksApi.uploadThumbnail(linkId, file, $auth.token!);
+			
+			// Update editingGroupLink to trigger dialog update
+			if (editingGroupLink && editingGroupLink.id === linkId) {
+				editingGroupLink = { ...editingGroupLink, thumbnail_url: updatedLink.thumbnail_url };
+			}
+			
+			// Update local state immediately
+			links = links.map(link => {
+				if (link.is_group && link.children) {
+					return {
+						...link,
+						children: link.children.map(child => 
+							child.id === linkId 
+								? { ...child, thumbnail_url: updatedLink.thumbnail_url } 
+								: child
+						)
+					};
+				}
+				return link;
+			});
+			allLinks = allLinks.map(link => {
+				if (link.is_group && link.children) {
+					return {
+						...link,
+						children: link.children.map(child => 
+							child.id === linkId 
+								? { ...child, thumbnail_url: updatedLink.thumbnail_url } 
+								: child
+						)
+					};
+				}
+				return link;
+			});
+			
+			toast.success('Thumbnail uploaded!');
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to upload thumbnail');
+		}
+	}
+
+	async function handleRemoveGroupLinkThumbnail(event: CustomEvent) {
+		const linkId = event.detail;
+		try {
+			await linksApi.deleteThumbnail(linkId, $auth.token!);
+			
+			// Update editingGroupLink to trigger dialog update
+			if (editingGroupLink && editingGroupLink.id === linkId) {
+				editingGroupLink = { ...editingGroupLink, thumbnail_url: null };
+			}
+			
+			// Update local state immediately
+			links = links.map(link => {
+				if (link.is_group && link.children) {
+					return {
+						...link,
+						children: link.children.map(child => 
+							child.id === linkId 
+								? { ...child, thumbnail_url: null } 
+								: child
+						)
+					};
+				}
+				return link;
+			});
+			allLinks = allLinks.map(link => {
+				if (link.is_group && link.children) {
+					return {
+						...link,
+						children: link.children.map(child => 
+							child.id === linkId 
+								? { ...child, thumbnail_url: null } 
+								: child
+						)
+					};
+				}
+				return link;
+			});
+			
+			toast.success('Thumbnail removed!');
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to remove thumbnail');
+		}
+	}
+
+	async function handlePinGroupLink(event: CustomEvent) {
+		const linkId = event.detail;
+		try {
+			const updatedLink = await linksApi.togglePin(linkId, $auth.token!);
+			
+			// Update local state immediately
+			const updateLinks = (linksList: Link[]) => linksList.map(link => {
+				if (link.is_group && link.children) {
+					// Update the specific child and unpin others if this one is being pinned
+					const updatedChildren = link.children.map(child => {
+						if (child.id === linkId) {
+							return { ...child, is_pinned: updatedLink.is_pinned, position: updatedLink.position };
+						} else if (updatedLink.is_pinned) {
+							// If we're pinning this link, unpin all others
+							return { ...child, is_pinned: false };
+						}
+						return child;
+					}).sort((a, b) => {
+						// Pinned items first, then by position
+						if (a.is_pinned && !b.is_pinned) return -1;
+						if (!a.is_pinned && b.is_pinned) return 1;
+						return a.position - b.position;
+					});
+					
+					return { ...link, children: updatedChildren };
+				}
+				return link;
+			});
+			
+			links = updateLinks(links);
+			allLinks = updateLinks(allLinks);
+			
+			toast.success(updatedLink.is_pinned ? 'Link pinned!' : 'Link unpinned!');
 		} catch (error: any) {
 			toast.error(error.message || 'Failed to pin link');
+		}
+	}
+
+	async function handleDuplicateGroupLink(event: CustomEvent) {
+		const linkId = event.detail;
+		try {
+			const newLink = await linksApi.duplicateLink(linkId, $auth.token!);
+			
+			// Update local state without reloading - keep UI expanded
+			links = links.map(link => {
+				if (link.is_group && link.children) {
+					// Find the original link to get its position
+					const originalIndex = link.children.findIndex(c => c.id === linkId);
+					if (originalIndex !== -1) {
+						// Insert duplicated link right after the original
+						const newChildren = [...link.children];
+						newChildren.splice(originalIndex + 1, 0, newLink);
+						return { ...link, children: newChildren };
+					}
+				}
+				return link;
+			});
+			
+			toast.success('Link duplicated!');
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to duplicate link');
+		}
+	}
+
+	async function handleDuplicateGroup(event: CustomEvent) {
+		const groupId = event.detail;
+		try {
+			await linksApi.duplicateGroup(groupId, $auth.token!);
+			await loadData();
+			toast.success('Group duplicated!');
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to duplicate group');
+		}
+	}
+
+	async function handleReorderGroupLinks(event: CustomEvent) {
+		const { groupId, linkIds } = event.detail;
+		try {
+			await linksApi.reorderGroupLinks(groupId, linkIds, $auth.token!);
+			
+			// Update local state without reloading - keep UI expanded
+			links = links.map(link => {
+				if (link.id === groupId && link.children) {
+					// Reorder children based on linkIds
+					const orderedChildren = linkIds.map((id: string) => 
+						link.children!.find(child => child.id === id)
+					).filter(Boolean);
+					return { ...link, children: orderedChildren };
+				}
+				return link;
+			});
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to reorder links');
+			await loadData(); // Reload on error to restore correct state
+		}
+	}
+
+	async function handleToggleGroup(event: CustomEvent) {
+		const id = event.detail;
+		const group = links.find(l => l.id === id);
+		if (!group) return;
+		
+		try {
+			await linksApi.updateLink(id, { is_active: !group.is_active }, $auth.token!);
+			links = links.map(l => l.id === id ? {...l, is_active: !l.is_active} : l);
+			allLinks = allLinks.map(l => l.id === id ? {...l, is_active: !l.is_active} : l);
+			toast.success(group.is_active ? 'Group hidden!' : 'Group shown!');
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to toggle group');
+		}
+	}
+
+	async function handleDeleteGroup(event: CustomEvent) {
+		const id = event.detail;
+		const group = links.find(l => l.id === id);
+		if (!group) return;
+		
+		const confirmed = confirm(`Delete "${group.group_title}" and all its links?`);
+		if (!confirmed) return;
+		
+		try {
+			await linksApi.deleteLink(id, $auth.token!);
+			links = links.filter(l => l.id !== id);
+			allLinks = allLinks.filter(l => l.id !== id);
+			toast.success('Group deleted!');
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to delete group');
 		}
 	}
 
 	// Block handlers
 	async function handleAddBlock(event: CustomEvent) {
 		const { type } = event.detail;
+		
+		// If group, show create group dialog
+		if (type === 'group') {
+			showCreateGroupDialog = true;
+			return;
+		}
 		
 		// If text block, show the text dialog instead
 		if (type === 'text') {
@@ -417,7 +667,7 @@
 	}
 
 	async function handleSaveTextBlock(event: CustomEvent) {
-		const { content, fontSize, textAlign, isBold, isItalic, isUnderline, isStrikethrough, textColor } = event.detail;
+		const { content, fontSize, textAlign, isBold, isItalic, isUnderline, isStrikethrough, textColor, backgroundColor } = event.detail;
 		
 		try {
 			const style = JSON.stringify({
@@ -427,7 +677,8 @@
 				isItalic,
 				isUnderline,
 				isStrikethrough,
-				textColor
+				textColor,
+				backgroundColor
 			});
 
 			if (editingTextBlock) {
@@ -492,6 +743,65 @@
 			selectedIds.add(id);
 		}
 		selectedIds = selectedIds;
+	}
+
+	async function handleToggleBlock(event: CustomEvent) {
+		const id = event.detail;
+		const block = blocks.find(b => b.id === id);
+		if (!block) return;
+		
+		try {
+			await blocksApi.updateBlock(id, { is_active: !block.is_active }, $auth.token!);
+			blocks = blocks.map(b => b.id === id ? { ...b, is_active: !b.is_active } : b);
+		} catch (error: any) {
+			toast.error('Failed to toggle block');
+		}
+	}
+
+	async function handleDuplicateBlock(event: CustomEvent) {
+		const id = event.detail;
+		const block = blocks.find(b => b.id === id);
+		if (!block) return;
+		
+		try {
+			const { id: _, created_at, updated_at, position, ...blockData } = block;
+			const newBlock = await blocksApi.createBlock({ ...blockData, is_active: true }, $auth.token!);
+			
+			// Update local state: insert new block after original
+			const targetPos = block.position + 1;
+			
+			// Update positions for items after insertion point
+			links = links.map(l => 
+				l.position >= targetPos ? { ...l, position: l.position + 1 } : l
+			);
+			blocks = blocks.map(b => 
+				b.position >= targetPos ? { ...b, position: b.position + 1 } : b
+			);
+			
+			// Add new block with correct position
+			blocks = [...blocks, { ...newBlock, position: targetPos }];
+			
+			// Reorder on backend
+			const newItems = [
+				...items.filter(item => item.position < targetPos).map(item => ({ id: item.id, type: item.type })),
+				{ id: newBlock.id, type: 'block' },
+				...items.filter(item => item.position >= targetPos).map(item => ({ id: item.id, type: item.type }))
+			];
+			
+			await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/items/reorder`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${$auth.token}`
+				},
+				body: JSON.stringify({ items: newItems })
+			});
+			
+			toast.success('Block duplicated!');
+		} catch (error: any) {
+			toast.error('Failed to duplicate block');
+			await loadData();
+		}
 	}
 
 	// Drag & Drop handlers
@@ -771,7 +1081,7 @@
 					</div>
 				{/if}
 
-				<!-- Add Block Button - Minimal -->
+				<!-- Add Button -->
 				<button
 					onclick={() => showAddBlockDialog = true}
 					class="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gray-50 hover:bg-gray-100 rounded-xl text-gray-600 hover:text-gray-900 text-sm font-medium transition-all group"
@@ -803,19 +1113,22 @@
 				>
 					{#each items as item (item.id)}
 						<div style="outline: none;">
-							{#if item.type === 'link'}
-								<LinkBlock 
-									link={item.data}
+							{#if item.type === 'link' && item.data.is_group}
+								<LinkGroupCard 
+									group={item.data}
 									selected={selectedIds.has(item.id)}
-									on:update={handleUpdateLink}
-									on:delete={handleDeleteLink}
-									on:toggle={handleToggleLink}
-									on:editThumbnail={handleEditThumbnail}
-									on:updateLayout={handleUpdateLayout}
-									on:updateSchedule={handleUpdateSchedule}
-									on:duplicate={handleDuplicate}
 									on:select={handleSelect}
-									on:pin={handlePin}
+									on:toggle={handleToggleGroup}
+									on:delete={handleDeleteGroup}
+									on:addlink={handleAddLinkToGroup}
+									on:removefromgroup={handleRemoveFromGroup}
+									on:editlink={handleEditGroupLink}
+									on:pinlink={handlePinGroupLink}
+									on:duplicatelink={handleDuplicateGroupLink}
+									on:duplicate={handleDuplicateGroup}
+									on:uploadThumbnail={handleUploadGroupLinkThumbnail}
+									on:toggleNewTab={handleToggleNewTab}
+									on:reorderlinks={handleReorderGroupLinks}
 								/>
 							{:else if item.data.block_type === 'text'}
 								<TextBlock 
@@ -824,6 +1137,8 @@
 									on:edit={handleEditTextBlock}
 									on:delete={handleDeleteBlock}
 									on:select={handleSelectBlock}
+									on:toggle={handleToggleBlock}
+									on:duplicate={handleDuplicateBlock}
 								/>
 							{:else if item.data.block_type === 'image'}
 								<ImageBlock 
@@ -1023,29 +1338,6 @@
 	</div>
 {/if}
 
-<!-- Thumbnail Upload Dialog -->
-<Dialog.Root bind:open={showThumbnailDialog}>
-	<Dialog.Content class="sm:max-w-lg">
-		<Dialog.Header>
-			<Dialog.Title>Link Thumbnail</Dialog.Title>
-			<Dialog.Description>
-				Upload an image to make your link stand out. Recommended size: 400x400px
-			</Dialog.Description>
-		</Dialog.Header>
-		<div class="py-4">
-			<ImageUploader 
-				currentImage={editingLinkId ? links.find(l => l.id === editingLinkId)?.thumbnail_url : null}
-				uploading={uploadingThumbnail}
-				on:upload={handleUploadThumbnail}
-				on:remove={handleRemoveThumbnail}
-			/>
-		</div>
-		<Dialog.Footer>
-			<Button variant="outline" onclick={() => showThumbnailDialog = false}>Close</Button>
-		</Dialog.Footer>
-	</Dialog.Content>
-</Dialog.Root>
-
 <!-- Add Block Dialog -->
 <AddBlockDialog bind:open={showAddBlockDialog} on:select={handleAddBlock} />
 
@@ -1059,5 +1351,29 @@
 
 <!-- Calendar View -->
 {#if showCalendarView}
-	<CalendarView links={allLinks} onClose={() => showCalendarView = false} />
+	<CalendarView links={allLinks} on:close={() => showCalendarView = false} />
 {/if}
+
+<!-- Create Group Dialog -->
+<CreateGroupDialog 
+	bind:open={showCreateGroupDialog}
+	on:create={handleCreateGroup}
+/>
+
+<!-- Add To Group Dialog -->
+<AddToGroupDialog 
+	bind:open={showAddToGroupDialog}
+	groupTitle={currentGroupTitle}
+	on:add={handleAddToGroup}
+/>
+
+<!-- Edit Group Link Dialog -->
+<EditGroupLinkDialog 
+	bind:open={showEditGroupLinkDialog}
+	link={editingGroupLink}
+	on:save={handleSaveGroupLink}
+	on:uploadThumbnail={handleUploadGroupLinkThumbnail}
+	on:removeThumbnail={handleRemoveGroupLinkThumbnail}
+/>
+
+

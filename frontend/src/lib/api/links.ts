@@ -3,16 +3,27 @@ import { api } from './client';
 export interface Link {
 	id: string;
 	profile_id: string;
+	parent_id?: string | null;
+	is_group: boolean;
+	group_title?: string | null;
+	group_layout: 'list' | 'grid' | 'carousel';
 	title: string;
 	url: string;
 	thumbnail_url?: string | null;
-	layout_type: 'classic' | 'featured';
+	layout_type: 'classic' | 'featured' | 'carousel' | 'grid' | 'card';
+	image_placement: 'left' | 'right' | 'top' | 'bottom';
+	text_alignment: 'left' | 'center' | 'right';
+	text_size: 'S' | 'M' | 'L' | 'XL';
+	show_outline: boolean;
+	show_shadow: boolean;
 	position: number;
 	clicks: number;
 	is_active: boolean;
 	is_pinned: boolean;
+	open_in_new_tab?: boolean;
 	scheduled_at?: string;
 	expires_at?: string;
+	children?: Link[];
 }
 
 export interface LinkFilters {
@@ -39,8 +50,6 @@ export const linksApi = {
 	updateLink: (id: string, data: Partial<Link>, token: string) =>
 		api.put<Link>(`/links/${id}`, data, token),
 	deleteLink: (id: string, token: string) => api.delete(`/links/${id}`, token),
-	reorderLinks: (linkIds: string[], token: string) =>
-		api.put('/links/reorder', { link_ids: linkIds }, token),
 	uploadThumbnail: async (id: string, file: File, token: string): Promise<Link> => {
 		const formData = new FormData();
 		formData.append('thumbnail', file);
@@ -64,5 +73,19 @@ export const linksApi = {
 	duplicateLink: (id: string, token: string) => api.post<Link>(`/links/${id}/duplicate`, {}, token),
 	bulkAction: (linkIds: string[], action: 'delete' | 'activate' | 'deactivate', token: string) =>
 		api.post('/links/bulk', { link_ids: linkIds, action }, token),
-	togglePin: (id: string, token: string) => api.post<Link>(`/links/${id}/pin`, {}, token)
+	togglePin: (id: string, token: string) => api.post<Link>(`/links/${id}/pin`, {}, token),
+	
+	// Group management
+	createGroup: (title: string, layout: 'list' | 'grid' | 'carousel', token: string) =>
+		api.post<Link>('/links/groups', { title, layout }, token),
+	addToGroup: (groupId: string, data: { title: string; url: string }, token: string) =>
+		api.post<Link>(`/links/groups/${groupId}/items`, data, token),
+	moveToGroup: (linkId: string, groupId: string, token: string) =>
+		api.put<Link>(`/links/${linkId}/move-to-group`, { group_id: groupId }, token),
+	removeFromGroup: (linkId: string, token: string) =>
+		api.put<Link>(`/links/${linkId}/remove-from-group`, {}, token),
+	duplicateGroup: (groupId: string, token: string) =>
+		api.post<Link>(`/links/groups/${groupId}/duplicate`, {}, token),
+	reorderGroupLinks: (groupId: string, linkIds: string[], token: string) =>
+		api.put(`/links/groups/${groupId}/reorder`, { link_ids: linkIds }, token)
 };

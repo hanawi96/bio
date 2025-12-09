@@ -75,8 +75,11 @@
 				{#each items as item}
 					{#if item.type === 'block' && item.data.block_type === 'text'}
 						{@const styleConfig = item.data.style ? JSON.parse(item.data.style) : {}}
+						{@const content = item.data.content || ''}
+						{@const parts = content.split(/(\[([^\]]+)\]\(([^)]+)\))/g)}
 						<div 
-							class="w-full"
+							class="w-full rounded-xl"
+							class:p-4={styleConfig.backgroundColor}
 							style="
 								font-size: {
 									styleConfig.fontSize === 'text-small' ? '14px' : 
@@ -91,9 +94,16 @@
 								font-style: {styleConfig.isItalic ? 'italic' : 'normal'};
 								text-decoration: {styleConfig.isUnderline && styleConfig.isStrikethrough ? 'underline line-through' : styleConfig.isUnderline ? 'underline' : styleConfig.isStrikethrough ? 'line-through' : 'none'};
 								color: {styleConfig.textColor || '#000000'};
+								background-color: {styleConfig.backgroundColor || 'transparent'};
 							"
 						>
-							{item.data.content || ''}
+							{#each parts as part, i}
+								{#if i % 4 === 0}
+									{part}
+								{:else if i % 4 === 2}
+									<a href={parts[i + 1]} target="_blank" rel="noopener noreferrer" class="underline hover:opacity-70 transition-opacity">{part}</a>
+								{/if}
+							{/each}
 						</div>
 					{:else if item.type === 'block' && item.data.block_type === 'divider'}
 						{#if item.data.divider_style === 'line'}

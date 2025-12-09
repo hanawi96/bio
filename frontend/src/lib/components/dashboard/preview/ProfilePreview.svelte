@@ -90,13 +90,74 @@
 							{/if}
 						{:else if item.type === 'link' && (showInactive || item.data.is_active)}
 							{@const link = item.data}
-							{#if link.layout_type === 'featured'}
+							{#if link.is_group}
+								<!-- Group: Render all children according to layout -->
+								{#if link.children && link.children.length > 0}
+									{#if link.group_layout === 'grid'}
+										<div class="grid grid-cols-2 gap-3">
+											{#each link.children as child}
+												<a
+													href={child.url}
+													target="_blank"
+													rel="noopener noreferrer"
+													class="block bg-white hover:bg-gray-50 rounded-xl p-3 shadow-sm hover:shadow-md transition-all"
+												>
+													{#if child.thumbnail_url}
+														<img src={child.thumbnail_url} alt={child.title} class="w-full h-20 object-cover rounded-lg mb-2"/>
+													{/if}
+													<p class="font-medium text-sm text-gray-900 truncate">{child.title}</p>
+												</a>
+											{/each}
+										</div>
+									{:else if link.group_layout === 'carousel'}
+										<div class="overflow-x-auto -mx-6 px-6">
+											<div class="flex gap-3 pb-2">
+												{#each link.children as child}
+													<a
+														href={child.url}
+														target="_blank"
+														rel="noopener noreferrer"
+														class="block bg-white hover:bg-gray-50 rounded-xl p-3 shadow-sm hover:shadow-md transition-all flex-shrink-0 w-40"
+													>
+														{#if child.thumbnail_url}
+															<img src={child.thumbnail_url} alt={child.title} class="w-full h-24 object-cover rounded-lg mb-2"/>
+														{/if}
+														<p class="font-medium text-sm text-gray-900 truncate">{child.title}</p>
+													</a>
+												{/each}
+											</div>
+										</div>
+									{:else}
+										<!-- List layout (default) -->
+										<div class="space-y-2">
+											{#each link.children as child}
+												<a
+													href={child.url}
+													target="_blank"
+													rel="noopener noreferrer"
+													class="block bg-white hover:bg-gray-50 rounded-xl p-3 shadow-sm hover:shadow-md transition-all"
+												>
+													<div class="flex items-center gap-3">
+														{#if child.thumbnail_url}
+															<img src={child.thumbnail_url} alt={child.title} class="w-10 h-10 rounded-lg object-cover flex-shrink-0"/>
+														{/if}
+														<span class="font-medium text-sm text-gray-900 flex-1">{child.title}</span>
+														<svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+														</svg>
+													</div>
+												</a>
+											{/each}
+										</div>
+									{/if}
+								{/if}
+							{:else if link.layout_type === 'featured'}
 							<!-- Featured Layout -->
 							<a
 								href={link.url}
 								target="_blank"
 								rel="noopener noreferrer"
-								class="block w-full bg-white hover:bg-gray-50 rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-200 border border-gray-100 {!link.is_active ? 'opacity-50' : ''}"
+								class="block w-full bg-white hover:bg-gray-50 rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-200 {!link.is_active ? 'opacity-50' : ''}"
 							>
 								{#if link.thumbnail_url}
 									<div class="relative h-32 bg-gradient-to-br from-indigo-100 to-blue-100">
@@ -124,7 +185,7 @@
 									href={link.url}
 									target="_blank"
 									rel="noopener noreferrer"
-									class="block w-full bg-white hover:bg-gray-50 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100 {!link.is_active ? 'opacity-50' : ''}"
+									class="block w-full bg-white hover:bg-gray-50 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-200 {!link.is_active ? 'opacity-50' : ''}"
 								>
 									<div class="flex items-center gap-3">
 										{#if link.thumbnail_url}

@@ -15,6 +15,7 @@
 	let isUnderline = false;
 	let isStrikethrough = false;
 	let textColor = '#3b82f6';
+	let backgroundColor = '';
 	let activeTab: 'content' | 'settings' | 'section' = 'content';
 	let showFontSizeDropdown = false;
 
@@ -58,6 +59,7 @@
 		isUnderline = styleConfig.isUnderline || false;
 		isStrikethrough = styleConfig.isStrikethrough || false;
 		textColor = styleConfig.textColor || '#3b82f6';
+		backgroundColor = styleConfig.backgroundColor || '';
 		activeTab = 'content';
 	}
 
@@ -70,6 +72,7 @@
 		isUnderline = false;
 		isStrikethrough = false;
 		textColor = '#3b82f6';
+		backgroundColor = '';
 		activeTab = 'content';
 	}
 
@@ -87,7 +90,8 @@
 			isItalic,
 			isUnderline,
 			isStrikethrough,
-			textColor
+			textColor,
+			backgroundColor
 		});
 		
 		resetForm();
@@ -275,15 +279,33 @@
 
 					<div class="h-6 w-px bg-gray-200"></div>
 
-					<!-- Color Picker -->
-					<div class="relative">
-						<input
-							type="color"
-							bind:value={textColor}
-							class="w-8 h-8 rounded-full cursor-pointer border-2 border-gray-200 hover:border-gray-300 overflow-hidden"
-							style="padding: 0; -webkit-appearance: none; -moz-appearance: none; appearance: none;"
-							title="Text color"
-						/>
+					<!-- Color Pickers -->
+					<div class="flex items-center gap-2">
+						<div class="relative" title="Text color">
+							<input
+								type="color"
+								bind:value={textColor}
+								class="w-8 h-8 rounded-full cursor-pointer border-2 border-gray-200 hover:border-gray-300 overflow-hidden"
+								style="padding: 0; -webkit-appearance: none; -moz-appearance: none; appearance: none;"
+							/>
+						</div>
+						<div class="relative" title="Background color">
+							<input
+								type="color"
+								bind:value={backgroundColor}
+								class="w-8 h-8 rounded-full cursor-pointer border-2 border-gray-200 hover:border-gray-300 overflow-hidden"
+								style="padding: 0; -webkit-appearance: none; -moz-appearance: none; appearance: none;"
+							/>
+							{#if backgroundColor}
+								<button
+									onclick={() => backgroundColor = ''}
+									class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
+									title="Remove background"
+								>
+									×
+								</button>
+							{/if}
+						</div>
 					</div>
 				</div>
 
@@ -291,9 +313,9 @@
 				<div class="relative">
 					<textarea
 						bind:value={content}
-						placeholder="Enter text"
+						placeholder="Enter text (use [text](url) for links)"
 						rows="8"
-						class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 resize-none"
+						class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 resize-none"
 						style="
 							font-size: {
 								fontSize === 'text-small' ? '14px' : 
@@ -308,6 +330,7 @@
 							font-style: {isItalic ? 'italic' : 'normal'};
 							text-decoration: {isUnderline && isStrikethrough ? 'underline line-through' : isUnderline ? 'underline' : isStrikethrough ? 'line-through' : 'none'};
 							color: {textColor};
+							background-color: {backgroundColor || 'transparent'};
 						"
 					></textarea>
 					<button class="absolute bottom-3 right-3 p-2 text-gray-500 hover:text-gray-700">

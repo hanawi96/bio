@@ -22,6 +22,8 @@ func UploadToCloudinary(file multipart.File, filename string) (string, error) {
 	cloudName := os.Getenv("CLOUDINARY_CLOUD_NAME")
 	uploadPreset := os.Getenv("CLOUDINARY_UPLOAD_PRESET")
 
+	fmt.Printf("🔧 Cloudinary config: cloudName=%s, uploadPreset=%s\n", cloudName, uploadPreset)
+
 	if cloudName == "" {
 		return "", fmt.Errorf("cloudinary cloud name not configured")
 	}
@@ -30,6 +32,7 @@ func UploadToCloudinary(file multipart.File, filename string) (string, error) {
 	}
 
 	url := fmt.Sprintf("https://api.cloudinary.com/v1_1/%s/image/upload", cloudName)
+	fmt.Printf("📤 Uploading to: %s\n", url)
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -66,13 +69,16 @@ func UploadToCloudinary(file multipart.File, filename string) (string, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
+		fmt.Printf("❌ Cloudinary API error (status %d): %s\n", resp.StatusCode, string(bodyBytes))
 		return "", fmt.Errorf("cloudinary upload failed (status %d): %s", resp.StatusCode, string(bodyBytes))
 	}
 
 	var result CloudinaryResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		fmt.Printf("❌ Failed to decode Cloudinary response: %v\n", err)
 		return "", err
 	}
 
+	fmt.Printf("✅ Cloudinary upload successful: %s\n", result.SecureURL)
 	return result.SecureURL, nil
 }

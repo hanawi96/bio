@@ -32,9 +32,7 @@ func (s *LinkService) Delete(linkID string) error {
 	return s.linkRepo.Delete(linkID)
 }
 
-func (s *LinkService) ReorderLinks(userID string, linkIDs []string) error {
-	return s.linkRepo.Reorder(userID, linkIDs)
-}
+
 
 func (s *LinkService) Duplicate(userID string, linkID string) (*repository.Link, error) {
 	return s.linkRepo.Duplicate(userID, linkID)
@@ -50,4 +48,36 @@ func (s *LinkService) TogglePin(userID string, linkID string) (*repository.Link,
 
 func (s *LinkService) ReorderWithBlocks(userID string, items []map[string]interface{}) error {
 	return s.linkRepo.ReorderWithBlocks(userID, items)
+}
+
+// CreateGroup creates a new link group
+func (s *LinkService) CreateGroup(userID string, title string, layout string) (*repository.Link, error) {
+	return s.linkRepo.CreateGroup(userID, title, layout)
+}
+
+// AddToGroup adds a link to an existing group
+func (s *LinkService) AddToGroup(userID string, groupID string, data map[string]interface{}) (*repository.Link, error) {
+	return s.linkRepo.AddToGroup(userID, groupID, data)
+}
+
+// MoveToGroup moves an existing link into a group
+func (s *LinkService) MoveToGroup(userID string, linkID string, groupID string) (*repository.Link, error) {
+	return s.linkRepo.MoveToGroup(userID, linkID, groupID)
+}
+
+// RemoveFromGroup removes a link from its group
+func (s *LinkService) RemoveFromGroup(userID string, linkID string) (*repository.Link, error) {
+	return s.linkRepo.RemoveFromGroup(userID, linkID)
+}
+
+
+
+// DuplicateGroup duplicates a group and all its children
+func (s *LinkService) DuplicateGroup(userID string, groupID string) (*repository.Link, error) {
+	return s.linkRepo.DuplicateGroup(userID, groupID)
+}
+
+// ReorderGroupLinks reorders links within a group
+func (s *LinkService) ReorderGroupLinks(userID string, groupID string, linkIDs []string) error {
+	return s.linkRepo.ReorderGroupLinks(userID, groupID, linkIDs)
 }

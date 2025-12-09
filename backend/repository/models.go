@@ -15,25 +15,39 @@ type Profile struct {
 }
 
 type Link struct {
-	ID           string     `json:"id"`
-	ProfileID    string     `json:"profile_id"`
-	Title        string     `json:"title"`
-	URL          string     `json:"url"`
-	ThumbnailURL *string    `json:"thumbnail_url"`
-	LayoutType   string     `json:"layout_type"`
-	Position     int        `json:"position"`
-	Clicks       int        `json:"clicks"`
-	IsActive     bool       `json:"is_active"`
-	IsPinned     bool       `json:"is_pinned"`
-	ScheduledAt  *time.Time `json:"scheduled_at"`
-	ExpiresAt    *time.Time `json:"expires_at"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
+	ID              string     `json:"id"`
+	ProfileID       string     `json:"profile_id"`
+	ParentID        *string    `json:"parent_id"`
+	IsGroup         bool       `json:"is_group"`
+	GroupTitle      *string    `json:"group_title"`
+	GroupLayout     string     `json:"group_layout"`
+	Title           string     `json:"title"`
+	URL             string     `json:"url"`
+	ThumbnailURL    *string    `json:"thumbnail_url"`
+	LayoutType      string     `json:"layout_type"`
+	ImagePlacement  string     `json:"image_placement"`
+	TextAlignment   string     `json:"text_alignment"`
+	TextSize        string     `json:"text_size"`
+	ShowOutline     bool       `json:"show_outline"`
+	ShowShadow      bool       `json:"show_shadow"`
+	Position        int        `json:"position"`
+	Clicks          int        `json:"clicks"`
+	IsActive        bool       `json:"is_active"`
+	IsPinned        bool       `json:"is_pinned"`
+	ScheduledAt     *time.Time `json:"scheduled_at"`
+	ExpiresAt       *time.Time `json:"expires_at"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
+	Children        []Link     `json:"children,omitempty"`
 }
 
 type Block struct {
 	ID            string                   `json:"id"`
 	ProfileID     string                   `json:"profile_id"`
+	ParentID      *string                  `json:"parent_id"`
+	IsGroup       bool                     `json:"is_group"`
+	GroupTitle    *string                  `json:"group_title"`
+	GroupLayout   string                   `json:"group_layout"`
 	BlockType     string                   `json:"block_type"`
 	Position      int                      `json:"position"`
 	IsActive      bool                     `json:"is_active"`
@@ -51,4 +65,5 @@ type Block struct {
 	LinkID        *string                  `json:"link_id,omitempty"`
 	CreatedAt     time.Time                `json:"created_at"`
 	UpdatedAt     time.Time                `json:"updated_at"`
+	Children      []Block                  `json:"children,omitempty"`
 }
