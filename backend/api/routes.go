@@ -56,6 +56,7 @@ func SetupRoutes(api fiber.Router, db *sql.DB, cfg *config.Config) {
 	protected.Get("/links", linkHandler.GetLinks)
 	protected.Post("/links", linkHandler.CreateLink)
 	protected.Put("/links/reorder", linkHandler.ReorderLinks)
+	protected.Put("/items/reorder", linkHandler.ReorderAll)
 	protected.Post("/links/bulk", linkHandler.BulkAction)
 	protected.Post("/links/:id/duplicate", linkHandler.DuplicateLink)
 	protected.Post("/links/:id/pin", linkHandler.TogglePin)

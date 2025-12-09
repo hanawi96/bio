@@ -40,7 +40,7 @@
 					type="checkbox" 
 					checked={selected}
 					onchange={handleSelect}
-					class="w-4 h-4 rounded border-2 border-gray-300 cursor-pointer transition-all checked:bg-indigo-600 checked:border-indigo-600"
+					class="w-4 h-4 rounded border-2 border-gray-300 cursor-pointer transition-all checked:bg-indigo-600 checked:border-indigo-600 hover:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 accent-indigo-600"
 				/>
 			</label>
 			

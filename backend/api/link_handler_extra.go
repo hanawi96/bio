@@ -79,3 +79,21 @@ func (h *LinkHandler) TogglePin(c *fiber.Ctx) error {
 	
 	return c.JSON(link)
 }
+
+func (h *LinkHandler) ReorderAll(c *fiber.Ctx) error {
+	userID := c.Locals("userID").(string)
+	
+	var req struct {
+		Items []map[string]interface{} `json:"items"`
+	}
+	
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid request")
+	}
+
+	if err := h.linkService.ReorderWithBlocks(userID, req.Items); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
+}

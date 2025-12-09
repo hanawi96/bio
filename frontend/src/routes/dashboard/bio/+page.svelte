@@ -504,30 +504,43 @@
 		if (hasActiveFilters) return;
 		items = e.detail.items;
 		
-		// Update positions based on new order in combined items array
-		items.forEach((item, index) => {
-			item.data.position = index;
-		});
-		
-		// Extract IDs in new order
-		const linkIds = items.filter(item => item.type === 'link').map(item => item.id);
-		const blockIds = items.filter(item => item.type === 'block').map(item => item.id);
-		
 		try {
-			// Update positions on backend
-			if (linkIds.length > 0) {
-				await linksApi.reorderLinks(linkIds, $auth.token!);
-			}
-			if (blockIds.length > 0) {
-				await blocksApi.reorderBlocks(blockIds, $auth.token!);
-			}
-			// Update local state
-			links = items.filter(item => item.type === 'link').map(item => item.data);
-			blocks = items.filter(item => item.type === 'block').map(item => item.data);
-			allLinks = [...links];
+			// Send unified reorder request with all items
+			const itemsData = items.map(item => ({
+				id: item.id,
+				type: item.type
+			}));
+			
+			const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/items/reorder`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${$auth.token}`
+				},
+				body: JSON.stringify({ items: itemsData })
+			});
+			
+			if (!res.ok) throw new Error('Failed to reorder');
+			
+			// Update position in original arrays to match new order
+			items.forEach((item, idx) => {
+				item.data.position = idx;
+				if (item.type === 'link') {
+					const linkIndex = links.findIndex(l => l.id === item.id);
+					if (linkIndex !== -1) links[linkIndex].position = idx;
+				} else {
+					const blockIndex = blocks.findIndex(b => b.id === item.id);
+					if (blockIndex !== -1) blocks[blockIndex].position = idx;
+				}
+			});
+			
+			// Trigger reactivity
+			links = links;
+			blocks = blocks;
 		} catch (error: any) {
 			toast.error('Failed to reorder items');
 			console.error(error);
+			// Only reload on error to restore correct state
 			await loadData();
 		}
 	}

@@ -98,14 +98,24 @@ func (r *LinkRepository) Create(userID string, data map[string]interface{}) (*Li
 		return nil, err
 	}
 
+	// Get max position from both blocks and links
+	var maxBlockPos, maxLinkPos int
+	r.db.QueryRow(`SELECT COALESCE(MAX(position), -1) FROM blocks WHERE profile_id = $1`, profileID).Scan(&maxBlockPos)
+	r.db.QueryRow(`SELECT COALESCE(MAX(position), -1) FROM links WHERE profile_id = $1`, profileID).Scan(&maxLinkPos)
+	
+	maxPosition := maxBlockPos
+	if maxLinkPos > maxPosition {
+		maxPosition = maxLinkPos
+	}
+
 	var link Link
 	query := `
 		INSERT INTO links (profile_id, title, url, position)
-		VALUES ($1, $2, $3, COALESCE($4, 0))
+		VALUES ($1, $2, $3, $4)
 		RETURNING id, profile_id, title, url, thumbnail_url, layout_type, position, clicks, is_active, is_pinned,
 		          scheduled_at, expires_at, created_at, updated_at
 	`
-	err = r.db.QueryRow(query, profileID, data["title"], data["url"], data["position"]).Scan(
+	err = r.db.QueryRow(query, profileID, data["title"], data["url"], maxPosition+1).Scan(
 		&link.ID, &link.ProfileID, &link.Title, &link.URL, &link.ThumbnailURL, &link.LayoutType, &link.Position,
 		&link.Clicks, &link.IsActive, &link.IsPinned, &link.ScheduledAt, &link.ExpiresAt,
 		&link.CreatedAt, &link.UpdatedAt,
@@ -155,15 +165,66 @@ func (r *LinkRepository) Reorder(userID string, linkIDs []string) error {
 	}
 	defer tx.Rollback()
 
+	// Get profile ID
+	var profileID string
+	err = tx.QueryRow(`SELECT id FROM profiles WHERE user_id = $1`, userID).Scan(&profileID)
+	if err != nil {
+		return err
+	}
+
+	// Update link positions
 	for i, linkID := range linkIDs {
 		_, err := tx.Exec(`
 			UPDATE links 
 			SET position = $1, updated_at = CURRENT_TIMESTAMP
-			WHERE id = $2 
-			AND profile_id IN (SELECT id FROM profiles WHERE user_id = $3)
-		`, i, linkID, userID)
+			WHERE id = $2 AND profile_id = $3
+		`, i, linkID, profileID)
 		if err != nil {
 			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+// ReorderWithBlocks updates positions for both links and blocks in unified order
+func (r *LinkRepository) ReorderWithBlocks(userID string, items []map[string]interface{}) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Get profile ID
+	var profileID string
+	err = tx.QueryRow(`SELECT id FROM profiles WHERE user_id = $1`, userID).Scan(&profileID)
+	if err != nil {
+		return err
+	}
+
+	// Update positions for all items
+	for i, item := range items {
+		itemType := item["type"].(string)
+		itemID := item["id"].(string)
+		
+		if itemType == "link" {
+			_, err := tx.Exec(`
+				UPDATE links 
+				SET position = $1, updated_at = CURRENT_TIMESTAMP
+				WHERE id = $2 AND profile_id = $3
+			`, i, itemID, profileID)
+			if err != nil {
+				return err
+			}
+		} else if itemType == "block" {
+			_, err := tx.Exec(`
+				UPDATE blocks 
+				SET position = $1, updated_at = CURRENT_TIMESTAMP
+				WHERE id = $2 AND profile_id = $3
+			`, i, itemID, profileID)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -189,13 +250,14 @@ func (r *LinkRepository) Duplicate(userID string, linkID string) (*Link, error) 
 		return nil, err
 	}
 
-	// Get max position
-	var maxPosition int
-	err = r.db.QueryRow(`
-		SELECT COALESCE(MAX(position), -1) FROM links WHERE profile_id = $1
-	`, original.ProfileID).Scan(&maxPosition)
-	if err != nil {
-		return nil, err
+	// Get max position from both blocks and links
+	var maxBlockPos, maxLinkPos int
+	r.db.QueryRow(`SELECT COALESCE(MAX(position), -1) FROM blocks WHERE profile_id = $1`, original.ProfileID).Scan(&maxBlockPos)
+	r.db.QueryRow(`SELECT COALESCE(MAX(position), -1) FROM links WHERE profile_id = $1`, original.ProfileID).Scan(&maxLinkPos)
+	
+	maxPosition := maxBlockPos
+	if maxLinkPos > maxPosition {
+		maxPosition = maxLinkPos
 	}
 
 	// Create duplicate with "(Copy)" suffix

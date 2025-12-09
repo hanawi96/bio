@@ -63,11 +63,14 @@ func (r *BlockRepository) Create(userID string, data map[string]interface{}) (*B
 		return nil, err
 	}
 
-	// Get max position
-	var maxPosition int
-	err = r.db.QueryRow(`SELECT COALESCE(MAX(position), -1) FROM blocks WHERE profile_id = $1`, profileID).Scan(&maxPosition)
-	if err != nil {
-		return nil, err
+	// Get max position from both blocks and links
+	var maxBlockPos, maxLinkPos int
+	r.db.QueryRow(`SELECT COALESCE(MAX(position), -1) FROM blocks WHERE profile_id = $1`, profileID).Scan(&maxBlockPos)
+	r.db.QueryRow(`SELECT COALESCE(MAX(position), -1) FROM links WHERE profile_id = $1`, profileID).Scan(&maxLinkPos)
+	
+	maxPosition := maxBlockPos
+	if maxLinkPos > maxPosition {
+		maxPosition = maxLinkPos
 	}
 
 	// Helper to get value or nil
@@ -223,16 +226,25 @@ func (r *BlockRepository) Reorder(userID string, blockIDs []string) error {
 	}
 	defer tx.Rollback()
 
-	for i, blockID := range blockIDs {
+	// Get profile ID
+	var profileID string
+	err = tx.QueryRow(`SELECT id FROM profiles WHERE user_id = $1`, userID).Scan(&profileID)
+	if err != nil {
+		return err
+	}
+
+	// Update block positions
+	position := 0
+	for _, blockID := range blockIDs {
 		_, err := tx.Exec(`
 			UPDATE blocks 
 			SET position = $1, updated_at = CURRENT_TIMESTAMP
-			WHERE id = $2 
-			AND profile_id IN (SELECT id FROM profiles WHERE user_id = $3)
-		`, i, blockID, userID)
+			WHERE id = $2 AND profile_id = $3
+		`, position, blockID, profileID)
 		if err != nil {
 			return err
 		}
+		position++
 	}
 
 	return tx.Commit()

@@ -47,3 +47,7 @@ func (s *LinkService) BulkAction(userID string, linkIDs []string, action string)
 func (s *LinkService) TogglePin(userID string, linkID string) (*repository.Link, error) {
 	return s.linkRepo.TogglePin(userID, linkID)
 }
+
+func (s *LinkService) ReorderWithBlocks(userID string, items []map[string]interface{}) error {
+	return s.linkRepo.ReorderWithBlocks(userID, items)
+}
