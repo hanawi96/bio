@@ -6,7 +6,9 @@ export interface Link {
 	parent_id?: string | null;
 	is_group: boolean;
 	group_title?: string | null;
-	group_layout: 'list' | 'grid' | 'carousel';
+	group_layout: 'list' | 'grid' | 'carousel' | 'card';
+	grid_columns?: number;
+	grid_aspect_ratio?: string;
 	title: string;
 	url: string;
 	thumbnail_url?: string | null;
@@ -76,7 +78,7 @@ export const linksApi = {
 	togglePin: (id: string, token: string) => api.post<Link>(`/links/${id}/pin`, {}, token),
 	
 	// Group management
-	createGroup: (title: string, layout: 'list' | 'grid' | 'carousel', token: string) =>
+	createGroup: (title: string, layout: 'list' | 'grid' | 'carousel' | 'card', token: string) =>
 		api.post<Link>('/links/groups', { title, layout }, token),
 	addToGroup: (groupId: string, data: { title: string; url: string }, token: string) =>
 		api.post<Link>(`/links/groups/${groupId}/items`, data, token),

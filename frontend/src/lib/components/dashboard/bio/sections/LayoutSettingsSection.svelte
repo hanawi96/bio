@@ -6,27 +6,39 @@
 	
 	const dispatch = createEventDispatcher();
 	
-	let layout = group.group_layout || 'list';
-	let textAlignment = group.text_alignment || 'center';
-	let showOutline = group.show_outline || false;
-	let showShadow = group.show_shadow || false;
+	// Use group properties directly - no local state needed
+	$: layout = group.group_layout || 'list';
+	$: textAlignment = group.text_alignment || 'center';
+	$: showOutline = group.show_outline || false;
+	$: showShadow = group.show_shadow || false;
 	
-	let updateTimeout: ReturnType<typeof setTimeout>;
-	
-	function handleUpdate(field: string, value: any) {
-		clearTimeout(updateTimeout);
-		updateTimeout = setTimeout(() => {
-			dispatch('update', {
-				groupId: group.id,
-				[field]: value
-			});
-		}, 500);
+	function updateLayout(value: string) {
+		dispatch('update', {
+			groupId: group.id,
+			group_layout: value
+		});
 	}
 	
-	$: handleUpdate('group_layout', layout);
-	$: handleUpdate('text_alignment', textAlignment);
-	$: handleUpdate('show_outline', showOutline);
-	$: handleUpdate('show_shadow', showShadow);
+	function updateTextAlignment(value: string) {
+		dispatch('update', {
+			groupId: group.id,
+			text_alignment: value
+		});
+	}
+	
+	function updateShowOutline() {
+		dispatch('update', {
+			groupId: group.id,
+			show_outline: !showOutline
+		});
+	}
+	
+	function updateShowShadow() {
+		dispatch('update', {
+			groupId: group.id,
+			show_shadow: !showShadow
+		});
+	}
 </script>
 
 <div class="p-6 space-y-6">
@@ -37,7 +49,7 @@
 			<!-- Classic -->
 			<button
 				type="button"
-				onclick={() => layout = 'list'}
+				onclick={() => updateLayout('list')}
 				class="flex-1 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl transition-all hover:shadow-md overflow-hidden"
 				class:ring-2={layout === 'list'}
 				class:ring-emerald-500={layout === 'list'}
@@ -74,7 +86,7 @@
 			<!-- Carousel -->
 			<button
 				type="button"
-				onclick={() => layout = 'carousel'}
+				onclick={() => updateLayout('carousel')}
 				class="flex-1 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl transition-all hover:shadow-md overflow-hidden"
 				class:ring-2={layout === 'carousel'}
 				class:ring-emerald-500={layout === 'carousel'}
@@ -92,7 +104,7 @@
 			<!-- Image Grid -->
 			<button
 				type="button"
-				onclick={() => layout = 'grid'}
+				onclick={() => updateLayout('grid')}
 				class="flex-1 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl transition-all hover:shadow-md overflow-hidden"
 				class:ring-2={layout === 'grid'}
 				class:ring-emerald-500={layout === 'grid'}
@@ -116,11 +128,14 @@
 				</div>
 			</button>
 
-			<!-- Card (disabled) -->
+			<!-- Card -->
 			<button
 				type="button"
-				disabled
-				class="flex-1 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl overflow-hidden opacity-50 cursor-not-allowed"
+				onclick={() => updateLayout('card')}
+				class="flex-1 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl transition-all hover:shadow-md overflow-hidden"
+				class:ring-2={layout === 'card'}
+				class:ring-emerald-500={layout === 'card'}
+				class:ring-offset-2={layout === 'card'}
 			>
 				<div class="aspect-[4/3] p-4 space-y-2 flex flex-col justify-center">
 					<div class="bg-white rounded-lg overflow-hidden shadow-sm flex">
@@ -139,11 +154,65 @@
 					</div>
 				</div>
 				<div class="p-2 text-center bg-white/60">
-					<p class="text-xs font-semibold text-gray-400">Card</p>
+					<p class="text-xs font-semibold text-gray-700">Card</p>
 				</div>
 			</button>
 		</div>
 	</div>
+
+	<!-- Grid Columns Preset (only show for grid layout) -->
+	{#if layout === 'grid'}
+		<div>
+			<h3 class="text-base font-semibold text-gray-900 mb-3">Grid columns</h3>
+			<div class="flex gap-2">
+				{#each [1, 2, 3, 4] as cols}
+					<button
+						type="button"
+						onclick={() => dispatch('update', { groupId: group.id, grid_columns: cols })}
+						class="flex-1 px-4 py-3 border-2 rounded-lg transition-all hover:shadow-md"
+						class:border-emerald-500={(group.grid_columns || 2) === cols}
+						class:bg-emerald-50={(group.grid_columns || 2) === cols}
+						class:border-gray-200={(group.grid_columns || 2) !== cols}
+						class:bg-white={(group.grid_columns || 2) !== cols}
+					>
+						<div class="text-center">
+							<div class="text-lg font-bold text-gray-900">{cols}</div>
+							<div class="text-xs text-gray-500 mt-1">
+								{cols === 1 ? 'col' : 'cols'}
+							</div>
+						</div>
+					</button>
+				{/each}
+			</div>
+		</div>
+
+		<div class="mt-4">
+			<h3 class="text-base font-semibold text-gray-900 mb-3">Aspect ratio</h3>
+			<div class="grid grid-cols-3 gap-2">
+				{#each [
+					{ value: '1:1', label: '1:1 Square' },
+					{ value: '3:2', label: '3:2 Horizontal' },
+					{ value: '16:9', label: '16:9 Horizontal' },
+					{ value: '3:1', label: '3:1 Horizontal' },
+					{ value: '2:3', label: '2:3 Vertical' }
+				] as ratio}
+					<button
+						type="button"
+						onclick={() => dispatch('update', { groupId: group.id, grid_aspect_ratio: ratio.value })}
+						class="px-3 py-2.5 border-2 rounded-lg transition-all hover:shadow-md text-xs font-medium"
+						class:border-emerald-500={(group.grid_aspect_ratio || '3:2') === ratio.value}
+						class:bg-emerald-50={(group.grid_aspect_ratio || '3:2') === ratio.value}
+						class:text-emerald-700={(group.grid_aspect_ratio || '3:2') === ratio.value}
+						class:border-gray-200={(group.grid_aspect_ratio || '3:2') !== ratio.value}
+						class:bg-white={(group.grid_aspect_ratio || '3:2') !== ratio.value}
+						class:text-gray-700={(group.grid_aspect_ratio || '3:2') !== ratio.value}
+					>
+						{ratio.label}
+					</button>
+				{/each}
+			</div>
+		</div>
+	{/if}
 
 	<!-- Text Alignment Section -->
 	<div>
@@ -151,7 +220,7 @@
 		<div class="flex gap-2">
 			<button
 				type="button"
-				onclick={() => textAlignment = 'left'}
+				onclick={() => updateTextAlignment('left')}
 				class="flex-1 px-4 py-2.5 border-2 rounded-lg transition-all flex items-center justify-center"
 				class:border-gray-900={textAlignment === 'left'}
 				class:bg-gray-900={textAlignment === 'left'}
@@ -167,7 +236,7 @@
 			
 			<button
 				type="button"
-				onclick={() => textAlignment = 'center'}
+				onclick={() => updateTextAlignment('center')}
 				class="flex-1 px-4 py-2.5 border-2 rounded-lg transition-all flex items-center justify-center"
 				class:border-gray-900={textAlignment === 'center'}
 				class:bg-gray-900={textAlignment === 'center'}
@@ -183,7 +252,7 @@
 			
 			<button
 				type="button"
-				onclick={() => textAlignment = 'right'}
+				onclick={() => updateTextAlignment('right')}
 				class="flex-1 px-4 py-2.5 border-2 rounded-lg transition-all flex items-center justify-center"
 				class:border-gray-900={textAlignment === 'right'}
 				class:bg-gray-900={textAlignment === 'right'}
@@ -205,7 +274,7 @@
 			<span class="text-base font-medium text-gray-900">Link outline</span>
 			<button
 				type="button"
-				onclick={() => showOutline = !showOutline}
+				onclick={updateShowOutline}
 				class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
 				class:bg-gray-900={showOutline}
 				class:bg-gray-300={!showOutline}
@@ -222,7 +291,7 @@
 			<span class="text-base font-medium text-gray-900">Link shadow</span>
 			<button
 				type="button"
-				onclick={() => showShadow = !showShadow}
+				onclick={updateShowShadow}
 				class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
 				class:bg-gray-900={showShadow}
 				class:bg-gray-300={!showShadow}

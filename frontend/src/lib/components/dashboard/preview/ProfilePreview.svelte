@@ -123,16 +123,26 @@
 											return a.position - b.position;
 										})}
 									{#if link.group_layout === 'grid'}
-										<div class="grid grid-cols-2 gap-3">
+										{@const gridCols = link.grid_columns || 2}
+										{@const aspectRatio = link.grid_aspect_ratio || '3:2'}
+										{@const getAspectStyle = (ratio) => {
+											const map = { '1:1': '1/1', '3:2': '3/2', '16:9': '16/9', '3:1': '3/1', '2:3': '2/3' };
+											return `aspect-ratio: ${map[ratio] || '3/2'}`;
+										}}
+										<div class="grid gap-3" class:grid-cols-1={gridCols === 1} class:grid-cols-2={gridCols === 2} class:grid-cols-3={gridCols === 3} class:grid-cols-4={gridCols === 4}>
 											{#each sortedChildren as child}
 												<a
 													href={child.url}
 													target="_blank"
 													rel="noopener noreferrer"
-													class="block bg-white hover:bg-gray-50 rounded-xl p-3 shadow-sm hover:shadow-md transition-all"
+													class="block bg-white hover:bg-gray-50 rounded-xl p-3 transition-all"
+													class:shadow-sm={link.show_shadow}
+													class:hover:shadow-md={link.show_shadow}
+													class:border-2={link.show_outline}
+													class:border-gray-200={link.show_outline}
 												>
 													{#if child.thumbnail_url}
-														<img src={child.thumbnail_url} alt={child.title} class="w-full h-20 object-cover rounded-lg mb-2"/>
+														<img src={child.thumbnail_url} alt={child.title} class="w-full object-cover rounded-lg mb-2" style={getAspectStyle(aspectRatio)} />
 													{/if}
 													<p class="font-medium text-sm text-gray-900 truncate" style="text-align: {link.text_alignment || 'center'}">{child.title}</p>
 												</a>
@@ -146,7 +156,11 @@
 														href={child.url}
 														target="_blank"
 														rel="noopener noreferrer"
-														class="block bg-white hover:bg-gray-50 rounded-xl p-3 shadow-sm hover:shadow-md transition-all flex-shrink-0 w-40"
+														class="block bg-white hover:bg-gray-50 rounded-xl p-3 transition-all flex-shrink-0 w-40"
+														class:shadow-sm={link.show_shadow}
+														class:hover:shadow-md={link.show_shadow}
+														class:border-2={link.show_outline}
+														class:border-gray-200={link.show_outline}
 													>
 														{#if child.thumbnail_url}
 															<img src={child.thumbnail_url} alt={child.title} class="w-full h-24 object-cover rounded-lg mb-2"/>
@@ -156,6 +170,38 @@
 												{/each}
 											</div>
 										</div>
+									{:else if link.group_layout === 'card'}
+										<!-- Card layout (alternating) -->
+										<div class="space-y-3">
+											{#each sortedChildren as child, index}
+												{@const isEven = index % 2 === 0}
+												<a
+													href={child.url}
+													target="_blank"
+													rel="noopener noreferrer"
+													class="block bg-white hover:bg-gray-50 rounded-xl p-3 transition-all"
+													class:shadow-sm={link.show_shadow}
+													class:hover:shadow-md={link.show_shadow}
+													class:border-2={link.show_outline}
+													class:border-gray-200={link.show_outline}
+												>
+													<div class="flex items-center gap-3" class:flex-row-reverse={isEven}>
+														{#if child.thumbnail_url}
+															<img src={child.thumbnail_url} alt={child.title} class="w-16 h-16 rounded-lg object-cover flex-shrink-0"/>
+														{/if}
+														<div class="flex-1 min-w-0">
+															<p class="font-medium text-sm text-gray-900 mb-0.5 truncate">{child.title}</p>
+															{#if child.url}
+																<p class="text-xs text-gray-500 truncate">{new URL(child.url).hostname}</p>
+															{/if}
+														</div>
+														<svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+														</svg>
+													</div>
+												</a>
+											{/each}
+										</div>
 									{:else}
 										<!-- List layout (default) -->
 										<div class="space-y-2">
@@ -164,7 +210,11 @@
 													href={child.url}
 													target="_blank"
 													rel="noopener noreferrer"
-													class="block bg-white hover:bg-gray-50 rounded-xl p-3 shadow-sm hover:shadow-md transition-all"
+													class="block bg-white hover:bg-gray-50 rounded-xl p-3 transition-all"
+													class:shadow-sm={link.show_shadow}
+													class:hover:shadow-md={link.show_shadow}
+													class:border-2={link.show_outline}
+													class:border-gray-200={link.show_outline}
 													style="text-align: {link.text_alignment || 'center'}"
 												>
 													<div class="flex items-center gap-3" style="justify-content: {link.text_alignment === 'left' ? 'flex-start' : link.text_alignment === 'right' ? 'flex-end' : 'center'}">

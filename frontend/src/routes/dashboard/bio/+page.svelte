@@ -419,15 +419,23 @@
 		if (!currentGroupId) return;
 		
 		try {
-			// Create link with parent_id to add to group
-			const newLink = await linksApi.createLink({
-				title,
-				url,
-				parent_id: currentGroupId
-			}, $auth.token!);
+			// Use addToGroup API which is designed for this purpose
+			const newLink = await linksApi.addToGroup(currentGroupId, { title, url }, $auth.token!);
 			
-			// Refresh to get updated data
-			await loadBlocks();
+			// Update local state immediately - add to group's children
+			links = links.map(link => {
+				if (link.id === currentGroupId && link.is_group) {
+					return {
+						...link,
+						children: [...(link.children || []), newLink]
+					};
+				}
+				return link;
+			});
+			
+			// Also add to allLinks
+			allLinks = [...allLinks, newLink];
+			
 			toast.success('Link added to group!');
 		} catch (error: any) {
 			toast.error(error.message || 'Failed to add link');

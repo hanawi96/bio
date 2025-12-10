@@ -19,7 +19,7 @@ func (r *LinkRepository) GetByUserID(userID string) ([]Link, error) {
 
 func (r *LinkRepository) GetByUserIDWithFilters(userID, search, status, layoutType, sortBy string) ([]Link, error) {
 	query := `
-		SELECT l.id, l.profile_id, l.parent_id, l.is_group, l.group_title, l.group_layout,
+		SELECT l.id, l.profile_id, l.parent_id, l.is_group, l.group_title, l.group_layout, l.grid_columns, l.grid_aspect_ratio,
 		       l.title, l.url, l.thumbnail_url, l.layout_type, 
 		       l.image_placement, l.text_alignment, l.text_size, l.show_outline, l.show_shadow,
 		       l.position, l.clicks, l.is_active, l.is_pinned, l.scheduled_at, l.expires_at, 
@@ -83,7 +83,7 @@ func (r *LinkRepository) GetByUserIDWithFilters(userID, search, status, layoutTy
 	for rows.Next() {
 		var link Link
 		err := rows.Scan(
-			&link.ID, &link.ProfileID, &link.ParentID, &link.IsGroup, &link.GroupTitle, &link.GroupLayout,
+			&link.ID, &link.ProfileID, &link.ParentID, &link.IsGroup, &link.GroupTitle, &link.GroupLayout, &link.GridColumns, &link.GridAspectRatio,
 			&link.Title, &link.URL, &link.ThumbnailURL, &link.LayoutType,
 			&link.ImagePlacement, &link.TextAlignment, &link.TextSize, &link.ShowOutline, &link.ShowShadow,
 			&link.Position, &link.Clicks, &link.IsActive, &link.IsPinned, &link.ScheduledAt, &link.ExpiresAt,
@@ -247,7 +247,7 @@ func (r *LinkRepository) Duplicate(userID string, linkID string) (*Link, error) 
 	// Get original link
 	var original Link
 	query := `
-		SELECT l.id, l.profile_id, l.parent_id, l.is_group, l.group_title, l.group_layout,
+		SELECT l.id, l.profile_id, l.parent_id, l.is_group, l.group_title, l.group_layout, l.grid_columns, l.grid_aspect_ratio,
 		       l.title, l.url, l.thumbnail_url, l.layout_type, 
 		       l.image_placement, l.text_alignment, l.text_size, l.show_outline, l.show_shadow,
 		       l.position, l.clicks, l.is_active, l.is_pinned, l.scheduled_at, l.expires_at, 
@@ -257,7 +257,7 @@ func (r *LinkRepository) Duplicate(userID string, linkID string) (*Link, error) 
 		WHERE l.id = $1 AND p.user_id = $2
 	`
 	err := r.db.QueryRow(query, linkID, userID).Scan(
-		&original.ID, &original.ProfileID, &original.ParentID, &original.IsGroup, &original.GroupTitle, &original.GroupLayout,
+		&original.ID, &original.ProfileID, &original.ParentID, &original.IsGroup, &original.GroupTitle, &original.GroupLayout, &original.GridColumns, &original.GridAspectRatio,
 		&original.Title, &original.URL, &original.ThumbnailURL,
 		&original.LayoutType, &original.ImagePlacement, &original.TextAlignment, &original.TextSize,
 		&original.ShowOutline, &original.ShowShadow, &original.Position, &original.Clicks,
@@ -463,7 +463,7 @@ func (r *LinkRepository) BulkAction(userID string, linkIDs []string, action stri
 // GetChildrenByParentID retrieves all child links belonging to a parent group
 func (r *LinkRepository) GetChildrenByParentID(parentID string) ([]Link, error) {
 	query := `
-		SELECT id, profile_id, parent_id, is_group, group_title, group_layout,
+		SELECT id, profile_id, parent_id, is_group, group_title, group_layout, grid_columns, grid_aspect_ratio,
 		       title, url, thumbnail_url, layout_type, 
 		       image_placement, text_alignment, text_size, show_outline, show_shadow,
 		       position, clicks, is_active, is_pinned, scheduled_at, expires_at, 
@@ -483,7 +483,7 @@ func (r *LinkRepository) GetChildrenByParentID(parentID string) ([]Link, error) 
 	for rows.Next() {
 		var child Link
 		err := rows.Scan(
-			&child.ID, &child.ProfileID, &child.ParentID, &child.IsGroup, &child.GroupTitle, &child.GroupLayout,
+			&child.ID, &child.ProfileID, &child.ParentID, &child.IsGroup, &child.GroupTitle, &child.GroupLayout, &child.GridColumns, &child.GridAspectRatio,
 			&child.Title, &child.URL, &child.ThumbnailURL, &child.LayoutType,
 			&child.ImagePlacement, &child.TextAlignment, &child.TextSize, &child.ShowOutline, &child.ShowShadow,
 			&child.Position, &child.Clicks, &child.IsActive, &child.IsPinned, &child.ScheduledAt, &child.ExpiresAt,
@@ -726,7 +726,7 @@ func (r *LinkRepository) DuplicateGroup(userID string, groupID string) (*Link, e
 	// Get original group
 	var originalGroup Link
 	query := `
-		SELECT l.id, l.profile_id, l.parent_id, l.is_group, l.group_title, l.group_layout,
+		SELECT l.id, l.profile_id, l.parent_id, l.is_group, l.group_title, l.group_layout, l.grid_columns, l.grid_aspect_ratio,
 		       l.title, l.url, l.thumbnail_url, l.layout_type, 
 		       l.image_placement, l.text_alignment, l.text_size, l.show_outline, l.show_shadow,
 		       l.position, l.clicks, l.is_active, l.is_pinned, l.scheduled_at, l.expires_at, 
@@ -738,7 +738,7 @@ func (r *LinkRepository) DuplicateGroup(userID string, groupID string) (*Link, e
 	fmt.Printf("📝 Fetching original group...\n")
 	err = tx.QueryRow(query, groupID, userID).Scan(
 		&originalGroup.ID, &originalGroup.ProfileID, &originalGroup.ParentID, &originalGroup.IsGroup,
-		&originalGroup.GroupTitle, &originalGroup.GroupLayout, &originalGroup.Title, &originalGroup.URL,
+		&originalGroup.GroupTitle, &originalGroup.GroupLayout, &originalGroup.GridColumns, &originalGroup.GridAspectRatio, &originalGroup.Title, &originalGroup.URL,
 		&originalGroup.ThumbnailURL, &originalGroup.LayoutType, &originalGroup.ImagePlacement,
 		&originalGroup.TextAlignment, &originalGroup.TextSize, &originalGroup.ShowOutline,
 		&originalGroup.ShowShadow, &originalGroup.Position, &originalGroup.Clicks, &originalGroup.IsActive,

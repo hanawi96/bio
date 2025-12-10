@@ -7,7 +7,7 @@
 	const dispatch = createEventDispatcher();
 	
 	let title = '';
-	let layout: 'list' | 'grid' | 'carousel' = 'list';
+	let layout: 'list' | 'grid' | 'carousel' | 'card' = 'list';
 	
 	function handleCreate() {
 		if (!title.trim() || !layout) return;
@@ -131,9 +131,11 @@
 			<!-- Card Layout -->
 			<button
 				type="button"
-				onclick={() => layout = 'list'}
-				class="group relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl transition-all overflow-hidden opacity-60 cursor-not-allowed"
-				disabled
+				onclick={() => layout = 'card'}
+				class="group relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl transition-all hover:shadow-md overflow-hidden"
+				class:ring-2={layout === 'card'}
+				class:ring-emerald-500={layout === 'card'}
+				class:ring-offset-2={layout === 'card'}
 			>
 				<div class="aspect-[4/3] p-4 space-y-2">
 					<!-- Card style with image on side -->
@@ -153,7 +155,7 @@
 					</div>
 				</div>
 				<div class="p-3 text-center bg-white/50">
-					<p class="text-sm font-semibold text-gray-400">Card</p>
+					<p class="text-sm font-semibold text-gray-700 group-hover:text-gray-900">Card</p>
 				</div>
 			</button>
 		</div>
