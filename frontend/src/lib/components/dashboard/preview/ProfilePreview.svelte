@@ -125,6 +125,7 @@
 									{#if link.group_layout === 'grid'}
 										{@const gridCols = link.grid_columns || 2}
 										{@const aspectRatio = link.grid_aspect_ratio || '3:2'}
+										{@const textSize = link.text_size || 'M'}
 										{@const getAspectStyle = (ratio) => {
 											const map = { '1:1': '1/1', '3:2': '3/2', '16:9': '16/9', '3:1': '3/1', '2:3': '2/3' };
 											return `aspect-ratio: ${map[ratio] || '3/2'}`;
@@ -144,11 +145,18 @@
 													{#if child.thumbnail_url}
 														<img src={child.thumbnail_url} alt={child.title} class="w-full object-cover rounded-lg mb-2" style={getAspectStyle(aspectRatio)} />
 													{/if}
-													<p class="font-medium text-sm text-gray-900 truncate" style="text-align: {link.text_alignment || 'center'}">{child.title}</p>
+													<p class="font-medium text-gray-900 truncate"
+														class:text-xs={textSize === 'S'}
+														class:text-sm={textSize === 'M'}
+														class:text-base={textSize === 'L'}
+														class:text-lg={textSize === 'XL'}
+														style="text-align: {link.text_alignment || 'center'}"
+													>{child.title}</p>
 												</a>
 											{/each}
 										</div>
 									{:else if link.group_layout === 'carousel'}
+										{@const textSize = link.text_size || 'M'}
 										<div class="overflow-x-auto -mx-6 px-6">
 											<div class="flex gap-3 pb-2">
 												{#each sortedChildren as child}
@@ -165,13 +173,20 @@
 														{#if child.thumbnail_url}
 															<img src={child.thumbnail_url} alt={child.title} class="w-full h-24 object-cover rounded-lg mb-2"/>
 														{/if}
-														<p class="font-medium text-sm text-gray-900 truncate" style="text-align: {link.text_alignment || 'center'}">{child.title}</p>
+														<p class="font-medium text-gray-900 truncate"
+															class:text-xs={textSize === 'S'}
+															class:text-sm={textSize === 'M'}
+															class:text-base={textSize === 'L'}
+															class:text-lg={textSize === 'XL'}
+															style="text-align: {link.text_alignment || 'center'}"
+														>{child.title}</p>
 													</a>
 												{/each}
 											</div>
 										</div>
 									{:else if link.group_layout === 'card'}
 										<!-- Card layout (alternating) -->
+										{@const textSize = link.text_size || 'M'}
 										<div class="space-y-3">
 											{#each sortedChildren as child, index}
 												{@const isEven = index % 2 === 0}
@@ -190,7 +205,12 @@
 															<img src={child.thumbnail_url} alt={child.title} class="w-16 h-16 rounded-lg object-cover flex-shrink-0"/>
 														{/if}
 														<div class="flex-1 min-w-0">
-															<p class="font-medium text-sm text-gray-900 mb-0.5 truncate">{child.title}</p>
+															<p class="font-medium text-gray-900 mb-0.5 truncate"
+																class:text-xs={textSize === 'S'}
+																class:text-sm={textSize === 'M'}
+																class:text-base={textSize === 'L'}
+																class:text-lg={textSize === 'XL'}
+															>{child.title}</p>
 															{#if child.url}
 																<p class="text-xs text-gray-500 truncate">{new URL(child.url).hostname}</p>
 															{/if}
@@ -204,6 +224,7 @@
 										</div>
 									{:else}
 										<!-- List layout (default) -->
+										{@const textSize = link.text_size || 'M'}
 										<div class="space-y-2">
 											{#each sortedChildren as child}
 												<a
@@ -221,7 +242,13 @@
 														{#if child.thumbnail_url && link.text_alignment !== 'right'}
 															<img src={child.thumbnail_url} alt={child.title} class="w-10 h-10 rounded-lg object-cover flex-shrink-0"/>
 														{/if}
-														<span class="font-medium text-sm text-gray-900 flex-1" style="text-align: {link.text_alignment || 'center'}">{child.title}</span>
+														<span class="font-medium text-gray-900 flex-1"
+															class:text-xs={textSize === 'S'}
+															class:text-sm={textSize === 'M'}
+															class:text-base={textSize === 'L'}
+															class:text-lg={textSize === 'XL'}
+															style="text-align: {link.text_alignment || 'center'}"
+														>{child.title}</span>
 														{#if child.thumbnail_url && link.text_alignment === 'right'}
 															<img src={child.thumbnail_url} alt={child.title} class="w-10 h-10 rounded-lg object-cover flex-shrink-0"/>
 														{/if}

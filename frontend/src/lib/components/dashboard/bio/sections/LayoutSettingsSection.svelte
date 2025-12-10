@@ -268,6 +268,32 @@
 		</div>
 	</div>
 
+	<!-- Text Size Section -->
+	<div>
+		<h3 class="text-base font-semibold text-gray-900 mb-3">Text size</h3>
+		<div class="flex gap-2">
+			{#each ['S', 'M', 'L', 'XL'] as size}
+				<button
+					type="button"
+					onclick={() => dispatch('update', { groupId: group.id, text_size: size })}
+					class="flex-1 px-4 py-2.5 border-2 rounded-lg transition-all font-semibold"
+					class:border-gray-900={(group.text_size || 'M') === size}
+					class:bg-gray-900={(group.text_size || 'M') === size}
+					class:text-white={(group.text_size || 'M') === size}
+					class:border-gray-200={(group.text_size || 'M') !== size}
+					class:bg-white={(group.text_size || 'M') !== size}
+					class:text-gray-700={(group.text_size || 'M') !== size}
+					class:text-xs={size === 'S'}
+					class:text-sm={size === 'M'}
+					class:text-base={size === 'L'}
+					class:text-lg={size === 'XL'}
+				>
+					{size}
+				</button>
+			{/each}
+		</div>
+	</div>
+
 	<!-- Toggles Section -->
 	<div class="space-y-3">
 		<label class="flex items-center justify-between cursor-pointer">
