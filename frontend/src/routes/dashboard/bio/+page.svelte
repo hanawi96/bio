@@ -965,13 +965,55 @@
 		}
 	}
 
+	// Store original items order to detect changes
+	let lastValidItems: CombinedItem[] = [];
+	$: if (items.length > 0 && !items.some(item => item.type === 'link' && item.data.is_group && expandedGroupIds.has(item.data.id))) {
+		lastValidItems = [...items];
+	}
+
 	// Drag & Drop handlers
 	function handleDndConsider(e: CustomEvent) {
-		items = e.detail.items;
+		const newItems = e.detail.items;
+		
+		// Check if any expanded group changed position
+		const expandedGroups = items.filter(item => 
+			item.type === 'link' && item.data.is_group && expandedGroupIds.has(item.data.id)
+		);
+		
+		for (const expandedGroup of expandedGroups) {
+			const oldIndex = items.findIndex(i => i.id === expandedGroup.id);
+			const newIndex = newItems.findIndex(i => i.id === expandedGroup.id);
+			
+			if (oldIndex !== newIndex) {
+				// Expanded group moved, revert to original order
+				items = items;
+				return;
+			}
+		}
+		
+		items = newItems;
 	}
 
 	async function handleDndFinalize(e: CustomEvent) {
-		items = e.detail.items;
+		const newItems = e.detail.items;
+		
+		// Check if any expanded group changed position
+		const expandedGroups = items.filter(item => 
+			item.type === 'link' && item.data.is_group && expandedGroupIds.has(item.data.id)
+		);
+		
+		for (const expandedGroup of expandedGroups) {
+			const oldIndex = items.findIndex(i => i.id === expandedGroup.id);
+			const newIndex = newItems.findIndex(i => i.id === expandedGroup.id);
+			
+			if (oldIndex !== newIndex) {
+				// Expanded group moved, revert and don't save
+				items = items;
+				return;
+			}
+		}
+		
+		items = newItems;
 		
 		try {
 			// Send unified reorder request with all items
@@ -1069,6 +1111,24 @@
 	:global([aria-grabbed="true"]) {
 		opacity: 0.5;
 		cursor: grabbing !important;
+	}
+
+	/* Vô hiệu hóa drag cho items có data-drag-disabled */
+	:global([data-drag-disabled="true"]) {
+		position: relative;
+	}
+	
+	:global([data-drag-disabled="true"]::before) {
+		content: '';
+		position: absolute;
+		inset: 0;
+		z-index: 10;
+		pointer-events: auto;
+	}
+	
+	:global([data-drag-disabled="true"] > *) {
+		position: relative;
+		z-index: 11;
 	}
 </style>
 
@@ -1191,12 +1251,16 @@
 				<!-- Combined Links & Blocks List -->
 				<section 
 					class="space-y-3"
-					use:dndzone={{items, flipDurationMs: 200, dropTargetStyle: {}}}
+					use:dndzone={{items, flipDurationMs: 200, dropTargetStyle: {}, dragDisabled: false}}
 					onconsider={handleDndConsider}
 					onfinalize={handleDndFinalize}
 				>
 					{#each items as item (item.id)}
-						<div style="outline: none;">
+						{@const isExpandedGroup = item.type === 'link' && item.data.is_group && expandedGroupIds.has(item.data.id)}
+						<div 
+							style="outline: none;"
+							data-drag-disabled={isExpandedGroup}
+						>
 							{#if item.type === 'link' && item.data.is_group && !hiddenLinkIds.has(item.data.id)}
 								<LinkGroupCard 
 									group={item.data}
