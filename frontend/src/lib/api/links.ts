@@ -11,9 +11,11 @@ export interface Link {
 	grid_aspect_ratio?: string;
 	title: string;
 	url: string;
+	description?: string | null;
 	thumbnail_url?: string | null;
+	image_shape?: 'square' | 'circle';
 	layout_type: 'classic' | 'featured' | 'carousel' | 'grid' | 'card';
-	image_placement: 'left' | 'right' | 'top' | 'bottom';
+	image_placement: 'left' | 'right' | 'top' | 'bottom' | 'alternating';
 	text_alignment: 'left' | 'center' | 'right';
 	text_size: 'S' | 'M' | 'L' | 'XL';
 	show_outline: boolean;
@@ -80,7 +82,7 @@ export const linksApi = {
 	// Group management
 	createGroup: (title: string, layout: 'list' | 'grid' | 'carousel' | 'card', token: string) =>
 		api.post<Link>('/links/groups', { title, layout }, token),
-	addToGroup: (groupId: string, data: { title: string; url: string }, token: string) =>
+	addToGroup: (groupId: string, data: { title: string; url: string; description?: string | null }, token: string) =>
 		api.post<Link>(`/links/groups/${groupId}/items`, data, token),
 	moveToGroup: (linkId: string, groupId: string, token: string) =>
 		api.put<Link>(`/links/${linkId}/move-to-group`, { group_id: groupId }, token),

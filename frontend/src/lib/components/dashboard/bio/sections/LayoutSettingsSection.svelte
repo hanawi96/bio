@@ -214,6 +214,51 @@
 		</div>
 	{/if}
 
+	<!-- Image Placement Section (only show for card layout) -->
+	{#if layout === 'card'}
+		<div>
+			<h3 class="text-base font-semibold text-gray-900 mb-3">Image placement</h3>
+			<div class="flex flex-col gap-2">
+				<button
+					type="button"
+					onclick={() => dispatch('update', { groupId: group.id, image_placement: 'left' })}
+					class="px-4 py-3 border-2 rounded-lg transition-all hover:shadow-md text-left"
+					class:border-emerald-500={(group.image_placement || 'alternating') === 'left'}
+					class:bg-emerald-50={(group.image_placement || 'alternating') === 'left'}
+					class:border-gray-200={(group.image_placement || 'alternating') !== 'left'}
+					class:bg-white={(group.image_placement || 'alternating') !== 'left'}
+				>
+					<div class="font-semibold text-gray-900">Left</div>
+					<div class="text-xs text-gray-500 mt-0.5">Image on the left, text on the right</div>
+				</button>
+				<button
+					type="button"
+					onclick={() => dispatch('update', { groupId: group.id, image_placement: 'right' })}
+					class="px-4 py-3 border-2 rounded-lg transition-all hover:shadow-md text-left"
+					class:border-emerald-500={(group.image_placement || 'alternating') === 'right'}
+					class:bg-emerald-50={(group.image_placement || 'alternating') === 'right'}
+					class:border-gray-200={(group.image_placement || 'alternating') !== 'right'}
+					class:bg-white={(group.image_placement || 'alternating') !== 'right'}
+				>
+					<div class="font-semibold text-gray-900">Right</div>
+					<div class="text-xs text-gray-500 mt-0.5">Image on the right, text on the left</div>
+				</button>
+				<button
+					type="button"
+					onclick={() => dispatch('update', { groupId: group.id, image_placement: 'alternating' })}
+					class="px-4 py-3 border-2 rounded-lg transition-all hover:shadow-md text-left"
+					class:border-emerald-500={(group.image_placement || 'alternating') === 'alternating'}
+					class:bg-emerald-50={(group.image_placement || 'alternating') === 'alternating'}
+					class:border-gray-200={(group.image_placement || 'alternating') !== 'alternating'}
+					class:bg-white={(group.image_placement || 'alternating') !== 'alternating'}
+				>
+					<div class="font-semibold text-gray-900">Alternating</div>
+					<div class="text-xs text-gray-500 mt-0.5">Image alternates between left and right</div>
+				</button>
+			</div>
+		</div>
+	{/if}
+
 	<!-- Text Alignment Section -->
 	<div>
 		<h3 class="text-base font-semibold text-gray-900 mb-3">Text alignment</h3>
@@ -293,6 +338,43 @@
 			{/each}
 		</div>
 	</div>
+
+	<!-- Image Shape Section (for Classic layout only) -->
+	{#if layout === 'list'}
+		<div>
+			<h3 class="text-base font-semibold text-gray-900 mb-3">Image shape</h3>
+			<div class="flex gap-2">
+				<button
+					type="button"
+					onclick={() => dispatch('update', { groupId: group.id, image_shape: 'square' })}
+					class="flex-1 px-4 py-3 border-2 rounded-lg transition-all hover:shadow-md"
+					class:border-emerald-500={(group.image_shape || 'square') === 'square'}
+					class:bg-emerald-50={(group.image_shape || 'square') === 'square'}
+					class:border-gray-200={(group.image_shape || 'square') !== 'square'}
+					class:bg-white={(group.image_shape || 'square') !== 'square'}
+				>
+					<div class="flex flex-col items-center gap-2">
+						<div class="w-10 h-10 bg-gradient-to-br from-amber-200 to-amber-300 rounded-lg"></div>
+						<span class="text-sm font-medium text-gray-700">Square</span>
+					</div>
+				</button>
+				<button
+					type="button"
+					onclick={() => dispatch('update', { groupId: group.id, image_shape: 'circle' })}
+					class="flex-1 px-4 py-3 border-2 rounded-lg transition-all hover:shadow-md"
+					class:border-emerald-500={(group.image_shape || 'square') === 'circle'}
+					class:bg-emerald-50={(group.image_shape || 'square') === 'circle'}
+					class:border-gray-200={(group.image_shape || 'square') !== 'circle'}
+					class:bg-white={(group.image_shape || 'square') !== 'circle'}
+				>
+					<div class="flex flex-col items-center gap-2">
+						<div class="w-10 h-10 bg-gradient-to-br from-amber-200 to-amber-300 rounded-full"></div>
+						<span class="text-sm font-medium text-gray-700">Circle</span>
+					</div>
+				</button>
+			</div>
+		</div>
+	{/if}
 
 	<!-- Toggles Section -->
 	<div class="space-y-3">

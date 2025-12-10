@@ -30,6 +30,40 @@ func main() {
 	}
 	defer db.Close()
 
+	// Run migration for image_shape (safe - uses IF NOT EXISTS)
+	_, err = db.Exec(`
+		ALTER TABLE links 
+		ADD COLUMN IF NOT EXISTS image_shape VARCHAR(20) DEFAULT 'square'
+	`)
+	if err != nil {
+		log.Println("⚠️ Migration warning:", err)
+	} else {
+		log.Println("✅ Migration: image_shape column ready")
+	}
+
+	// Update image_placement constraint to include 'alternating'
+	_, err = db.Exec(`
+		ALTER TABLE links DROP CONSTRAINT IF EXISTS chk_image_placement;
+		ALTER TABLE links ADD CONSTRAINT chk_image_placement 
+		CHECK (image_placement IN ('left', 'right', 'top', 'bottom', 'alternating'))
+	`)
+	if err != nil {
+		log.Println("⚠️ Image placement constraint warning:", err)
+	} else {
+		log.Println("✅ Migration: image_placement constraint updated")
+	}
+
+	// Add description column (safe - uses IF NOT EXISTS)
+	_, err = db.Exec(`
+		ALTER TABLE links 
+		ADD COLUMN IF NOT EXISTS description TEXT
+	`)
+	if err != nil {
+		log.Println("⚠️ Description migration warning:", err)
+	} else {
+		log.Println("✅ Migration: description column ready")
+	}
+
 	// Create Fiber app
 	app := fiber.New(fiber.Config{
 		AppName:      "LinkBio API",

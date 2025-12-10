@@ -376,9 +376,9 @@
 	}
 
 	async function handleSaveGroupLink(event: CustomEvent) {
-		const { id, title, url } = event.detail;
+		const { id, title, url, description } = event.detail;
 		try {
-			await linksApi.updateLink(id, { title, url }, $auth.token!);
+			await linksApi.updateLink(id, { title, url, description }, $auth.token!);
 			
 			// Update local state immediately
 			links = links.map(link => {
@@ -387,7 +387,7 @@
 						...link,
 						children: link.children.map(child => 
 							child.id === id 
-								? { ...child, title, url } 
+								? { ...child, title, url, description } 
 								: child
 						)
 					};
@@ -400,7 +400,7 @@
 						...link,
 						children: link.children.map(child => 
 							child.id === id 
-								? { ...child, title, url } 
+								? { ...child, title, url, description } 
 								: child
 						)
 					};
@@ -415,28 +415,74 @@
 	}
 
 	async function handleAddGroupLink(event: CustomEvent) {
-		const { title, url } = event.detail;
+		const { title, url, description, file } = event.detail;
 		if (!currentGroupId) return;
 		
 		try {
-			// Use addToGroup API which is designed for this purpose
-			const newLink = await linksApi.addToGroup(currentGroupId, { title, url }, $auth.token!);
+			// Create link first
+			const newLink = await linksApi.addToGroup(currentGroupId, { title, url, description }, $auth.token!);
 			
-			// Update local state immediately - add to group's children
+			// If file selected, create preview URL for instant display
+			let displayLink = newLink;
+			if (file) {
+				const previewUrl = URL.createObjectURL(file);
+				displayLink = { ...newLink, thumbnail_url: previewUrl };
+			}
+			
+			// Update UI immediately with preview (instant feedback)
 			links = links.map(link => {
 				if (link.id === currentGroupId && link.is_group) {
 					return {
 						...link,
-						children: [...(link.children || []), newLink]
+						children: [...(link.children || []), displayLink]
 					};
 				}
 				return link;
 			});
-			
-			// Also add to allLinks
-			allLinks = [...allLinks, newLink];
+			allLinks = [...allLinks, displayLink];
 			
 			toast.success('Link added to group!');
+			
+			// Upload thumbnail in background if file exists
+			if (file) {
+				linksApi.uploadThumbnail(newLink.id, file, $auth.token!)
+					.then(uploadedLink => {
+						// Update only thumbnail_url, preserve other fields (like description)
+						links = links.map(link => {
+							if (link.is_group && link.children) {
+								return {
+									...link,
+									children: link.children.map(child => 
+										child.id === newLink.id 
+											? { ...child, thumbnail_url: uploadedLink.thumbnail_url }
+											: child
+									)
+								};
+							}
+							return link;
+						});
+						allLinks = allLinks.map(link => 
+							link.id === newLink.id 
+								? { ...link, thumbnail_url: uploadedLink.thumbnail_url }
+								: link
+						);
+					})
+					.catch(error => {
+						console.warn('Thumbnail upload failed:', error);
+						// Remove preview URL on error, keep link without thumbnail
+						links = links.map(link => {
+							if (link.is_group && link.children) {
+								return {
+									...link,
+									children: link.children.map(child => 
+										child.id === newLink.id ? { ...child, thumbnail_url: null } : child
+									)
+								};
+							}
+							return link;
+						});
+					});
+			}
 		} catch (error: any) {
 			toast.error(error.message || 'Failed to add link');
 		}
@@ -677,11 +723,11 @@
 	async function handleUpdateGroupLayout(event: CustomEvent) {
 		const { groupId, ...settings } = event.detail;
 		try {
-			await linksApi.updateLink(groupId, settings, $auth.token!);
+			const updatedLink = await linksApi.updateLink(groupId, settings, $auth.token!);
 			
-			// Update local state
-			links = links.map(l => l.id === groupId ? { ...l, ...settings } : l);
-			allLinks = allLinks.map(l => l.id === groupId ? { ...l, ...settings } : l);
+			// Update local state with full response (includes children)
+			links = links.map(l => l.id === groupId ? updatedLink : l);
+			allLinks = allLinks.map(l => l.id === groupId ? updatedLink : l);
 			
 			toast.success('Layout updated!');
 		} catch (error: any) {

@@ -152,6 +152,9 @@
 														class:text-lg={textSize === 'XL'}
 														style="text-align: {link.text_alignment || 'center'}"
 													>{child.title}</p>
+													{#if child.description}
+														<p class="text-xs text-gray-500 mt-1 line-clamp-2" style="text-align: {link.text_alignment || 'center'}">{child.description}</p>
+													{/if}
 												</a>
 											{/each}
 										</div>
@@ -180,44 +183,50 @@
 															class:text-lg={textSize === 'XL'}
 															style="text-align: {link.text_alignment || 'center'}"
 														>{child.title}</p>
+														{#if child.description}
+															<p class="text-xs text-gray-500 mt-1 line-clamp-2" style="text-align: {link.text_alignment || 'center'}">{child.description}</p>
+														{/if}
 													</a>
 												{/each}
 											</div>
 										</div>
 									{:else if link.group_layout === 'card'}
-										<!-- Card layout (alternating) -->
+										<!-- Card layout -->
 										{@const textSize = link.text_size || 'M'}
+										{@const imagePlacement = link.image_placement || 'alternating'}
 										<div class="space-y-3">
 											{#each sortedChildren as child, index}
-												{@const isEven = index % 2 === 0}
+												{@const shouldReverse = imagePlacement === 'right' || (imagePlacement === 'alternating' && index % 2 === 0)}
 												<a
 													href={child.url}
 													target="_blank"
 													rel="noopener noreferrer"
-													class="block bg-white hover:bg-gray-50 rounded-xl p-3 transition-all"
+													class="block bg-white hover:bg-gray-50 rounded-xl overflow-hidden transition-all"
 													class:shadow-sm={link.show_shadow}
 													class:hover:shadow-md={link.show_shadow}
 													class:border-2={link.show_outline}
 													class:border-gray-200={link.show_outline}
 												>
-													<div class="flex items-center gap-3" class:flex-row-reverse={isEven}>
+													<div class="flex items-stretch" class:flex-row-reverse={shouldReverse}>
 														{#if child.thumbnail_url}
-															<img src={child.thumbnail_url} alt={child.title} class="w-16 h-16 rounded-lg object-cover flex-shrink-0"/>
+															<div class="w-1/2 bg-gray-100">
+																<img src={child.thumbnail_url} alt={child.title} class="w-full h-full object-cover"/>
+															</div>
 														{/if}
-														<div class="flex-1 min-w-0">
-															<p class="font-medium text-gray-900 mb-0.5 truncate"
-																class:text-xs={textSize === 'S'}
-																class:text-sm={textSize === 'M'}
-																class:text-base={textSize === 'L'}
-																class:text-lg={textSize === 'XL'}
+														<div class="flex-1 p-4 flex flex-col justify-center">
+															<p class="font-bold text-gray-900 mb-1"
+																class:text-sm={textSize === 'S'}
+																class:text-base={textSize === 'M'}
+																class:text-lg={textSize === 'L'}
+																class:text-xl={textSize === 'XL'}
 															>{child.title}</p>
+															{#if child.description}
+																<p class="text-xs text-gray-500 mb-1">{child.description}</p>
+															{/if}
 															{#if child.url}
-																<p class="text-xs text-gray-500 truncate">{new URL(child.url).hostname}</p>
+																<p class="text-xs text-gray-400">{new URL(child.url).hostname}</p>
 															{/if}
 														</div>
-														<svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-														</svg>
 													</div>
 												</a>
 											{/each}
@@ -225,6 +234,7 @@
 									{:else}
 										<!-- List layout (default) -->
 										{@const textSize = link.text_size || 'M'}
+										{@const imageShape = link.image_shape || 'square'}
 										<div class="space-y-2">
 											{#each sortedChildren as child}
 												<a
@@ -236,22 +246,23 @@
 													class:hover:shadow-md={link.show_shadow}
 													class:border-2={link.show_outline}
 													class:border-gray-200={link.show_outline}
-													style="text-align: {link.text_alignment || 'center'}"
 												>
-													<div class="flex items-center gap-3" style="justify-content: {link.text_alignment === 'left' ? 'flex-start' : link.text_alignment === 'right' ? 'flex-end' : 'center'}">
-														{#if child.thumbnail_url && link.text_alignment !== 'right'}
-															<img src={child.thumbnail_url} alt={child.title} class="w-10 h-10 rounded-lg object-cover flex-shrink-0"/>
+													<div class="flex items-center gap-3">
+														{#if child.thumbnail_url}
+															<img src={child.thumbnail_url} alt={child.title} class="w-10 h-10 object-cover flex-shrink-0" class:rounded-lg={imageShape === 'square'} class:rounded-full={imageShape === 'circle'}/>
 														{/if}
-														<span class="font-medium text-gray-900 flex-1"
-															class:text-xs={textSize === 'S'}
-															class:text-sm={textSize === 'M'}
-															class:text-base={textSize === 'L'}
-															class:text-lg={textSize === 'XL'}
-															style="text-align: {link.text_alignment || 'center'}"
-														>{child.title}</span>
-														{#if child.thumbnail_url && link.text_alignment === 'right'}
-															<img src={child.thumbnail_url} alt={child.title} class="w-10 h-10 rounded-lg object-cover flex-shrink-0"/>
-														{/if}
+														<div class="flex-1">
+															<p class="font-medium text-gray-900"
+																class:text-xs={textSize === 'S'}
+																class:text-sm={textSize === 'M'}
+																class:text-base={textSize === 'L'}
+																class:text-lg={textSize === 'XL'}
+																style="text-align: {link.text_alignment || 'left'}"
+															>{child.title}</p>
+															{#if child.description}
+																<p class="text-xs text-gray-500 mt-0.5" style="text-align: {link.text_alignment || 'left'}">{child.description}</p>
+															{/if}
+														</div>
 														<svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
 														</svg>

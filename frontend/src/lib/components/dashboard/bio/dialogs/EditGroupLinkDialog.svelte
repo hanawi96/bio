@@ -11,19 +11,25 @@
 	
 	let title = '';
 	let url = '';
+	let description = '';
 	let urlError = '';
 	let fileInput: HTMLInputElement;
+	let selectedFile: File | null = null;
+	let previewUrl: string = '';
 	
 	// Mode: 'add' or 'edit'
 	$: mode = link ? 'edit' : 'add';
 	
-	// Reactive thumbnail URL synced with link prop
-	$: thumbnailUrl = link?.thumbnail_url || '';
+	// Thumbnail URL: use preview if available, otherwise use link's thumbnail
+	$: thumbnailUrl = previewUrl || link?.thumbnail_url || '';
 	
 	$: if (link && open) {
 		title = link.title;
 		url = link.url;
+		description = link.description || '';
 		urlError = '';
+		selectedFile = null;
+		previewUrl = '';
 	}
 	
 	function isValidUrl(urlString: string): boolean {
@@ -55,13 +61,27 @@
 	function handleFileSelect(event: Event) {
 		const target = event.target as HTMLInputElement;
 		const file = target.files?.[0];
-		if (file && link) {
+		if (!file) return;
+		
+		selectedFile = file;
+		previewUrl = URL.createObjectURL(file);
+		
+		// If editing existing link, upload immediately
+		if (link) {
 			dispatch('uploadThumbnail', { linkId: link.id, file });
 		}
 	}
 	
 	function handleRemoveThumbnail() {
-		if (link) {
+		// Clear local preview and file
+		if (previewUrl) {
+			URL.revokeObjectURL(previewUrl);
+			previewUrl = '';
+		}
+		selectedFile = null;
+		
+		// If editing existing link with saved thumbnail, remove from server
+		if (link && link.thumbnail_url) {
 			dispatch('removeThumbnail', link.id);
 		}
 	}
@@ -76,12 +96,15 @@
 			dispatch('save', {
 				id: link.id,
 				title: title.trim(),
-				url: url.trim()
+				url: url.trim(),
+				description: description.trim() || null
 			});
 		} else {
 			dispatch('add', {
 				title: title.trim(),
-				url: url.trim()
+				url: url.trim(),
+				description: description.trim() || null,
+				file: selectedFile
 			});
 		}
 		
@@ -91,7 +114,13 @@
 	function resetForm() {
 		title = '';
 		url = '';
+		description = '';
 		urlError = '';
+		selectedFile = null;
+		if (previewUrl) {
+			URL.revokeObjectURL(previewUrl);
+			previewUrl = '';
+		}
 	}
 	
 	$: if (!open) {
@@ -145,6 +174,15 @@
 					{#if urlError}
 						<p class="text-xs text-red-600">{urlError}</p>
 					{/if}
+
+					<!-- Description Input -->
+					<textarea
+						id="edit-link-description"
+						bind:value={description}
+						placeholder="Description (optional)"
+						rows="2"
+						class="w-full px-4 py-3 bg-gray-100 border-0 rounded-lg focus:bg-white focus:ring-2 focus:ring-gray-200 transition-all text-gray-900 placeholder-gray-500 resize-none"
+					></textarea>
 				</div>
 
 				<!-- Right: Picture Upload -->
