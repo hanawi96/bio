@@ -12,13 +12,11 @@
 	import { AddBlockDialog } from '$lib/components/dashboard/bio/dialogs';
 	import TextBlockDialog from '$lib/components/dashboard/bio/dialogs/TextBlockDialog.svelte';
 	import CreateGroupDialog from '$lib/components/dashboard/bio/dialogs/CreateGroupDialog.svelte';
-	import AddToGroupDialog from '$lib/components/dashboard/bio/dialogs/AddToGroupDialog.svelte';
 	import EditGroupLinkDialog from '$lib/components/dashboard/bio/dialogs/EditGroupLinkDialog.svelte';
 	import ProfilePreview from '$lib/components/dashboard/preview/ProfilePreview.svelte';
-	import BioToolbar from '$lib/components/dashboard/bio/BioToolbar.svelte';
 	import CalendarView from '$lib/components/dashboard/bio/CalendarView.svelte';
 	import { profileApi } from '$lib/api/profile';
-	import { linksApi, type LinkFilters } from '$lib/api/links';
+	import { linksApi } from '$lib/api/links';
 	import { blocksApi, type Block } from '$lib/api/blocks';
 	import type { Profile } from '$lib/api/profile';
 	import type { Link } from '$lib/api/links';
@@ -48,16 +46,7 @@
 			.map(block => block.link_id!)
 	);
 
-	// Search & Filter state
-	let searchQuery = '';
-	let statusFilter: 'active' | 'inactive' | '' = '';
-	let layoutFilter: 'classic' | 'featured' | '' = '';
-	let sortBy: 'position' | 'clicks' | 'created' | 'updated' | 'title' | '' = '';
-	let showFilters = false;
-	let showCalendar = false;
-
 	$: selectedCount = selectedIds.size;
-	$: hasActiveFilters = !!(searchQuery || statusFilter || layoutFilter || sortBy);
 
 	function handleCopyUrl() {
 		if (!profile?.username) {
@@ -80,8 +69,6 @@
 	
 	let showCreateGroupDialog = false;
 	let showGroupLinkDialog = false;
-	let showAddToGroupDialog = false;
-	let showEditGroupLinkDialog = false;
 	let currentGroupId: string | null = null;
 	let currentGroupTitle: string = '';
 	let editingGroupLink: Link | null = null;
@@ -91,9 +78,6 @@
 
 	onMount(async () => {
 		await loadData();
-		setTimeout(() => {
-			isInitialized = true;
-		}, 100);
 	});
 
 	async function loadData() {
@@ -135,51 +119,6 @@
 			initialLoading = false;
 		}
 	}
-
-	async function applyFilters() {
-		try {
-			const filters: LinkFilters = {
-				search: searchQuery || undefined,
-				status: statusFilter || undefined,
-				layout_type: layoutFilter || undefined,
-				sort_by: sortBy || undefined
-			};
-			
-			links = await linksApi.getLinks($auth.token!, filters);
-		} catch (error: any) {
-			console.error('❌ Failed to apply filters:', error);
-			toast.error('Failed to apply filters');
-		}
-	}
-
-	function clearFilters() {
-		searchQuery = '';
-		statusFilter = '';
-		layoutFilter = '';
-		sortBy = '';
-		links = allLinks;
-	}
-
-	// Debounce search
-	let searchTimeout: any;
-	let isInitialized = false;
-	
-	$: {
-		if (isInitialized && searchQuery !== undefined) {
-			clearTimeout(searchTimeout);
-			searchTimeout = setTimeout(() => {
-				applyFilters();
-			}, 300);
-		}
-	}
-
-	$: {
-		if (isInitialized && (statusFilter !== undefined || layoutFilter !== undefined || sortBy !== undefined)) {
-			applyFilters();
-		}
-	}
-
-
 
 	function handleSelect(event: CustomEvent) {
 		const id = event.detail;
@@ -286,20 +225,8 @@
 		if (group) {
 			currentGroupId = groupId;
 			currentGroupTitle = group.group_title || 'Group';
-			showAddToGroupDialog = true;
-		}
-	}
-
-	async function handleAddToGroup(event: CustomEvent) {
-		if (!currentGroupId) return;
-		const { title, url } = event.detail;
-		try {
-			await linksApi.addToGroup(currentGroupId, { title, url }, $auth.token!);
-			await loadData();
-			showAddToGroupDialog = false;
-			toast.success('Link added to group!');
-		} catch (error: any) {
-			toast.error(error.message || 'Failed to add link');
+			editingGroupLink = null; // null = add mode
+			showGroupLinkDialog = true;
 		}
 	}
 
@@ -326,6 +253,7 @@
 
 	async function handleToggleNewTab(event: CustomEvent) {
 		const linkId = event.detail;
+		console.log('🎯 handleToggleNewTab called with linkId:', linkId);
 		try {
 			// Find current state
 			let currentState = false;
@@ -334,6 +262,7 @@
 					const child = link.children.find(c => c.id === linkId);
 					if (child) {
 						currentState = child.open_in_new_tab || false;
+						console.log('📍 Found link in group, current state:', currentState);
 						break;
 					}
 				}
@@ -341,6 +270,7 @@
 			
 			// Toggle
 			const newState = !currentState;
+			console.log('🔄 Toggling from', currentState, 'to', newState);
 			await linksApi.updateLink(linkId, { open_in_new_tab: newState }, $auth.token!);
 			
 			// Update local state without reloading - keep UI expanded
@@ -442,7 +372,7 @@
 
 	function handleEditGroupLink(event: CustomEvent) {
 		editingGroupLink = event.detail;
-		showEditGroupLinkDialog = true;
+		showGroupLinkDialog = true;
 	}
 
 	async function handleSaveGroupLink(event: CustomEvent) {
@@ -481,6 +411,26 @@
 			toast.success('Link updated!');
 		} catch (error: any) {
 			toast.error(error.message || 'Failed to update link');
+		}
+	}
+
+	async function handleAddGroupLink(event: CustomEvent) {
+		const { title, url } = event.detail;
+		if (!currentGroupId) return;
+		
+		try {
+			// Create link with parent_id to add to group
+			const newLink = await linksApi.createLink({
+				title,
+				url,
+				parent_id: currentGroupId
+			}, $auth.token!);
+			
+			// Refresh to get updated data
+			await loadBlocks();
+			toast.success('Link added to group!');
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to add link');
 		}
 	}
 
@@ -653,10 +603,14 @@
 			// Update local state without reloading - keep UI expanded
 			links = links.map(link => {
 				if (link.id === groupId && link.children) {
-					// Reorder children based on linkIds
-					const orderedChildren = linkIds.map((id: string) => 
-						link.children!.find(child => child.id === id)
-					).filter(Boolean);
+					// Reorder children based on linkIds AND update position
+					const orderedChildren = linkIds.map((id: string, index: number) => {
+						const child = link.children!.find(c => c.id === id);
+						if (child) {
+							return { ...child, position: index };
+						}
+						return null;
+					}).filter(Boolean) as Link[];
 					return { ...link, children: orderedChildren };
 				}
 				return link;
@@ -677,7 +631,7 @@
 		}
 		
 		// Find the block that contains this link group
-		const block = blocks.find(b => b.link_id === id);
+		const block = (blocks || []).find(b => b.link_id === id);
 		
 		console.log('🔄 Toggling group visibility:', { 
 			groupId: id, 
@@ -698,7 +652,7 @@
 			// Also toggle the block if it exists
 			if (block) {
 				await blocksApi.updateBlock(block.id, { is_active: !group.is_active }, $auth.token!);
-				blocks = blocks.map(b => b.id === block.id ? {...b, is_active: !group.is_active} : b);
+				blocks = (blocks || []).map(b => b.id === block.id ? {...b, is_active: !group.is_active} : b);
 			}
 			
 			console.log('✅ Group visibility toggled!', { 
@@ -709,6 +663,21 @@
 		} catch (error: any) {
 			console.error('❌ Failed to toggle group:', error);
 			toast.error(error.message || 'Failed to toggle group');
+		}
+	}
+
+	async function handleUpdateGroupLayout(event: CustomEvent) {
+		const { groupId, ...settings } = event.detail;
+		try {
+			await linksApi.updateLink(groupId, settings, $auth.token!);
+			
+			// Update local state
+			links = links.map(l => l.id === groupId ? { ...l, ...settings } : l);
+			allLinks = allLinks.map(l => l.id === groupId ? { ...l, ...settings } : l);
+			
+			toast.success('Layout updated!');
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to update layout');
 		}
 	}
 
@@ -848,7 +817,7 @@
 		const { id, ...data } = event.detail;
 		try {
 			await blocksApi.updateBlock(id, data, $auth.token!);
-			blocks = blocks.map(b => b.id === id ? { ...b, ...data } : b);
+			blocks = (blocks || []).map(b => b.id === id ? { ...b, ...data } : b);
 			toast.success('Block updated!');
 		} catch (error: any) {
 			toast.error(error.message || 'Failed to update block');
@@ -859,7 +828,7 @@
 		const id = event.detail;
 		try {
 			await blocksApi.deleteBlock(id, $auth.token!);
-			blocks = blocks.filter(b => b.id !== id);
+			blocks = (blocks || []).filter(b => b.id !== id);
 			toast.success('Block deleted!');
 		} catch (error: any) {
 			toast.error(error.message || 'Failed to delete block');
@@ -878,12 +847,12 @@
 
 	async function handleToggleBlock(event: CustomEvent) {
 		const id = event.detail;
-		const block = blocks.find(b => b.id === id);
+		const block = (blocks || []).find(b => b.id === id);
 		if (!block) return;
 		
 		try {
 			await blocksApi.updateBlock(id, { is_active: !block.is_active }, $auth.token!);
-			blocks = blocks.map(b => b.id === id ? { ...b, is_active: !b.is_active } : b);
+			blocks = (blocks || []).map(b => b.id === id ? { ...b, is_active: !b.is_active } : b);
 		} catch (error: any) {
 			toast.error('Failed to toggle block');
 		}
@@ -891,7 +860,7 @@
 
 	async function handleDuplicateBlock(event: CustomEvent) {
 		const id = event.detail;
-		const block = blocks.find(b => b.id === id);
+		const block = (blocks || []).find(b => b.id === id);
 		if (!block) return;
 		
 		try {
@@ -905,12 +874,12 @@
 			links = links.map(l => 
 				l.position >= targetPos ? { ...l, position: l.position + 1 } : l
 			);
-			blocks = blocks.map(b => 
+			blocks = (blocks || []).map(b => 
 				b.position >= targetPos ? { ...b, position: b.position + 1 } : b
 			);
 			
 			// Add new block with correct position
-			blocks = [...blocks, { ...newBlock, position: targetPos }];
+			blocks = [...(blocks || []), { ...newBlock, position: targetPos }];
 			
 			// Reorder on backend
 			const newItems = [
@@ -937,12 +906,10 @@
 
 	// Drag & Drop handlers
 	function handleDndConsider(e: CustomEvent) {
-		if (hasActiveFilters) return;
 		items = e.detail.items;
 	}
 
 	async function handleDndFinalize(e: CustomEvent) {
-		if (hasActiveFilters) return;
 		items = e.detail.items;
 		
 		try {
@@ -970,14 +937,14 @@
 					const linkIndex = links.findIndex(l => l.id === item.id);
 					if (linkIndex !== -1) links[linkIndex].position = idx;
 				} else {
-					const blockIndex = blocks.findIndex(b => b.id === item.id);
+					const blockIndex = (blocks || []).findIndex(b => b.id === item.id);
 					if (blockIndex !== -1) blocks[blockIndex].position = idx;
 				}
 			});
 			
 			// Trigger reactivity
 			links = links;
-			blocks = blocks;
+			blocks = blocks || [];
 		} catch (error: any) {
 			toast.error('Failed to reorder items');
 			console.error(error);
@@ -1123,117 +1090,42 @@
 		<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in">
 			<!-- Links Section (2/3) -->
 			<div class="lg:col-span-2 space-y-6">
-				<!-- Compact Toolbar -->
-				<BioToolbar
-					bind:searchQuery
-					bind:showFilters
-					bind:showCalendar
-					hasActiveFilters={!!searchQuery || !!statusFilter || !!layoutFilter || !!sortBy}
-					linksCount={links.length}
-					on:toggleFilters={() => showFilters = !showFilters}
-					on:toggleCalendar={() => showCalendar = !showCalendar}
-					on:selectAll={selectAll}
-					on:addCollection={() => toast.info('Add collection feature coming soon!')}
-					on:viewArchive={() => toast.info('View archive feature coming soon!')}
-				/>
+				<!-- Action Buttons (Linktree style) -->
+				<div class="grid grid-cols-2 gap-3">
+					<!-- Add Link Button - Gradient Red to Purple -->
+					<button
+						onclick={() => showCreateGroupDialog = true}
+						class="flex items-center justify-center gap-2 px-6 py-4 rounded-xl text-white text-sm font-semibold transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+						style="background: linear-gradient(135deg, #FF5757 0%, #FF6B9D 50%, #C471ED 100%);"
+					>
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+						</svg>
+						<span>ADD LINK</span>
+					</button>
 
-				<!-- Calendar View -->
-				{#if showCalendar}
-					<div class="animate-in">
-						<CalendarView {links} on:selectDate={(e) => {
-							const dateStr = new Date(currentYear, currentMonth, e.detail.date).toLocaleDateString();
-							toast.info(`${e.detail.links.length} link(s) on ${dateStr}`);
-						}} />
-					</div>
-				{/if}
+					<!-- Add Embed Button - Blue -->
+					<button
+						onclick={() => showAddBlockDialog = true}
+						class="flex items-center justify-center gap-2 px-6 py-4 bg-[#0096FF] hover:bg-[#0086E6] rounded-xl text-white text-sm font-semibold transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+					>
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+						</svg>
+						<span>ADD EMBED</span>
+					</button>
+				</div>
 
-				<!-- Filter Options (when expanded) -->
-				{#if showFilters}
-					<div class="flex items-center gap-2 py-3 animate-in">
-						<!-- Status Filter -->
-						<div class="relative">
-							<select
-								bind:value={statusFilter}
-								class="appearance-none pl-4 pr-9 py-2.5 bg-gray-50 border-0 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all cursor-pointer"
-							>
-								<option value="">All Status</option>
-								<option value="active">Active</option>
-								<option value="inactive">Inactive</option>
-							</select>
-							<svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-							</svg>
-						</div>
-
-						<!-- Layout Filter -->
-						<div class="relative">
-							<select
-								bind:value={layoutFilter}
-								class="appearance-none pl-4 pr-9 py-2.5 bg-gray-50 border-0 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all cursor-pointer"
-							>
-								<option value="">All Layouts</option>
-								<option value="classic">Classic</option>
-								<option value="featured">Featured</option>
-							</select>
-							<svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-							</svg>
-						</div>
-
-						<!-- Sort By -->
-						<div class="relative">
-							<select
-								bind:value={sortBy}
-								class="appearance-none pl-4 pr-9 py-2.5 bg-gray-50 border-0 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all cursor-pointer"
-							>
-								<option value="">Default Order</option>
-								<option value="clicks">Most Clicks</option>
-								<option value="created">Newest First</option>
-								<option value="updated">Recently Updated</option>
-								<option value="title">Alphabetical</option>
-							</select>
-							<svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-							</svg>
-						</div>
-
-						<!-- Clear Filters -->
-						{#if hasActiveFilters}
-							<button
-								onclick={clearFilters}
-								class="ml-auto flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-							>
-								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-								</svg>
-								Clear
-							</button>
-						{/if}
-					</div>
-				{/if}
-
-				<!-- Add Button -->
+				<!-- Add Header Link -->
 				<button
-					onclick={() => showAddBlockDialog = true}
-					class="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gray-50 hover:bg-gray-100 rounded-xl text-gray-600 hover:text-gray-900 text-sm font-medium transition-all group"
+					onclick={() => toast.info('Add header feature coming soon!')}
+					class="flex items-center gap-2 text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors"
 				>
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
 					</svg>
-					<span>Add Block</span>
+					<span>Add header</span>
 				</button>
-
-				<!-- Drag Disabled Notice -->
-				{#if hasActiveFilters && links.length > 0}
-					<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-3 text-sm">
-						<svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-						</svg>
-						<span class="text-amber-800">
-							<strong>Drag & drop disabled</strong> while filters are active. Clear filters to reorder links.
-						</span>
-					</div>
-				{/if}
 
 				<!-- Combined Links & Blocks List -->
 				<section 
@@ -1264,6 +1156,7 @@
 									on:toggleNewTab={handleToggleNewTab}
 									on:reorderlinks={handleReorderGroupLinks}
 									on:togglelinkvisibility={handleToggleLinkVisibility}
+									on:updatelayout={handleUpdateGroupLayout}
 								/>
 							{:else if item.data.block_type === 'text'}
 								<TextBlock 
@@ -1495,18 +1388,15 @@
 	on:create={handleCreateGroup}
 />
 
-<!-- Add To Group Dialog -->
-<AddToGroupDialog 
-	bind:open={showAddToGroupDialog}
-	groupTitle={currentGroupTitle}
-	on:add={handleAddToGroup}
-/>
-
-<!-- Edit Group Link Dialog -->
+<!-- Group Link Dialog (Add/Edit) -->
 <EditGroupLinkDialog 
-	bind:open={showEditGroupLinkDialog}
+	bind:open={showGroupLinkDialog}
 	link={editingGroupLink}
+	groupTitle={currentGroupTitle}
 	on:save={handleSaveGroupLink}
+	on:add={handleAddGroupLink}
+	on:uploadThumbnail={handleUploadGroupLinkThumbnail}
+	on:removeThumbnail={handleRemoveGroupLinkThumbnail}
 />
 
 

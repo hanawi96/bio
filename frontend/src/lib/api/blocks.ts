@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+import { api } from './client';
 
 export interface Block {
 	id: string;
@@ -28,69 +28,20 @@ export interface Block {
 }
 
 export const blocksApi = {
-	async getBlocks(token: string): Promise<Block[]> {
-		const res = await fetch(`${API_URL}/blocks`, {
-			headers: { Authorization: `Bearer ${token}` }
-		});
-		if (!res.ok) throw new Error('Failed to fetch blocks');
-		return res.json();
-	},
-
-	async createBlock(data: Partial<Block>, token: string): Promise<Block> {
-		const res = await fetch(`${API_URL}/blocks`, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				Authorization: `Bearer ${token}`
-			},
-			body: JSON.stringify(data)
-		});
-		if (!res.ok) throw new Error('Failed to create block');
-		return res.json();
-	},
-
-	async updateBlock(id: string, data: Partial<Block>, token: string): Promise<Block> {
-		const res = await fetch(`${API_URL}/blocks/${id}`, {
-			method: 'PUT',
-			headers: {
-				'Content-Type': 'application/json',
-				Authorization: `Bearer ${token}`
-			},
-			body: JSON.stringify(data)
-		});
-		if (!res.ok) throw new Error('Failed to update block');
-		return res.json();
-	},
-
-	async deleteBlock(id: string, token: string): Promise<void> {
-		const res = await fetch(`${API_URL}/blocks/${id}`, {
-			method: 'DELETE',
-			headers: { Authorization: `Bearer ${token}` }
-		});
-		if (!res.ok) throw new Error('Failed to delete block');
-	},
-
-	async reorderBlocks(blockIds: string[], token: string): Promise<void> {
-		const res = await fetch(`${API_URL}/blocks/reorder`, {
-			method: 'PUT',
-			headers: {
-				'Content-Type': 'application/json',
-				Authorization: `Bearer ${token}`
-			},
-			body: JSON.stringify({ block_ids: blockIds })
-		});
-		if (!res.ok) throw new Error('Failed to reorder blocks');
-	},
-
-	async bulkDelete(blockIds: string[], token: string): Promise<void> {
-		const res = await fetch(`${API_URL}/blocks/bulk-delete`, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				Authorization: `Bearer ${token}`
-			},
-			body: JSON.stringify({ block_ids: blockIds })
-		});
-		if (!res.ok) throw new Error('Failed to bulk delete blocks');
-	}
+	getBlocks: (token: string) => api.get<Block[]>('/blocks', token),
+	
+	createBlock: (data: Partial<Block>, token: string) => 
+		api.post<Block>('/blocks', data, token),
+	
+	updateBlock: (id: string, data: Partial<Block>, token: string) =>
+		api.put<Block>(`/blocks/${id}`, data, token),
+	
+	deleteBlock: (id: string, token: string) => 
+		api.delete(`/blocks/${id}`, token),
+	
+	reorderBlocks: (blockIds: string[], token: string) =>
+		api.put('/blocks/reorder', { block_ids: blockIds }, token),
+	
+	bulkDelete: (blockIds: string[], token: string) =>
+		api.post('/blocks/bulk-delete', { block_ids: blockIds }, token)
 };

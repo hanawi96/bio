@@ -38,14 +38,14 @@
 	});
 </script>
 
-<div class="w-full max-w-md mx-auto">
-	<!-- Phone Frame -->
-	<div class="relative bg-gray-900 rounded-[3rem] p-3 shadow-2xl">
-		<!-- Notch -->
-		<div class="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-7 bg-gray-900 rounded-b-3xl z-10"></div>
+<div class="w-full max-w-sm mx-auto">
+	<!-- Phone Frame (iPhone Style) -->
+	<div class="relative bg-gray-900 rounded-[3rem] p-2 shadow-2xl">
+		<!-- Dynamic Island / Notch -->
+		<div class="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-7 bg-gray-900 rounded-b-3xl z-10"></div>
 		
 		<!-- Screen -->
-		<div class="relative bg-gradient-to-br from-purple-50 to-blue-50 rounded-[2.5rem] overflow-hidden h-[600px]">
+		<div class="relative bg-gradient-to-br from-purple-50 to-blue-50 rounded-[2.5rem] overflow-hidden h-[650px]">
 			<div class="h-full overflow-y-auto p-6 space-y-6">
 				<!-- Profile Header -->
 				<div class="text-center space-y-3">
@@ -134,7 +134,7 @@
 													{#if child.thumbnail_url}
 														<img src={child.thumbnail_url} alt={child.title} class="w-full h-20 object-cover rounded-lg mb-2"/>
 													{/if}
-													<p class="font-medium text-sm text-gray-900 truncate">{child.title}</p>
+													<p class="font-medium text-sm text-gray-900 truncate" style="text-align: {link.text_alignment || 'center'}">{child.title}</p>
 												</a>
 											{/each}
 										</div>
@@ -151,7 +151,7 @@
 														{#if child.thumbnail_url}
 															<img src={child.thumbnail_url} alt={child.title} class="w-full h-24 object-cover rounded-lg mb-2"/>
 														{/if}
-														<p class="font-medium text-sm text-gray-900 truncate">{child.title}</p>
+														<p class="font-medium text-sm text-gray-900 truncate" style="text-align: {link.text_alignment || 'center'}">{child.title}</p>
 													</a>
 												{/each}
 											</div>
@@ -165,12 +165,16 @@
 													target="_blank"
 													rel="noopener noreferrer"
 													class="block bg-white hover:bg-gray-50 rounded-xl p-3 shadow-sm hover:shadow-md transition-all"
+													style="text-align: {link.text_alignment || 'center'}"
 												>
-													<div class="flex items-center gap-3">
-														{#if child.thumbnail_url}
+													<div class="flex items-center gap-3" style="justify-content: {link.text_alignment === 'left' ? 'flex-start' : link.text_alignment === 'right' ? 'flex-end' : 'center'}">
+														{#if child.thumbnail_url && link.text_alignment !== 'right'}
 															<img src={child.thumbnail_url} alt={child.title} class="w-10 h-10 rounded-lg object-cover flex-shrink-0"/>
 														{/if}
-														<span class="font-medium text-sm text-gray-900 flex-1">{child.title}</span>
+														<span class="font-medium text-sm text-gray-900 flex-1" style="text-align: {link.text_alignment || 'center'}">{child.title}</span>
+														{#if child.thumbnail_url && link.text_alignment === 'right'}
+															<img src={child.thumbnail_url} alt={child.title} class="w-10 h-10 rounded-lg object-cover flex-shrink-0"/>
+														{/if}
 														<svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
 														</svg>

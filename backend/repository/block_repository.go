@@ -16,7 +16,8 @@ func NewBlockRepository(db *sql.DB) *BlockRepository {
 
 func (r *BlockRepository) GetByUserID(userID string) ([]Block, error) {
 	query := `
-		SELECT b.id, b.profile_id, b.block_type, b.position, b.is_active,
+		SELECT b.id, b.profile_id, b.parent_id, b.is_group, b.group_title, b.group_layout,
+		       b.block_type, b.position, b.is_active,
 		       b.content, b.text_style, b.style, b.image_url, b.alt_text, b.video_url,
 		       b.social_links, b.divider_style, b.placeholder, b.embed_url, b.embed_type,
 		       b.created_at, b.updated_at
@@ -38,7 +39,8 @@ func (r *BlockRepository) GetByUserID(userID string) ([]Block, error) {
 		var socialLinksJSON []byte
 
 		err := rows.Scan(
-			&block.ID, &block.ProfileID, &block.BlockType, &block.Position, &block.IsActive,
+			&block.ID, &block.ProfileID, &block.ParentID, &block.IsGroup, &block.GroupTitle, &block.GroupLayout,
+			&block.BlockType, &block.Position, &block.IsActive,
 			&block.Content, &block.TextStyle, &block.Style, &block.ImageURL, &block.AltText, &block.VideoURL,
 			&socialLinksJSON, &block.DividerStyle, &block.Placeholder, &block.EmbedURL, &block.EmbedType,
 			&block.CreatedAt, &block.UpdatedAt,
@@ -101,15 +103,19 @@ func (r *BlockRepository) Create(userID string, data map[string]interface{}) (*B
 
 	var block Block
 	query := `
-		INSERT INTO blocks (profile_id, block_type, position, is_active, content, text_style, style, image_url, alt_text, video_url, social_links, divider_style, placeholder, embed_url, embed_type)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-		RETURNING id, profile_id, block_type, position, is_active, content, text_style, style, image_url, alt_text, video_url, social_links, divider_style, placeholder, embed_url, embed_type, created_at, updated_at
+		INSERT INTO blocks (profile_id, parent_id, is_group, group_title, group_layout, block_type, position, is_active, content, text_style, style, image_url, alt_text, video_url, social_links, divider_style, placeholder, embed_url, embed_type)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+		RETURNING id, profile_id, parent_id, is_group, group_title, group_layout, block_type, position, is_active, content, text_style, style, image_url, alt_text, video_url, social_links, divider_style, placeholder, embed_url, embed_type, created_at, updated_at
 	`
 
 	var socialLinksResult []byte
 	err = r.db.QueryRow(
 		query,
 		profileID,
+		getVal("parent_id"),
+		getVal("is_group"),
+		getVal("group_title"),
+		getVal("group_layout"),
 		data["block_type"],
 		maxPosition+1,
 		isActive,
@@ -125,7 +131,8 @@ func (r *BlockRepository) Create(userID string, data map[string]interface{}) (*B
 		getVal("embed_url"),
 		getVal("embed_type"),
 	).Scan(
-		&block.ID, &block.ProfileID, &block.BlockType, &block.Position, &block.IsActive,
+		&block.ID, &block.ProfileID, &block.ParentID, &block.IsGroup, &block.GroupTitle, &block.GroupLayout,
+		&block.BlockType, &block.Position, &block.IsActive,
 		&block.Content, &block.TextStyle, &block.Style, &block.ImageURL, &block.AltText, &block.VideoURL,
 		&socialLinksResult, &block.DividerStyle, &block.Placeholder, &block.EmbedURL, &block.EmbedType,
 		&block.CreatedAt, &block.UpdatedAt,
@@ -160,21 +167,25 @@ func (r *BlockRepository) Update(blockID string, data map[string]interface{}) (*
 
 	query := `
 		UPDATE blocks
-		SET content = COALESCE($2, content),
-		    text_style = COALESCE($3, text_style),
-		    style = COALESCE($4, style),
-		    image_url = COALESCE($5, image_url),
-		    alt_text = COALESCE($6, alt_text),
-		    video_url = COALESCE($7, video_url),
-		    social_links = COALESCE($8, social_links),
-		    divider_style = COALESCE($9, divider_style),
-		    placeholder = COALESCE($10, placeholder),
-		    embed_url = COALESCE($11, embed_url),
-		    embed_type = COALESCE($12, embed_type),
-		    is_active = COALESCE($13, is_active),
+		SET parent_id = COALESCE($2, parent_id),
+		    is_group = COALESCE($3, is_group),
+		    group_title = COALESCE($4, group_title),
+		    group_layout = COALESCE($5, group_layout),
+		    content = COALESCE($6, content),
+		    text_style = COALESCE($7, text_style),
+		    style = COALESCE($8, style),
+		    image_url = COALESCE($9, image_url),
+		    alt_text = COALESCE($10, alt_text),
+		    video_url = COALESCE($11, video_url),
+		    social_links = COALESCE($12, social_links),
+		    divider_style = COALESCE($13, divider_style),
+		    placeholder = COALESCE($14, placeholder),
+		    embed_url = COALESCE($15, embed_url),
+		    embed_type = COALESCE($16, embed_type),
+		    is_active = COALESCE($17, is_active),
 		    updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1
-		RETURNING id, profile_id, block_type, position, is_active, content, text_style, style, image_url, alt_text, video_url, social_links, divider_style, placeholder, embed_url, embed_type, created_at, updated_at
+		RETURNING id, profile_id, parent_id, is_group, group_title, group_layout, block_type, position, is_active, content, text_style, style, image_url, alt_text, video_url, social_links, divider_style, placeholder, embed_url, embed_type, created_at, updated_at
 	`
 
 	var block Block
@@ -183,6 +194,10 @@ func (r *BlockRepository) Update(blockID string, data map[string]interface{}) (*
 	err := r.db.QueryRow(
 		query,
 		blockID,
+		getVal("parent_id"),
+		getVal("is_group"),
+		getVal("group_title"),
+		getVal("group_layout"),
 		getVal("content"),
 		getVal("text_style"),
 		getVal("style"),
@@ -196,7 +211,8 @@ func (r *BlockRepository) Update(blockID string, data map[string]interface{}) (*
 		getVal("embed_type"),
 		getVal("is_active"),
 	).Scan(
-		&block.ID, &block.ProfileID, &block.BlockType, &block.Position, &block.IsActive,
+		&block.ID, &block.ProfileID, &block.ParentID, &block.IsGroup, &block.GroupTitle, &block.GroupLayout,
+		&block.BlockType, &block.Position, &block.IsActive,
 		&block.Content, &block.TextStyle, &block.Style, &block.ImageURL, &block.AltText, &block.VideoURL,
 		&socialLinksResult, &block.DividerStyle, &block.Placeholder, &block.EmbedURL, &block.EmbedType,
 		&block.CreatedAt, &block.UpdatedAt,
