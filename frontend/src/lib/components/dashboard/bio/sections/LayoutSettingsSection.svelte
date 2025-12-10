@@ -63,30 +63,30 @@
 				class:ring-emerald-500={layout === 'list'}
 				class:ring-offset-2={layout === 'list'}
 			>
-				<div class="aspect-[4/3] p-4 flex flex-col justify-center gap-2">
-					<div class="flex items-center gap-2 bg-white rounded-lg p-2 shadow-sm">
-						<div class="w-6 h-6 bg-gradient-to-br from-amber-200 to-amber-300 rounded flex-shrink-0"></div>
-						<div class="flex-1 space-y-1">
-							<div class="h-1.5 bg-gray-200 rounded-full w-3/4"></div>
-							<div class="h-1.5 bg-gray-150 rounded-full w-1/2"></div>
+				<div class="aspect-[2/1] p-3 flex flex-col justify-center gap-1.5">
+					<div class="flex items-center gap-1.5 bg-white rounded-md p-1.5 shadow-sm">
+						<div class="w-5 h-5 bg-gradient-to-br from-amber-200 to-amber-300 rounded flex-shrink-0"></div>
+						<div class="flex-1 space-y-0.5">
+							<div class="h-1 bg-gray-200 rounded-full w-3/4"></div>
+							<div class="h-1 bg-gray-150 rounded-full w-1/2"></div>
 						</div>
 					</div>
-					<div class="flex items-center gap-2 bg-white rounded-lg p-2 shadow-sm">
-						<div class="w-6 h-6 bg-gradient-to-br from-amber-200 to-amber-300 rounded flex-shrink-0"></div>
-						<div class="flex-1 space-y-1">
-							<div class="h-1.5 bg-gray-200 rounded-full w-3/4"></div>
-							<div class="h-1.5 bg-gray-150 rounded-full w-1/2"></div>
+					<div class="flex items-center gap-1.5 bg-white rounded-md p-1.5 shadow-sm">
+						<div class="w-5 h-5 bg-gradient-to-br from-amber-200 to-amber-300 rounded flex-shrink-0"></div>
+						<div class="flex-1 space-y-0.5">
+							<div class="h-1 bg-gray-200 rounded-full w-3/4"></div>
+							<div class="h-1 bg-gray-150 rounded-full w-1/2"></div>
 						</div>
 					</div>
-					<div class="flex items-center gap-2 bg-white rounded-lg p-2 shadow-sm">
-						<div class="w-6 h-6 bg-gradient-to-br from-amber-200 to-amber-300 rounded flex-shrink-0"></div>
-						<div class="flex-1 space-y-1">
-							<div class="h-1.5 bg-gray-200 rounded-full w-3/4"></div>
-							<div class="h-1.5 bg-gray-150 rounded-full w-1/2"></div>
+					<div class="flex items-center gap-1.5 bg-white rounded-md p-1.5 shadow-sm">
+						<div class="w-5 h-5 bg-gradient-to-br from-amber-200 to-amber-300 rounded flex-shrink-0"></div>
+						<div class="flex-1 space-y-0.5">
+							<div class="h-1 bg-gray-200 rounded-full w-3/4"></div>
+							<div class="h-1 bg-gray-150 rounded-full w-1/2"></div>
 						</div>
 					</div>
 				</div>
-				<div class="p-2 text-center bg-white/60">
+				<div class="p-1.5 text-center bg-white/60">
 					<p class="text-xs font-semibold text-gray-700">Classic</p>
 				</div>
 			</button>
@@ -100,11 +100,11 @@
 				class:ring-emerald-500={layout === 'carousel'}
 				class:ring-offset-2={layout === 'carousel'}
 			>
-				<div class="aspect-[4/3] p-4 flex items-center justify-center gap-2">
-					<div class="w-16 h-20 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-lg shadow-sm opacity-60"></div>
-					<div class="w-20 h-24 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-lg shadow-md"></div>
+				<div class="aspect-[2/1] p-3 flex items-center justify-center gap-1.5">
+					<div class="w-12 h-14 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-md shadow-sm opacity-60"></div>
+					<div class="w-14 h-16 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-md shadow-md"></div>
 				</div>
-				<div class="p-2 text-center bg-white/60">
+				<div class="p-1.5 text-center bg-white/60">
 					<p class="text-xs font-semibold text-gray-700">Carousel</p>
 				</div>
 			</button>
@@ -118,20 +118,20 @@
 				class:ring-emerald-500={layout === 'grid'}
 				class:ring-offset-2={layout === 'grid'}
 			>
-				<div class="aspect-[4/3] p-4">
-					<div class="grid grid-cols-3 gap-1.5 h-full">
-						<div class="bg-gradient-to-br from-orange-200 to-red-200 rounded-md"></div>
-						<div class="bg-gradient-to-br from-gray-200 to-gray-300 rounded-md"></div>
-						<div class="bg-gradient-to-br from-yellow-200 to-amber-200 rounded-md"></div>
-						<div class="bg-gradient-to-br from-pink-200 to-rose-200 rounded-md"></div>
-						<div class="bg-gradient-to-br from-yellow-300 to-amber-300 rounded-md"></div>
-						<div class="bg-gradient-to-br from-amber-100 to-orange-200 rounded-md"></div>
-						<div class="bg-gradient-to-br from-orange-300 to-amber-400 rounded-md"></div>
-						<div class="bg-gradient-to-br from-gray-300 to-slate-300 rounded-md"></div>
-						<div class="bg-gradient-to-br from-blue-200 to-cyan-200 rounded-md"></div>
+				<div class="aspect-[2/1] p-3">
+					<div class="grid grid-cols-3 gap-1 h-full">
+						<div class="bg-gradient-to-br from-orange-200 to-red-200 rounded-sm"></div>
+						<div class="bg-gradient-to-br from-gray-200 to-gray-300 rounded-sm"></div>
+						<div class="bg-gradient-to-br from-yellow-200 to-amber-200 rounded-sm"></div>
+						<div class="bg-gradient-to-br from-pink-200 to-rose-200 rounded-sm"></div>
+						<div class="bg-gradient-to-br from-yellow-300 to-amber-300 rounded-sm"></div>
+						<div class="bg-gradient-to-br from-amber-100 to-orange-200 rounded-sm"></div>
+						<div class="bg-gradient-to-br from-orange-300 to-amber-400 rounded-sm"></div>
+						<div class="bg-gradient-to-br from-gray-300 to-slate-300 rounded-sm"></div>
+						<div class="bg-gradient-to-br from-blue-200 to-cyan-200 rounded-sm"></div>
 					</div>
 				</div>
-				<div class="p-2 text-center bg-white/60">
+				<div class="p-1.5 text-center bg-white/60">
 					<p class="text-xs font-semibold text-gray-700">Image grid</p>
 				</div>
 			</button>
@@ -145,23 +145,23 @@
 				class:ring-emerald-500={layout === 'card'}
 				class:ring-offset-2={layout === 'card'}
 			>
-				<div class="aspect-[4/3] p-4 space-y-2 flex flex-col justify-center">
-					<div class="bg-white rounded-lg overflow-hidden shadow-sm flex">
-						<div class="w-12 h-12 bg-gradient-to-br from-amber-200 to-orange-200 flex-shrink-0"></div>
-						<div class="flex-1 p-2 space-y-1">
-							<div class="h-1.5 bg-gray-200 rounded-full w-4/5"></div>
-							<div class="h-1.5 bg-gray-150 rounded-full w-3/5"></div>
+				<div class="aspect-[2/1] p-3 space-y-1.5 flex flex-col justify-center">
+					<div class="bg-white rounded-md overflow-hidden shadow-sm flex">
+						<div class="w-10 h-10 bg-gradient-to-br from-amber-200 to-orange-200 flex-shrink-0"></div>
+						<div class="flex-1 p-1.5 space-y-0.5">
+							<div class="h-1 bg-gray-200 rounded-full w-4/5"></div>
+							<div class="h-1 bg-gray-150 rounded-full w-3/5"></div>
 						</div>
 					</div>
-					<div class="bg-white rounded-lg overflow-hidden shadow-sm flex">
-						<div class="flex-1 p-2 space-y-1">
-							<div class="h-1.5 bg-gray-200 rounded-full w-4/5"></div>
-							<div class="h-1.5 bg-gray-150 rounded-full w-3/5"></div>
+					<div class="bg-white rounded-md overflow-hidden shadow-sm flex">
+						<div class="flex-1 p-1.5 space-y-0.5">
+							<div class="h-1 bg-gray-200 rounded-full w-4/5"></div>
+							<div class="h-1 bg-gray-150 rounded-full w-3/5"></div>
 						</div>
-						<div class="w-12 h-12 bg-gradient-to-br from-blue-200 to-cyan-200 flex-shrink-0"></div>
+						<div class="w-10 h-10 bg-gradient-to-br from-blue-200 to-cyan-200 flex-shrink-0"></div>
 					</div>
 				</div>
-				<div class="p-2 text-center bg-white/60">
+				<div class="p-1.5 text-center bg-white/60">
 					<p class="text-xs font-semibold text-gray-700">Card</p>
 				</div>
 			</button>
