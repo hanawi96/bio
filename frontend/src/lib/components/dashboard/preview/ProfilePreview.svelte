@@ -221,10 +221,7 @@
 																class:text-xl={textSize === 'XL'}
 															>{child.title}</p>
 															{#if link.show_description !== false && child.description}
-																<p class="text-xs text-gray-500 mb-1">{child.description}</p>
-															{/if}
-															{#if child.url}
-																<p class="text-xs text-gray-400">{new URL(child.url).hostname}</p>
+																<p class="text-xs text-gray-500">{child.description}</p>
 															{/if}
 														</div>
 													</div>
