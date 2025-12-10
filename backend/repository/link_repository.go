@@ -168,7 +168,7 @@ func (r *LinkRepository) Update(linkID string, data map[string]interface{}) (*Li
 		RETURNING id, profile_id, parent_id, is_group, group_title, group_layout, grid_columns, grid_aspect_ratio,
 		          title, url, thumbnail_url, image_shape, layout_type, image_placement, text_alignment,
 		          text_size, show_outline, show_shadow, position, clicks, is_active, is_pinned,
-		          scheduled_at, expires_at, created_at, updated_at
+		          scheduled_at, expires_at, created_at, updated_at, description
 	`
 	var link Link
 	err := r.db.QueryRow(query, linkID, data["title"], data["url"], data["thumbnail_url"], data["image_shape"], data["layout_type"],
@@ -178,7 +178,7 @@ func (r *LinkRepository) Update(linkID string, data map[string]interface{}) (*Li
 		&link.Title, &link.URL, &link.ThumbnailURL, &link.ImageShape, &link.LayoutType,
 		&link.ImagePlacement, &link.TextAlignment, &link.TextSize, &link.ShowOutline, &link.ShowShadow,
 		&link.Position, &link.Clicks, &link.IsActive, &link.IsPinned, &link.ScheduledAt, &link.ExpiresAt,
-		&link.CreatedAt, &link.UpdatedAt,
+		&link.CreatedAt, &link.UpdatedAt, &link.Description,
 	)
 	if err != nil {
 		return nil, err

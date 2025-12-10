@@ -447,14 +447,14 @@
 			if (file) {
 				linksApi.uploadThumbnail(newLink.id, file, $auth.token!)
 					.then(uploadedLink => {
-						// Update only thumbnail_url, preserve other fields (like description)
+						// Replace temporary preview with actual uploaded link (backend returns full object)
 						links = links.map(link => {
 							if (link.is_group && link.children) {
 								return {
 									...link,
 									children: link.children.map(child => 
 										child.id === newLink.id 
-											? { ...child, thumbnail_url: uploadedLink.thumbnail_url }
+											? uploadedLink
 											: child
 									)
 								};
@@ -463,7 +463,7 @@
 						});
 						allLinks = allLinks.map(link => 
 							link.id === newLink.id 
-								? { ...link, thumbnail_url: uploadedLink.thumbnail_url }
+								? uploadedLink
 								: link
 						);
 					})

@@ -416,6 +416,21 @@
 						{@const link = item.data}
 						<div class="bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-200/60">
 							<div class="flex items-center gap-4 p-3.5">
+								<!-- Drag Handle -->
+								<button
+									class="drag-handle cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-400 p-1 transition-colors flex-shrink-0"
+									onclick={(e) => e.stopPropagation()}
+								>
+									<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+										<circle cx="9" cy="7" r="1.5"/>
+										<circle cx="9" cy="12" r="1.5"/>
+										<circle cx="9" cy="17" r="1.5"/>
+										<circle cx="15" cy="7" r="1.5"/>
+										<circle cx="15" cy="12" r="1.5"/>
+										<circle cx="15" cy="17" r="1.5"/>
+									</svg>
+								</button>
+
 								<!-- Thumbnail - Clickable to upload -->
 								<button
 									onclick={() => handleThumbnailClick(link.id)}
@@ -442,16 +457,17 @@
 									{/if}
 								</button>
 
-								<!-- Content - Click to edit -->
-								<button
-									onclick={() => dispatch('editlink', link)}
-									class="flex-1 text-left min-w-0"
-								>
-									<h3 class="text-base font-semibold text-gray-900 truncate">{link.title}</h3>
-									<p class="text-sm text-gray-500 mt-0.5 truncate">{link.url}</p>
-								</button>
-
-								<!-- Stats & Actions (Linktree Style) -->
+							<!-- Content - Click to edit -->
+							<button
+								onclick={() => dispatch('editlink', link)}
+								class="flex-1 text-left min-w-0"
+							>
+								<h3 class="text-base font-semibold text-gray-900 truncate">{link.title}</h3>
+								{#if link.description}
+									<p class="text-sm text-gray-600 mt-0.5 line-clamp-2">{link.description}</p>
+								{/if}
+								<p class="text-xs text-gray-400 mt-0.5 truncate">{link.url}</p>
+							</button>								<!-- Stats & Actions (Linktree Style) -->
 								<div class="flex items-center gap-2">
 									<!-- Toggle Visibility Button -->
 									<button
@@ -600,21 +616,6 @@
 											</div>
 										{/if}
 									</div>
-
-									<!-- Drag Handle -->
-									<button
-										class="drag-handle cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-400 p-1 transition-colors"
-										onclick={(e) => e.stopPropagation()}
-									>
-										<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-											<circle cx="9" cy="7" r="1.5"/>
-											<circle cx="9" cy="12" r="1.5"/>
-											<circle cx="9" cy="17" r="1.5"/>
-											<circle cx="15" cy="7" r="1.5"/>
-											<circle cx="15" cy="12" r="1.5"/>
-											<circle cx="15" cy="17" r="1.5"/>
-										</svg>
-									</button>
 								</div>
 							</div>
 						</div>
