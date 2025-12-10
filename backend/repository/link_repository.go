@@ -150,36 +150,37 @@ func (r *LinkRepository) Update(linkID string, data map[string]interface{}) (*Li
 		UPDATE links
 		SET title = COALESCE($2, title),
 		    url = COALESCE($3, url),
-		    thumbnail_url = COALESCE($4, thumbnail_url),
-		    image_shape = COALESCE($5, image_shape),
-		    layout_type = COALESCE($6, layout_type),
-		    image_placement = COALESCE($7, image_placement),
-		    text_alignment = COALESCE($8, text_alignment),
-		    text_size = COALESCE($9, text_size),
-		    show_outline = COALESCE($10, show_outline),
-		    show_shadow = COALESCE($11, show_shadow),
-		    show_description = COALESCE($12, show_description),
-		    is_active = COALESCE($13, is_active),
-		    scheduled_at = CASE WHEN $14::text IS NOT NULL THEN $14::timestamp ELSE scheduled_at END,
-		    expires_at = CASE WHEN $15::text IS NOT NULL THEN $15::timestamp ELSE expires_at END,
-		    group_title = COALESCE($16, group_title),
-		    group_layout = COALESCE($17, group_layout),
+		    description = CASE WHEN $4::text = '' THEN NULL ELSE COALESCE($4, description) END,
+		    thumbnail_url = COALESCE($5, thumbnail_url),
+		    image_shape = COALESCE($6, image_shape),
+		    layout_type = COALESCE($7, layout_type),
+		    image_placement = COALESCE($8, image_placement),
+		    text_alignment = COALESCE($9, text_alignment),
+		    text_size = COALESCE($10, text_size),
+		    show_outline = COALESCE($11, show_outline),
+		    show_shadow = COALESCE($12, show_shadow),
+		    show_description = COALESCE($13, show_description),
+		    is_active = COALESCE($14, is_active),
+		    scheduled_at = CASE WHEN $15::text IS NOT NULL THEN $15::timestamp ELSE scheduled_at END,
+		    expires_at = CASE WHEN $16::text IS NOT NULL THEN $16::timestamp ELSE expires_at END,
+		    group_title = COALESCE($17, group_title),
+		    group_layout = COALESCE($18, group_layout),
 		    updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1
 		RETURNING id, profile_id, parent_id, is_group, group_title, group_layout, grid_columns, grid_aspect_ratio,
-		          title, url, thumbnail_url, image_shape, layout_type, image_placement, text_alignment,
+		          title, url, description, thumbnail_url, image_shape, layout_type, image_placement, text_alignment,
 		          text_size, show_outline, show_shadow, show_description, position, clicks, is_active, is_pinned,
-		          scheduled_at, expires_at, created_at, updated_at, description
+		          scheduled_at, expires_at, created_at, updated_at
 	`
 	var link Link
-	err := r.db.QueryRow(query, linkID, data["title"], data["url"], data["thumbnail_url"], data["image_shape"], data["layout_type"],
+	err := r.db.QueryRow(query, linkID, data["title"], data["url"], data["description"], data["thumbnail_url"], data["image_shape"], data["layout_type"],
 		data["image_placement"], data["text_alignment"], data["text_size"], data["show_outline"], data["show_shadow"], data["show_description"],
 		data["is_active"], data["scheduled_at"], data["expires_at"], data["group_title"], data["group_layout"]).Scan(
 		&link.ID, &link.ProfileID, &link.ParentID, &link.IsGroup, &link.GroupTitle, &link.GroupLayout, &link.GridColumns, &link.GridAspectRatio,
-		&link.Title, &link.URL, &link.ThumbnailURL, &link.ImageShape, &link.LayoutType,
+		&link.Title, &link.URL, &link.Description, &link.ThumbnailURL, &link.ImageShape, &link.LayoutType,
 		&link.ImagePlacement, &link.TextAlignment, &link.TextSize, &link.ShowOutline, &link.ShowShadow, &link.ShowDescription,
 		&link.Position, &link.Clicks, &link.IsActive, &link.IsPinned, &link.ScheduledAt, &link.ExpiresAt,
-		&link.CreatedAt, &link.UpdatedAt, &link.Description,
+		&link.CreatedAt, &link.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err

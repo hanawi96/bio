@@ -145,9 +145,6 @@
 									return a.position - b.position;
 								})}
 							<div class="space-y-3">
-								{#if link.group_title}
-									<h3 class="text-lg font-bold text-gray-900 px-2">{link.group_title}</h3>
-								{/if}
 								{#if link.group_layout === 'grid'}
 									{@const gridCols = link.grid_columns || 2}
 									{@const aspectRatio = link.grid_aspect_ratio || '3:2'}
@@ -245,9 +242,10 @@
 															class:text-base={textSize === 'M'}
 															class:text-lg={textSize === 'L'}
 															class:text-xl={textSize === 'XL'}
+															style="text-align: {link.text_alignment || 'left'}"
 														>{child.title}</p>
 														{#if link.show_description !== false && child.description}
-															<p class="text-xs text-gray-500">{child.description}</p>
+															<p class="text-xs text-gray-500" style="text-align: {link.text_alignment || 'left'}">{child.description}</p>
 														{/if}
 													</div>
 												</div>
@@ -293,8 +291,8 @@
 								{/if}
 							</div>
 						{/if}
-					{:else if link.layout_type === 'featured'}
-						<!-- Featured Layout -->
+					{:else if !link.is_group && link.layout_type === 'featured'}
+						<!-- Featured Layout (Non-group links only) -->
 						<a
 							href={link.url}
 							target="_blank"
@@ -321,8 +319,8 @@
 								</div>
 							{/if}
 						</a>
-					{:else}
-						<!-- Classic Layout -->
+					{:else if !link.is_group}
+						<!-- Classic Layout (Non-group links only) -->
 						<a
 							href={link.url}
 							target="_blank"

@@ -12,7 +12,7 @@
 	
 	let isExpanded = expanded;
 	let showMenu = false;
-	let activeTab: 'links' | 'layouts' | 'settings' = 'links';
+	let activeTab: 'links' | 'layouts' = 'links';
 	let linkMenuOpen: string | null = null; // Track which link's menu is open
 	let groupMenuOpen = false; // Track if group menu is open
 	let fileInput: HTMLInputElement;
@@ -385,17 +385,6 @@
 						<div class="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900"></div>
 					{/if}
 				</button>
-				<button
-					onclick={() => activeTab = 'settings'}
-					class="pb-3 text-sm font-semibold transition-colors relative"
-					class:text-gray-900={activeTab === 'settings'}
-					class:text-gray-500={activeTab !== 'settings'}
-				>
-					Settings
-					{#if activeTab === 'settings'}
-						<div class="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900"></div>
-					{/if}
-				</button>
 			</div>
 		</div>
 
@@ -635,11 +624,6 @@
 					{group}
 					on:update={(e) => dispatch('updatelayout', e.detail)}
 				/>
-			{:else if activeTab === 'settings'}
-				<!-- Settings Tab -->
-				<div class="p-6">
-					<p class="text-sm text-gray-500 text-center py-8">Group settings coming soon...</p>
-				</div>
 			{/if}
 		</div>
 	</div>

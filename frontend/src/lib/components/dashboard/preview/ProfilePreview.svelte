@@ -219,9 +219,10 @@
 																class:text-base={textSize === 'M'}
 																class:text-lg={textSize === 'L'}
 																class:text-xl={textSize === 'XL'}
+																style="text-align: {link.text_alignment || 'left'}"
 															>{child.title}</p>
 															{#if link.show_description !== false && child.description}
-																<p class="text-xs text-gray-500">{child.description}</p>
+																<p class="text-xs text-gray-500" style="text-align: {link.text_alignment || 'left'}">{child.description}</p>
 															{/if}
 														</div>
 													</div>
@@ -266,8 +267,8 @@
 										</div>
 									{/if}
 								{/if}
-							{:else if link.layout_type === 'featured'}
-							<!-- Featured Layout -->
+							{:else if !link.is_group && link.layout_type === 'featured'}
+							<!-- Featured Layout (Non-group links only) -->
 							<a
 								href={link.url}
 								target="_blank"
@@ -294,8 +295,8 @@
 									</div>
 								{/if}
 							</a>
-							{:else}
-								<!-- Classic Layout -->
+							{:else if !link.is_group}
+								<!-- Classic Layout (Non-group links only) -->
 								<a
 									href={link.url}
 									target="_blank"
