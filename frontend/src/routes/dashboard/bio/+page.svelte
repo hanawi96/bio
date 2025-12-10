@@ -192,10 +192,9 @@
 			
 			links = links.map(l => selectedIds.has(l.id) ? {...l, layout_type: layoutType} : l);
 			allLinks = allLinks.map(l => selectedIds.has(l.id) ? {...l, layout_type: layoutType} : l);
-			toast.success(`Changed ${selectedIds.size} links to ${layoutType} layout`);
 			clearSelection();
 		} catch (error: any) {
-			toast.error(error.message || 'Failed to change layout');
+			// Silent error handling
 		}
 	}
 
@@ -728,15 +727,9 @@
 		allLinks = allLinks.map(l => l.id === groupId ? { ...l, ...settings } : l);
 		
 		try {
-			const updatedLink = await linksApi.updateLink(groupId, settings, $auth.token!);
-			
-			// Update with server response (includes children)
-			links = links.map(l => l.id === groupId ? updatedLink : l);
-			allLinks = allLinks.map(l => l.id === groupId ? updatedLink : l);
-			
-			toast.success('Layout updated!');
+			await linksApi.updateLink(groupId, settings, $auth.token!);
+			// No need to update again - optimistic update is sufficient
 		} catch (error: any) {
-			toast.error(error.message || 'Failed to update layout');
 			// Reload to revert optimistic update on error
 			await loadData();
 		}
@@ -965,55 +958,13 @@
 		}
 	}
 
-	// Store original items order to detect changes
-	let lastValidItems: CombinedItem[] = [];
-	$: if (items.length > 0 && !items.some(item => item.type === 'link' && item.data.is_group && expandedGroupIds.has(item.data.id))) {
-		lastValidItems = [...items];
-	}
-
 	// Drag & Drop handlers
 	function handleDndConsider(e: CustomEvent) {
-		const newItems = e.detail.items;
-		
-		// Check if any expanded group changed position
-		const expandedGroups = items.filter(item => 
-			item.type === 'link' && item.data.is_group && expandedGroupIds.has(item.data.id)
-		);
-		
-		for (const expandedGroup of expandedGroups) {
-			const oldIndex = items.findIndex(i => i.id === expandedGroup.id);
-			const newIndex = newItems.findIndex(i => i.id === expandedGroup.id);
-			
-			if (oldIndex !== newIndex) {
-				// Expanded group moved, revert to original order
-				items = items;
-				return;
-			}
-		}
-		
-		items = newItems;
+		items = e.detail.items;
 	}
 
 	async function handleDndFinalize(e: CustomEvent) {
-		const newItems = e.detail.items;
-		
-		// Check if any expanded group changed position
-		const expandedGroups = items.filter(item => 
-			item.type === 'link' && item.data.is_group && expandedGroupIds.has(item.data.id)
-		);
-		
-		for (const expandedGroup of expandedGroups) {
-			const oldIndex = items.findIndex(i => i.id === expandedGroup.id);
-			const newIndex = newItems.findIndex(i => i.id === expandedGroup.id);
-			
-			if (oldIndex !== newIndex) {
-				// Expanded group moved, revert and don't save
-				items = items;
-				return;
-			}
-		}
-		
-		items = newItems;
+		items = e.detail.items;
 		
 		try {
 			// Send unified reorder request with all items
@@ -1111,24 +1062,6 @@
 	:global([aria-grabbed="true"]) {
 		opacity: 0.5;
 		cursor: grabbing !important;
-	}
-
-	/* Vô hiệu hóa drag cho items có data-drag-disabled */
-	:global([data-drag-disabled="true"]) {
-		position: relative;
-	}
-	
-	:global([data-drag-disabled="true"]::before) {
-		content: '';
-		position: absolute;
-		inset: 0;
-		z-index: 10;
-		pointer-events: auto;
-	}
-	
-	:global([data-drag-disabled="true"] > *) {
-		position: relative;
-		z-index: 11;
 	}
 </style>
 
@@ -1251,16 +1184,12 @@
 				<!-- Combined Links & Blocks List -->
 				<section 
 					class="space-y-3"
-					use:dndzone={{items, flipDurationMs: 200, dropTargetStyle: {}, dragDisabled: false}}
+					use:dndzone={{items, flipDurationMs: 200, dropTargetStyle: {}}}
 					onconsider={handleDndConsider}
 					onfinalize={handleDndFinalize}
 				>
 					{#each items as item (item.id)}
-						{@const isExpandedGroup = item.type === 'link' && item.data.is_group && expandedGroupIds.has(item.data.id)}
-						<div 
-							style="outline: none;"
-							data-drag-disabled={isExpandedGroup}
-						>
+						<div style="outline: none;">
 							{#if item.type === 'link' && item.data.is_group && !hiddenLinkIds.has(item.data.id)}
 								<LinkGroupCard 
 									group={item.data}
