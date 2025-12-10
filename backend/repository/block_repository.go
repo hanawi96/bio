@@ -19,13 +19,13 @@ func (r *BlockRepository) GetByUserID(userID string) ([]Block, error) {
 		SELECT b.id, b.profile_id, b.block_type, b.position, b.is_active,
 		       b.content, b.text_style, b.style, b.image_url, b.alt_text, b.video_url,
 		       b.social_links, b.divider_style, b.placeholder, b.embed_url, b.embed_type,
-		       b.link_id, b.created_at, b.updated_at
+		       b.created_at, b.updated_at
 		FROM blocks b
 		JOIN profiles p ON b.profile_id = p.id
 		WHERE p.user_id = $1
 		ORDER BY b.position ASC
 	`
-	
+
 	rows, err := r.db.Query(query, userID)
 	if err != nil {
 		return nil, err
@@ -36,21 +36,21 @@ func (r *BlockRepository) GetByUserID(userID string) ([]Block, error) {
 	for rows.Next() {
 		var block Block
 		var socialLinksJSON []byte
-		
+
 		err := rows.Scan(
 			&block.ID, &block.ProfileID, &block.BlockType, &block.Position, &block.IsActive,
 			&block.Content, &block.TextStyle, &block.Style, &block.ImageURL, &block.AltText, &block.VideoURL,
 			&socialLinksJSON, &block.DividerStyle, &block.Placeholder, &block.EmbedURL, &block.EmbedType,
-			&block.LinkID, &block.CreatedAt, &block.UpdatedAt,
+			&block.CreatedAt, &block.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err
 		}
-		
+
 		if socialLinksJSON != nil {
 			json.Unmarshal(socialLinksJSON, &block.SocialLinks)
 		}
-		
+
 		blocks = append(blocks, block)
 	}
 	return blocks, nil
@@ -67,7 +67,7 @@ func (r *BlockRepository) Create(userID string, data map[string]interface{}) (*B
 	var maxBlockPos, maxLinkPos int
 	r.db.QueryRow(`SELECT COALESCE(MAX(position), -1) FROM blocks WHERE profile_id = $1`, profileID).Scan(&maxBlockPos)
 	r.db.QueryRow(`SELECT COALESCE(MAX(position), -1) FROM links WHERE profile_id = $1`, profileID).Scan(&maxLinkPos)
-	
+
 	maxPosition := maxBlockPos
 	if maxLinkPos > maxPosition {
 		maxPosition = maxLinkPos
@@ -101,11 +101,11 @@ func (r *BlockRepository) Create(userID string, data map[string]interface{}) (*B
 
 	var block Block
 	query := `
-		INSERT INTO blocks (profile_id, block_type, position, is_active, content, text_style, style, image_url, alt_text, video_url, social_links, divider_style, placeholder, embed_url, embed_type, link_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-		RETURNING id, profile_id, block_type, position, is_active, content, text_style, style, image_url, alt_text, video_url, social_links, divider_style, placeholder, embed_url, embed_type, link_id, created_at, updated_at
+		INSERT INTO blocks (profile_id, block_type, position, is_active, content, text_style, style, image_url, alt_text, video_url, social_links, divider_style, placeholder, embed_url, embed_type)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+		RETURNING id, profile_id, block_type, position, is_active, content, text_style, style, image_url, alt_text, video_url, social_links, divider_style, placeholder, embed_url, embed_type, created_at, updated_at
 	`
-	
+
 	var socialLinksResult []byte
 	err = r.db.QueryRow(
 		query,
@@ -124,22 +124,21 @@ func (r *BlockRepository) Create(userID string, data map[string]interface{}) (*B
 		getVal("placeholder"),
 		getVal("embed_url"),
 		getVal("embed_type"),
-		getVal("link_id"),
 	).Scan(
 		&block.ID, &block.ProfileID, &block.BlockType, &block.Position, &block.IsActive,
 		&block.Content, &block.TextStyle, &block.Style, &block.ImageURL, &block.AltText, &block.VideoURL,
 		&socialLinksResult, &block.DividerStyle, &block.Placeholder, &block.EmbedURL, &block.EmbedType,
-		&block.LinkID, &block.CreatedAt, &block.UpdatedAt,
+		&block.CreatedAt, &block.UpdatedAt,
 	)
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if socialLinksResult != nil {
 		json.Unmarshal(socialLinksResult, &block.SocialLinks)
 	}
-	
+
 	return &block, nil
 }
 
@@ -175,12 +174,12 @@ func (r *BlockRepository) Update(blockID string, data map[string]interface{}) (*
 		    is_active = COALESCE($13, is_active),
 		    updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1
-		RETURNING id, profile_id, block_type, position, is_active, content, text_style, style, image_url, alt_text, video_url, social_links, divider_style, placeholder, embed_url, embed_type, link_id, created_at, updated_at
+		RETURNING id, profile_id, block_type, position, is_active, content, text_style, style, image_url, alt_text, video_url, social_links, divider_style, placeholder, embed_url, embed_type, created_at, updated_at
 	`
-	
+
 	var block Block
 	var socialLinksResult []byte
-	
+
 	err := r.db.QueryRow(
 		query,
 		blockID,
@@ -200,17 +199,17 @@ func (r *BlockRepository) Update(blockID string, data map[string]interface{}) (*
 		&block.ID, &block.ProfileID, &block.BlockType, &block.Position, &block.IsActive,
 		&block.Content, &block.TextStyle, &block.Style, &block.ImageURL, &block.AltText, &block.VideoURL,
 		&socialLinksResult, &block.DividerStyle, &block.Placeholder, &block.EmbedURL, &block.EmbedType,
-		&block.LinkID, &block.CreatedAt, &block.UpdatedAt,
+		&block.CreatedAt, &block.UpdatedAt,
 	)
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if socialLinksResult != nil {
 		json.Unmarshal(socialLinksResult, &block.SocialLinks)
 	}
-	
+
 	return &block, nil
 }
 
@@ -267,7 +266,7 @@ func (r *BlockRepository) BulkDelete(userID string, blockIDs []string) error {
 
 	query := `DELETE FROM blocks WHERE id IN (` + placeholders + `) 
 	          AND profile_id IN (SELECT id FROM profiles WHERE user_id = $1)`
-	
+
 	_, err := r.db.Exec(query, args...)
 	return err
 }

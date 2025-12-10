@@ -10,12 +10,32 @@
 	export let blocks: Block[] = [];
 	export let showInactive: boolean = true;
 
-	// Combine and sort items by position
-	type Item = { type: 'link'; data: Link } | { type: 'block'; data: Block };
+	// Get link_ids from inactive blocks - these links should be hidden
+	$: hiddenLinkIds = new Set(
+		(blocks || [])
+			.filter(block => !block.is_active && block.link_id)
+			.map(block => block.link_id!)
+	);
+
+	// Filter out links that are:
+	// 1. Hidden by inactive blocks (hiddenLinkIds)
+	// 2. Inactive themselves (when showInactive is false)
+	$: visibleLinks = (links || []).filter(link => 
+		!hiddenLinkIds.has(link.id) && (showInactive || link.is_active)
+	);
+
+	// Combine and sort items: pinned links first, then by position
+	type Item = { type: 'link'; data: Link; isPinned: boolean } | { type: 'block'; data: Block; isPinned: boolean };
 	$: items = [
-		...(links || []).map(link => ({ type: 'link' as const, data: link, position: link.position })),
-		...(blocks || []).map(block => ({ type: 'block' as const, data: block, position: block.position }))
-	].sort((a, b) => a.position - b.position);
+		...visibleLinks.map(link => ({ type: 'link' as const, data: link, position: link.position, isPinned: link.is_pinned || false })),
+		...(blocks || []).map(block => ({ type: 'block' as const, data: block, position: block.position, isPinned: false }))
+	].sort((a, b) => {
+		// Pinned items first
+		if (a.isPinned && !b.isPinned) return -1;
+		if (!a.isPinned && b.isPinned) return 1;
+		// Then by position
+		return a.position - b.position;
+	});
 </script>
 
 <div class="w-full max-w-md mx-auto">
@@ -93,9 +113,18 @@
 							{#if link.is_group}
 								<!-- Group: Render all children according to layout -->
 								{#if link.children && link.children.length > 0}
+									{@const sortedChildren = link.children
+										.filter(c => c.is_active)
+										.sort((a, b) => {
+											// Pinned first
+											if (a.is_pinned && !b.is_pinned) return -1;
+											if (!a.is_pinned && b.is_pinned) return 1;
+											// Then by position
+											return a.position - b.position;
+										})}
 									{#if link.group_layout === 'grid'}
 										<div class="grid grid-cols-2 gap-3">
-											{#each link.children.filter(c => c.is_active) as child}
+											{#each sortedChildren as child}
 												<a
 													href={child.url}
 													target="_blank"
@@ -112,7 +141,7 @@
 									{:else if link.group_layout === 'carousel'}
 										<div class="overflow-x-auto -mx-6 px-6">
 											<div class="flex gap-3 pb-2">
-												{#each link.children.filter(c => c.is_active) as child}
+												{#each sortedChildren as child}
 													<a
 														href={child.url}
 														target="_blank"
@@ -130,7 +159,7 @@
 									{:else}
 										<!-- List layout (default) -->
 										<div class="space-y-2">
-											{#each link.children.filter(c => c.is_active) as child}
+											{#each sortedChildren as child}
 												<a
 													href={child.url}
 													target="_blank"

@@ -26,7 +26,7 @@ func main() {
 	defer db.Close()
 
 	// Read migration file
-	migrationSQL, err := os.ReadFile("migrations/004_create_blocks_table.sql")
+	migrationSQL, err := os.ReadFile("migrations/009_remove_link_id_from_blocks.sql")
 	if err != nil {
 		log.Fatal("Failed to read migration:", err)
 	}
@@ -37,5 +37,5 @@ func main() {
 		log.Fatal("Failed to execute migration:", err)
 	}
 
-	fmt.Println("✅ Migration 004_create_blocks_table.sql executed successfully!")
+	fmt.Println("✅ Migration 009_remove_link_id_from_blocks.sql executed successfully!")
 }

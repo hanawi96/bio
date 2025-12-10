@@ -5,15 +5,19 @@
 	
 	export let group: Link;
 	export let selected: boolean = false;
+	export let expanded: boolean = false;
 	
 	const dispatch = createEventDispatcher();
 	
-	let isExpanded = false;
+	let isExpanded = expanded;
 	let showMenu = false;
 	let activeTab: 'links' | 'layouts' | 'settings' = 'links';
 	let linkMenuOpen: string | null = null; // Track which link's menu is open
 	let fileInput: HTMLInputElement;
 	let uploadingLinkId: string | null = null;
+	
+	// Sync isExpanded with prop
+	$: isExpanded = expanded;
 	
 	$: childrenCount = group.children?.length || 0;
 	$: children = group.children || [];
@@ -22,18 +26,14 @@
 	type DndItem = { id: string; data: Link };
 	let dndItems: DndItem[] = [];
 	
-	// Sync dndItems from children, but update data without changing order during drag
+	// Sync dndItems from children - keep user's drag order, don't auto-sort by pin status
 	$: {
 		if (dndItems.length === 0 || dndItems.length !== children.length) {
 			// Initial load or children count changed (add/remove)
+			// Sort by position only (pinned status doesn't affect edit view order)
 			dndItems = children
 				.slice()
-				.sort((a, b) => {
-					// Pinned items first, then by position
-					if (a.is_pinned && !b.is_pinned) return -1;
-					if (!a.is_pinned && b.is_pinned) return 1;
-					return a.position - b.position;
-				})
+				.sort((a, b) => a.position - b.position)
 				.map(link => ({ id: link.id, data: link }));
 		} else {
 			// Update data for existing items without changing order
@@ -59,17 +59,42 @@
 	}
 	
 	function handleDndConsider(e: CustomEvent) {
-		dndItems = e.detail.items;
+		const newItems = e.detail.items;
+		
+		// Enforce constraint: unpinned items cannot be dragged above pinned items
+		const pinnedItems = newItems.filter((item: DndItem) => item.data.is_pinned);
+		const unpinnedItems = newItems.filter((item: DndItem) => !item.data.is_pinned);
+		
+		// Find the first unpinned item index in newItems
+		const firstUnpinnedIndex = newItems.findIndex((item: DndItem) => !item.data.is_pinned);
+		
+		// Check if any pinned item appears after unpinned items (violation)
+		let hasViolation = false;
+		if (pinnedItems.length > 0 && firstUnpinnedIndex !== -1) {
+			for (let i = firstUnpinnedIndex; i < newItems.length; i++) {
+				if (newItems[i].data.is_pinned) {
+					hasViolation = true;
+					break;
+				}
+			}
+		}
+		
+		// If constraint violated, enforce correct order
+		if (hasViolation) {
+			dndItems = [...pinnedItems, ...unpinnedItems];
+		} else {
+			dndItems = newItems;
+		}
 	}
 	
 	function handleDndFinalize(e: CustomEvent) {
 		const newItems = e.detail.items;
 		
-		// Separate pinned and unpinned items
+		// Enforce final constraint: pinned first, then unpinned
 		const pinnedItems = newItems.filter((item: DndItem) => item.data.is_pinned);
 		const unpinnedItems = newItems.filter((item: DndItem) => !item.data.is_pinned);
 		
-		// Reconstruct order: pinned first, then unpinned
+		// Always maintain correct order: pinned first, then unpinned
 		dndItems = [...pinnedItems, ...unpinnedItems];
 		
 		// Dispatch event to parent to save new order
@@ -118,7 +143,7 @@
 
 			<!-- Title - Click to expand -->
 			<button
-				onclick={() => isExpanded = true}
+				onclick={() => dispatch('expand', group.id)}
 				class="flex-1 text-left hover:opacity-70 transition-opacity"
 			>
 				<h3 class="text-[17px] font-semibold text-gray-900">
@@ -203,7 +228,7 @@
 		<div class="border-b border-gray-100 px-6 py-4">
 			<div class="flex items-center justify-between mb-4">
 				<button
-					onclick={() => isExpanded = false}
+					onclick={() => dispatch('collapse', group.id)}
 					class="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
 				>
 					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -477,7 +502,11 @@
 									
 									<div class="w-px h-4 bg-gray-200 mx-0.5"></div>
 									<button 
-										onclick={() => dispatch('togglelinkvisibility', link.id)}
+										onclick={() => {
+											console.log('👁️ Eye button clicked!', { linkId: link.id, currentState: link.is_active });
+											dispatch('togglelinkvisibility', link.id);
+											console.log('📤 Event dispatched: togglelinkvisibility');
+										}}
 										class="p-1.5 hover:bg-gray-100 rounded-md transition-colors" 
 										title={link.is_active ? 'Hide' : 'Show'}
 									>

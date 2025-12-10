@@ -10,11 +10,14 @@
 	import ProfilePreview from '$lib/components/dashboard/preview/ProfilePreview.svelte';
 	import { profileApi } from '$lib/api/profile';
 	import { linksApi } from '$lib/api/links';
+	import { blocksApi } from '$lib/api/blocks';
 	import type { Profile } from '$lib/api/profile';
 	import type { Link } from '$lib/api/links';
+	import type { Block } from '$lib/api/blocks';
 
 	let profile: Profile | null = null;
 	let links: Link[] = [];
+	let blocks: Block[] = [];
 	let initialLoading = true;
 	let uploadingAvatar = false;
 	let fileInput: HTMLInputElement;
@@ -39,6 +42,13 @@
 			} catch (linksError: any) {
 				console.warn('No links found:', linksError);
 				links = [];
+			}
+
+			try {
+				blocks = await blocksApi.getBlocks($auth.token!);
+			} catch (blocksError: any) {
+				console.warn('No blocks found:', blocksError);
+				blocks = [];
 			}
 		} catch (error: any) {
 			console.error('Failed to load data:', error);
@@ -187,7 +197,7 @@
 					<div class="relative">
 						<div class="absolute inset-0 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-3xl blur-2xl opacity-20"></div>
 						<div class="relative">
-							<ProfilePreview profile={displayProfile} {links} />
+							<ProfilePreview profile={displayProfile} {links} {blocks} />
 						</div>
 					</div>
 				</div>

@@ -41,7 +41,12 @@
 		...(blocks || []).map(block => ({ type: 'block' as const, data: block, id: block.id, position: block.position }))
 	].sort((a, b) => a.position - b.position);
 
-
+	// Get link_ids from inactive blocks - these links should be hidden
+	$: hiddenLinkIds = new Set(
+		(blocks || [])
+			.filter(block => !block.is_active && block.link_id)
+			.map(block => block.link_id!)
+	);
 
 	// Search & Filter state
 	let searchQuery = '';
@@ -80,6 +85,9 @@
 	let currentGroupId: string | null = null;
 	let currentGroupTitle: string = '';
 	let editingGroupLink: Link | null = null;
+	
+	// Track which groups are expanded
+	let expandedGroupIds = new Set<string>();
 
 	onMount(async () => {
 		await loadData();
@@ -258,9 +266,14 @@
 	async function handleCreateGroup(event: CustomEvent) {
 		const { title, layout } = event.detail;
 		try {
-			await linksApi.createGroup(title, layout, $auth.token!);
+			const newGroup = await linksApi.createGroup(title, layout, $auth.token!);
 			await loadData();
 			showCreateGroupDialog = false;
+			
+			// Auto-expand the newly created group
+			expandedGroupIds.add(newGroup.id);
+			expandedGroupIds = expandedGroupIds; // Trigger reactivity
+			
 			toast.success('Group created!');
 		} catch (error: any) {
 			toast.error(error.message || 'Failed to create group');
@@ -351,6 +364,8 @@
 
 	async function handleToggleLinkVisibility(event: CustomEvent) {
 		const linkId = event.detail;
+		console.log('🔄 Toggle visibility for linkId:', linkId);
+		
 		try {
 			// Find current state
 			let currentState = false;
@@ -359,6 +374,12 @@
 					const child = link.children.find(c => c.id === linkId);
 					if (child) {
 						currentState = child.is_active || false;
+						console.log('📌 Found link in group:', { 
+							linkId, 
+							currentState, 
+							groupId: link.id,
+							groupTitle: link.group_title 
+						});
 						break;
 					}
 				}
@@ -366,10 +387,13 @@
 			
 			// Toggle
 			const newState = !currentState;
+			console.log('🔀 Toggling from', currentState, 'to', newState);
+			
 			await linksApi.updateLink(linkId, { is_active: newState }, $auth.token!);
+			console.log('✅ Backend updated successfully');
 			
 			// Update local state without reloading - keep UI expanded
-			links = links.map(link => {
+			const updateLinks = (linksList: Link[]) => linksList.map(link => {
 				if (link.is_group && link.children) {
 					return {
 						...link,
@@ -381,8 +405,37 @@
 				return link;
 			});
 			
-			toast.success(newState ? 'Link shown!' : 'Link hidden!');
+			const oldLinksLength = links.length;
+			const oldAllLinksLength = allLinks.length;
+			
+			links = updateLinks(links);
+			allLinks = updateLinks(allLinks);
+			
+			console.log('🔄 State updated:', { 
+				linksLength: links.length,
+				allLinksLength: allLinks.length,
+				linksChanged: links !== links, // Will always be true due to reassignment
+				newState 
+			});
+			
+			// Verify the update
+			for (const link of links) {
+				if (link.is_group && link.children) {
+					const child = link.children.find(c => c.id === linkId);
+					if (child) {
+						console.log('✅ Verified in links array:', { 
+							linkId, 
+							is_active: child.is_active,
+							expected: newState,
+							match: child.is_active === newState 
+						});
+					}
+				}
+			}
+			
+			// No toast for visibility toggle - visual feedback (icon change) is sufficient
 		} catch (error: any) {
+			console.error('❌ Toggle visibility error:', error);
 			toast.error(error.message || 'Failed to toggle visibility');
 		}
 	}
@@ -524,25 +577,22 @@
 		try {
 			const updatedLink = await linksApi.togglePin(linkId, $auth.token!);
 			
-			// Update local state immediately
+			// Update local state - only update pin status, keep position unchanged
 			const updateLinks = (linksList: Link[]) => linksList.map(link => {
 				if (link.is_group && link.children) {
-					// Update the specific child and unpin others if this one is being pinned
+					// Update children based on backend response
 					const updatedChildren = link.children.map(child => {
 						if (child.id === linkId) {
-							return { ...child, is_pinned: updatedLink.is_pinned, position: updatedLink.position };
-						} else if (updatedLink.is_pinned) {
-							// If we're pinning this link, unpin all others
+							// Update this link with new pin status
+							return { ...child, is_pinned: updatedLink.is_pinned };
+						} else if (updatedLink.is_pinned && child.is_pinned) {
+							// Backend unpins others in the same group, sync frontend
 							return { ...child, is_pinned: false };
 						}
 						return child;
-					}).sort((a, b) => {
-						// Pinned items first, then by position
-						if (a.is_pinned && !b.is_pinned) return -1;
-						if (!a.is_pinned && b.is_pinned) return 1;
-						return a.position - b.position;
 					});
 					
+					// Keep original order - ProfilePreview will sort by is_pinned when rendering
 					return { ...link, children: updatedChildren };
 				}
 				return link;
@@ -551,9 +601,10 @@
 			links = updateLinks(links);
 			allLinks = updateLinks(allLinks);
 			
-			toast.success(updatedLink.is_pinned ? 'Link pinned!' : 'Link unpinned!');
+			// No toast for pin/unpin - visual feedback (icon color change) is sufficient
 		} catch (error: any) {
-			toast.error(error.message || 'Failed to pin link');
+			toast.error(error.message || 'Failed to toggle pin');
+			await loadData(); // Reload on error
 		}
 	}
 
@@ -618,17 +669,59 @@
 
 	async function handleToggleGroup(event: CustomEvent) {
 		const id = event.detail;
+		console.log('👁️ handleToggleGroup called!', { id });
 		const group = links.find(l => l.id === id);
-		if (!group) return;
+		if (!group) {
+			console.log('❌ Group not found!', { id });
+			return;
+		}
+		
+		// Find the block that contains this link group
+		const block = blocks.find(b => b.link_id === id);
+		
+		console.log('🔄 Toggling group visibility:', { 
+			groupId: id, 
+			groupTitle: group.group_title,
+			currentState: group.is_active, 
+			newState: !group.is_active,
+			hasBlock: !!block,
+			blockId: block?.id
+		});
 		
 		try {
+			// Toggle the link group
 			await linksApi.updateLink(id, { is_active: !group.is_active }, $auth.token!);
+			
 			links = links.map(l => l.id === id ? {...l, is_active: !l.is_active} : l);
 			allLinks = allLinks.map(l => l.id === id ? {...l, is_active: !l.is_active} : l);
-			toast.success(group.is_active ? 'Group hidden!' : 'Group shown!');
+			
+			// Also toggle the block if it exists
+			if (block) {
+				await blocksApi.updateBlock(block.id, { is_active: !group.is_active }, $auth.token!);
+				blocks = blocks.map(b => b.id === block.id ? {...b, is_active: !group.is_active} : b);
+			}
+			
+			console.log('✅ Group visibility toggled!', { 
+				updatedLinks: links.length, 
+				updatedAllLinks: allLinks.length,
+				blockToggled: !!block
+			});
 		} catch (error: any) {
+			console.error('❌ Failed to toggle group:', error);
 			toast.error(error.message || 'Failed to toggle group');
 		}
+	}
+
+	function handleExpandGroup(event: CustomEvent) {
+		const groupId = event.detail;
+		expandedGroupIds.add(groupId);
+		expandedGroupIds = expandedGroupIds; // Trigger reactivity
+	}
+
+	function handleCollapseGroup(event: CustomEvent) {
+		const groupId = event.detail;
+		expandedGroupIds.delete(groupId);
+		expandedGroupIds = expandedGroupIds; // Trigger reactivity
 	}
 
 	async function handleDeleteGroup(event: CustomEvent) {
@@ -1151,11 +1244,14 @@
 				>
 					{#each items as item (item.id)}
 						<div style="outline: none;">
-							{#if item.type === 'link' && item.data.is_group}
+							{#if item.type === 'link' && item.data.is_group && !hiddenLinkIds.has(item.data.id)}
 								<LinkGroupCard 
 									group={item.data}
 									selected={selectedIds.has(item.id)}
+									expanded={expandedGroupIds.has(item.data.id)}
 									on:select={handleSelect}
+									on:expand={handleExpandGroup}
+									on:collapse={handleCollapseGroup}
 									on:toggle={handleToggleGroup}
 									on:delete={handleDeleteGroup}
 									on:addlink={handleAddLinkToGroup}
@@ -1273,7 +1369,7 @@
 					<div class="relative">
 						<div class="absolute inset-0 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-3xl blur-2xl opacity-20"></div>
 						<div class="relative">
-							<ProfilePreview profile={displayProfile} {links} {blocks} />
+							<ProfilePreview profile={displayProfile} {links} {blocks} showInactive={false} />
 						</div>
 					</div>
 

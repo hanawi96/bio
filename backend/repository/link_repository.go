@@ -65,12 +65,13 @@ func (r *LinkRepository) GetByUserIDWithFilters(userID, search, status, layoutTy
 	case "title":
 		query += " ORDER BY LOWER(l.title) ASC"
 	default:
-		query += " ORDER BY l.is_pinned DESC, l.position ASC"
+		// Default: sort by position only (pinned status is handled on frontend for public view)
+		query += " ORDER BY l.position ASC"
 	}
 
 	fmt.Printf("📝 Final SQL Query: %s\n", query)
 	fmt.Printf("📦 Args: %v\n", args)
-	
+
 	rows, err := r.db.Query(query, args...)
 	if err != nil {
 		fmt.Printf("❌ Query error: %v\n", err)
@@ -91,7 +92,7 @@ func (r *LinkRepository) GetByUserIDWithFilters(userID, search, status, layoutTy
 		if err != nil {
 			return nil, err
 		}
-		
+
 		// If it's a group, fetch children
 		if link.IsGroup {
 			children, err := r.GetChildrenByParentID(link.ID)
@@ -99,7 +100,7 @@ func (r *LinkRepository) GetByUserIDWithFilters(userID, search, status, layoutTy
 				link.Children = children
 			}
 		}
-		
+
 		links = append(links, link)
 	}
 	return links, nil
@@ -116,7 +117,7 @@ func (r *LinkRepository) Create(userID string, data map[string]interface{}) (*Li
 	var maxBlockPos, maxLinkPos int
 	r.db.QueryRow(`SELECT COALESCE(MAX(position), -1) FROM blocks WHERE profile_id = $1`, profileID).Scan(&maxBlockPos)
 	r.db.QueryRow(`SELECT COALESCE(MAX(position), -1) FROM links WHERE profile_id = $1`, profileID).Scan(&maxLinkPos)
-	
+
 	maxPosition := maxBlockPos
 	if maxLinkPos > maxPosition {
 		maxPosition = maxLinkPos
@@ -181,7 +182,7 @@ func (r *LinkRepository) Update(linkID string, data map[string]interface{}) (*Li
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// If it's a group, fetch children
 	if link.IsGroup {
 		children, err := r.GetChildrenByParentID(link.ID)
@@ -189,7 +190,7 @@ func (r *LinkRepository) Update(linkID string, data map[string]interface{}) (*Li
 			link.Children = children
 		}
 	}
-	
+
 	return &link, nil
 }
 
@@ -197,8 +198,6 @@ func (r *LinkRepository) Delete(linkID string) error {
 	_, err := r.db.Exec(`DELETE FROM links WHERE id = $1`, linkID)
 	return err
 }
-
-
 
 // ReorderWithBlocks updates positions for both links and blocks in unified order
 func (r *LinkRepository) ReorderWithBlocks(userID string, items []map[string]interface{}) error {
@@ -219,7 +218,7 @@ func (r *LinkRepository) ReorderWithBlocks(userID string, items []map[string]int
 	for i, item := range items {
 		itemType := item["type"].(string)
 		itemID := item["id"].(string)
-		
+
 		if itemType == "link" {
 			_, err := tx.Exec(`
 				UPDATE links 
@@ -261,8 +260,8 @@ func (r *LinkRepository) Duplicate(userID string, linkID string) (*Link, error) 
 		&original.ID, &original.ProfileID, &original.ParentID, &original.IsGroup, &original.GroupTitle, &original.GroupLayout,
 		&original.Title, &original.URL, &original.ThumbnailURL,
 		&original.LayoutType, &original.ImagePlacement, &original.TextAlignment, &original.TextSize,
-		&original.ShowOutline, &original.ShowShadow, &original.Position, &original.Clicks, 
-		&original.IsActive, &original.IsPinned, &original.ScheduledAt, &original.ExpiresAt, 
+		&original.ShowOutline, &original.ShowShadow, &original.Position, &original.Clicks,
+		&original.IsActive, &original.IsPinned, &original.ScheduledAt, &original.ExpiresAt,
 		&original.CreatedAt, &original.UpdatedAt,
 	)
 	if err != nil {
@@ -273,7 +272,7 @@ func (r *LinkRepository) Duplicate(userID string, linkID string) (*Link, error) 
 	var maxBlockPos, maxLinkPos int
 	r.db.QueryRow(`SELECT COALESCE(MAX(position), -1) FROM blocks WHERE profile_id = $1`, original.ProfileID).Scan(&maxBlockPos)
 	r.db.QueryRow(`SELECT COALESCE(MAX(position), -1) FROM links WHERE profile_id = $1`, original.ProfileID).Scan(&maxLinkPos)
-	
+
 	maxPosition := maxBlockPos
 	if maxLinkPos > maxPosition {
 		maxPosition = maxLinkPos
@@ -297,7 +296,7 @@ func (r *LinkRepository) Duplicate(userID string, linkID string) (*Link, error) 
 	} else if !original.IsGroup {
 		newTitle = original.Title + " (Copy)"
 	}
-	
+
 	err = r.db.QueryRow(
 		insertQuery,
 		original.ProfileID,
@@ -320,7 +319,7 @@ func (r *LinkRepository) Duplicate(userID string, linkID string) (*Link, error) 
 		&duplicate.Title, &duplicate.URL, &duplicate.ThumbnailURL,
 		&duplicate.LayoutType, &duplicate.ImagePlacement, &duplicate.TextAlignment, &duplicate.TextSize,
 		&duplicate.ShowOutline, &duplicate.ShowShadow, &duplicate.Position, &duplicate.Clicks,
-		&duplicate.IsActive, &duplicate.IsPinned, &duplicate.ScheduledAt, &duplicate.ExpiresAt, 
+		&duplicate.IsActive, &duplicate.IsPinned, &duplicate.ScheduledAt, &duplicate.ExpiresAt,
 		&duplicate.CreatedAt, &duplicate.UpdatedAt,
 	)
 	if err != nil {
@@ -337,52 +336,33 @@ func (r *LinkRepository) TogglePin(userID string, linkID string) (*Link, error) 
 	}
 	defer tx.Rollback()
 
-	// Get profile ID and current pin status
+	// Get profile ID, parent_id and current pin status
 	var profileID string
+	var parentID *string
 	var currentPinned bool
 	err = tx.QueryRow(`
-		SELECT p.id, COALESCE(l.is_pinned, false)
+		SELECT p.id, l.parent_id, COALESCE(l.is_pinned, false)
 		FROM profiles p
-		LEFT JOIN links l ON l.id = $2 AND l.profile_id = p.id
+		JOIN links l ON l.id = $2 AND l.profile_id = p.id
 		WHERE p.user_id = $1
-	`, userID, linkID).Scan(&profileID, &currentPinned)
+	`, userID, linkID).Scan(&profileID, &parentID, &currentPinned)
 	if err != nil {
 		return nil, err
 	}
 
 	var link Link
 	if currentPinned {
-		// Get parent_id to find max position in same group
-		var parentID *string
-		err = tx.QueryRow(`SELECT parent_id FROM links WHERE id = $1`, linkID).Scan(&parentID)
-		if err != nil {
-			return nil, err
-		}
-		
-		// Get max position in the same group/level
-		var maxPos int
-		if parentID != nil {
-			err = tx.QueryRow(`SELECT COALESCE(MAX(position), -1) FROM links WHERE parent_id = $1 AND id != $2`, parentID, linkID).Scan(&maxPos)
-		} else {
-			err = tx.QueryRow(`SELECT COALESCE(MAX(position), -1) FROM links WHERE profile_id = $1 AND parent_id IS NULL AND id != $2`, profileID, linkID).Scan(&maxPos)
-		}
-		if err != nil {
-			return nil, err
-		}
-		
-		newPosition := maxPos + 1
-		
-		// Unpin this link and move to end
+		// UNPIN: Just toggle flag, keep position unchanged
 		query := `
 			UPDATE links 
-			SET is_pinned = false, position = $3, updated_at = CURRENT_TIMESTAMP
+			SET is_pinned = false, updated_at = CURRENT_TIMESTAMP
 			WHERE id = $1 AND profile_id = $2
 			RETURNING id, profile_id, parent_id, is_group, group_title, group_layout,
 			          title, url, thumbnail_url, layout_type, image_placement, text_alignment,
 			          text_size, show_outline, show_shadow, position, clicks, is_active, is_pinned,
 			          scheduled_at, expires_at, created_at, updated_at
 		`
-		err = tx.QueryRow(query, linkID, profileID, newPosition).Scan(
+		err = tx.QueryRow(query, linkID, profileID).Scan(
 			&link.ID, &link.ProfileID, &link.ParentID, &link.IsGroup, &link.GroupTitle, &link.GroupLayout,
 			&link.Title, &link.URL, &link.ThumbnailURL,
 			&link.LayoutType, &link.ImagePlacement, &link.TextAlignment, &link.TextSize,
@@ -390,16 +370,23 @@ func (r *LinkRepository) TogglePin(userID string, linkID string) (*Link, error) 
 			&link.ScheduledAt, &link.ExpiresAt, &link.CreatedAt, &link.UpdatedAt,
 		)
 	} else {
-		// Unpin all other links first
-		_, err = tx.Exec(`UPDATE links SET is_pinned = false WHERE profile_id = $1`, profileID)
+		// PIN: Unpin all other links in the same group only, then pin this link
+		// Position remains unchanged - pinned items will be sorted first in queries
+		if parentID != nil {
+			// Unpin other links in the same group
+			_, err = tx.Exec(`UPDATE links SET is_pinned = false WHERE parent_id = $1 AND id != $2`, parentID, linkID)
+		} else {
+			// Unpin other top-level links
+			_, err = tx.Exec(`UPDATE links SET is_pinned = false WHERE profile_id = $1 AND parent_id IS NULL AND id != $2`, profileID, linkID)
+		}
 		if err != nil {
 			return nil, err
 		}
 
-		// Pin this link
+		// Pin this link, keep position unchanged
 		query := `
 			UPDATE links 
-			SET is_pinned = true, position = 0, updated_at = CURRENT_TIMESTAMP
+			SET is_pinned = true, updated_at = CURRENT_TIMESTAMP
 			WHERE id = $1 AND profile_id = $2
 			RETURNING id, profile_id, parent_id, is_group, group_title, group_layout,
 			          title, url, thumbnail_url, layout_type, image_placement, text_alignment,
@@ -414,7 +401,7 @@ func (r *LinkRepository) TogglePin(userID string, linkID string) (*Link, error) 
 			&link.ScheduledAt, &link.ExpiresAt, &link.CreatedAt, &link.UpdatedAt,
 		)
 	}
-	
+
 	if err != nil {
 		return nil, err
 	}
@@ -483,9 +470,9 @@ func (r *LinkRepository) GetChildrenByParentID(parentID string) ([]Link, error) 
 		       created_at, updated_at
 		FROM links
 		WHERE parent_id = $1
-		ORDER BY is_pinned DESC, position ASC
+		ORDER BY position ASC
 	`
-	
+
 	rows, err := r.db.Query(query, parentID)
 	if err != nil {
 		return nil, err
@@ -522,7 +509,7 @@ func (r *LinkRepository) CreateGroup(userID string, title string, layout string)
 	var maxBlockPos, maxLinkPos int
 	r.db.QueryRow(`SELECT COALESCE(MAX(position), -1) FROM blocks WHERE profile_id = $1 AND parent_id IS NULL`, profileID).Scan(&maxBlockPos)
 	r.db.QueryRow(`SELECT COALESCE(MAX(position), -1) FROM links WHERE profile_id = $1 AND parent_id IS NULL`, profileID).Scan(&maxLinkPos)
-	
+
 	maxPosition := maxBlockPos
 	if maxLinkPos > maxPosition {
 		maxPosition = maxLinkPos
@@ -547,8 +534,9 @@ func (r *LinkRepository) CreateGroup(userID string, title string, layout string)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	group.Children = []Link{} // Initialize empty children array
+
 	return &group, nil
 }
 
@@ -688,7 +676,7 @@ func (r *LinkRepository) RemoveFromGroup(userID string, linkID string) (*Link, e
 	var maxBlockPos, maxLinkPos int
 	tx.QueryRow(`SELECT COALESCE(MAX(position), -1) FROM blocks WHERE profile_id = $1 AND parent_id IS NULL`, profileID).Scan(&maxBlockPos)
 	tx.QueryRow(`SELECT COALESCE(MAX(position), -1) FROM links WHERE profile_id = $1 AND parent_id IS NULL`, profileID).Scan(&maxLinkPos)
-	
+
 	maxPosition := maxBlockPos
 	if maxLinkPos > maxPosition {
 		maxPosition = maxLinkPos
@@ -726,7 +714,7 @@ func (r *LinkRepository) RemoveFromGroup(userID string, linkID string) (*Link, e
 // DuplicateGroup duplicates a group and all its children
 func (r *LinkRepository) DuplicateGroup(userID string, groupID string) (*Link, error) {
 	fmt.Printf("🔄 DuplicateGroup START: userID=%s, groupID=%s\n", userID, groupID)
-	
+
 	tx, err := r.db.Begin()
 	if err != nil {
 		fmt.Printf("❌ Failed to begin transaction: %v\n", err)
@@ -749,12 +737,12 @@ func (r *LinkRepository) DuplicateGroup(userID string, groupID string) (*Link, e
 	`
 	fmt.Printf("📝 Fetching original group...\n")
 	err = tx.QueryRow(query, groupID, userID).Scan(
-		&originalGroup.ID, &originalGroup.ProfileID, &originalGroup.ParentID, &originalGroup.IsGroup, 
-		&originalGroup.GroupTitle, &originalGroup.GroupLayout, &originalGroup.Title, &originalGroup.URL, 
-		&originalGroup.ThumbnailURL, &originalGroup.LayoutType, &originalGroup.ImagePlacement, 
-		&originalGroup.TextAlignment, &originalGroup.TextSize, &originalGroup.ShowOutline, 
-		&originalGroup.ShowShadow, &originalGroup.Position, &originalGroup.Clicks, &originalGroup.IsActive, 
-		&originalGroup.IsPinned, &originalGroup.ScheduledAt, &originalGroup.ExpiresAt, 
+		&originalGroup.ID, &originalGroup.ProfileID, &originalGroup.ParentID, &originalGroup.IsGroup,
+		&originalGroup.GroupTitle, &originalGroup.GroupLayout, &originalGroup.Title, &originalGroup.URL,
+		&originalGroup.ThumbnailURL, &originalGroup.LayoutType, &originalGroup.ImagePlacement,
+		&originalGroup.TextAlignment, &originalGroup.TextSize, &originalGroup.ShowOutline,
+		&originalGroup.ShowShadow, &originalGroup.Position, &originalGroup.Clicks, &originalGroup.IsActive,
+		&originalGroup.IsPinned, &originalGroup.ScheduledAt, &originalGroup.ExpiresAt,
 		&originalGroup.CreatedAt, &originalGroup.UpdatedAt,
 	)
 	if err != nil {
@@ -785,9 +773,9 @@ func (r *LinkRepository) DuplicateGroup(userID string, groupID string) (*Link, e
 		          scheduled_at, expires_at, created_at, updated_at
 	`
 	err = tx.QueryRow(insertQuery, originalGroup.ProfileID, newTitle, originalGroup.GroupLayout, maxPosition+1).Scan(
-		&newGroup.ID, &newGroup.ProfileID, &newGroup.ParentID, &newGroup.IsGroup, &newGroup.GroupTitle, 
+		&newGroup.ID, &newGroup.ProfileID, &newGroup.ParentID, &newGroup.IsGroup, &newGroup.GroupTitle,
 		&newGroup.GroupLayout, &newGroup.Title, &newGroup.URL, &newGroup.ThumbnailURL, &newGroup.LayoutType,
-		&newGroup.ImagePlacement, &newGroup.TextAlignment, &newGroup.TextSize, &newGroup.ShowOutline, 
+		&newGroup.ImagePlacement, &newGroup.TextAlignment, &newGroup.TextSize, &newGroup.ShowOutline,
 		&newGroup.ShowShadow, &newGroup.Position, &newGroup.Clicks, &newGroup.IsActive, &newGroup.IsPinned,
 		&newGroup.ScheduledAt, &newGroup.ExpiresAt, &newGroup.CreatedAt, &newGroup.UpdatedAt,
 	)
@@ -828,7 +816,7 @@ func (r *LinkRepository) DuplicateGroup(userID string, groupID string) (*Link, e
 		IsActive       bool
 	}
 	var childrenData []ChildData
-	
+
 	for rows.Next() {
 		var child ChildData
 		err = rows.Scan(&child.ID, &child.Title, &child.URL, &child.ThumbnailURL, &child.LayoutType,
@@ -847,14 +835,14 @@ func (r *LinkRepository) DuplicateGroup(userID string, groupID string) (*Link, e
 	// Now insert duplicates
 	for i, child := range childrenData {
 		fmt.Printf("  📌 Duplicating child #%d: ID=%s, Title=%s\n", i+1, child.ID, child.Title)
-		
+
 		_, err = tx.Exec(`
 			INSERT INTO links (profile_id, parent_id, title, url, thumbnail_url, layout_type, 
 			                   image_placement, text_alignment, text_size, show_outline, show_shadow, 
 			                   position, is_active, is_pinned)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, false)
-		`, originalGroup.ProfileID, newGroup.ID, child.Title, child.URL, child.ThumbnailURL, 
-			child.LayoutType, child.ImagePlacement, child.TextAlignment, child.TextSize, 
+		`, originalGroup.ProfileID, newGroup.ID, child.Title, child.URL, child.ThumbnailURL,
+			child.LayoutType, child.ImagePlacement, child.TextAlignment, child.TextSize,
 			child.ShowOutline, child.ShowShadow, child.Position, child.IsActive)
 		if err != nil {
 			fmt.Printf("❌ Failed to insert duplicate child #%d: %v\n", i+1, err)
@@ -876,7 +864,7 @@ func (r *LinkRepository) DuplicateGroup(userID string, groupID string) (*Link, e
 		WHERE parent_id = $1
 		ORDER BY is_pinned DESC, position ASC
 	`
-	
+
 	rows2, err := tx.Query(childrenQuery2, newGroup.ID)
 	if err != nil {
 		fmt.Printf("❌ Failed to load children for new group: %v\n", err)
@@ -915,7 +903,6 @@ func (r *LinkRepository) DuplicateGroup(userID string, groupID string) (*Link, e
 
 	return &newGroup, nil
 }
-
 
 // ReorderGroupLinks reorders links within a group
 func (r *LinkRepository) ReorderGroupLinks(userID string, groupID string, linkIDs []string) error {

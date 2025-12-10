@@ -23,14 +23,29 @@
 		}
 	});
 
-	$: activeLinks = links.filter(l => l.is_active);
 	$: activeBlocks = blocks.filter(b => b.is_active);
 	
-	// Combine and sort by position
+	// Get link_ids from inactive blocks - these links should be hidden
+	$: hiddenLinkIds = new Set(
+		blocks
+			.filter(block => !block.is_active && block.link_id)
+			.map(block => block.link_id)
+	);
+	
+	// Filter active links, excluding those hidden by inactive blocks
+	$: activeLinks = links.filter(l => l.is_active && !hiddenLinkIds.has(l.id));
+	
+	// Combine and sort: pinned links first, then by position
 	$: items = [
-		...activeLinks.map(link => ({ type: 'link' as const, data: link, position: link.position })),
-		...activeBlocks.map(block => ({ type: 'block' as const, data: block, position: block.position }))
-	].sort((a, b) => a.position - b.position);
+		...activeLinks.map(link => ({ type: 'link' as const, data: link, position: link.position, isPinned: link.is_pinned || false })),
+		...activeBlocks.map(block => ({ type: 'block' as const, data: block, position: block.position, isPinned: false }))
+	].sort((a, b) => {
+		// Pinned items first
+		if (a.isPinned && !b.isPinned) return -1;
+		if (!a.isPinned && b.isPinned) return 1;
+		// Then by position
+		return a.position - b.position;
+	});
 </script>
 
 <svelte:head>
