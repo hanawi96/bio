@@ -64,6 +64,17 @@ func main() {
 		log.Println("✅ Migration: description column ready")
 	}
 
+	// Add show_description column (safe - uses IF NOT EXISTS)
+	_, err = db.Exec(`
+		ALTER TABLE links 
+		ADD COLUMN IF NOT EXISTS show_description BOOLEAN DEFAULT true
+	`)
+	if err != nil {
+		log.Println("⚠️ Show description migration warning:", err)
+	} else {
+		log.Println("✅ Migration: show_description column ready")
+	}
+
 	// Create Fiber app
 	app := fiber.New(fiber.Config{
 		AppName:      "LinkBio API",

@@ -34,6 +34,7 @@ type Link struct {
 	TextSize        string     `json:"text_size"`
 	ShowOutline     bool       `json:"show_outline"`
 	ShowShadow      bool       `json:"show_shadow"`
+	ShowDescription bool       `json:"show_description"`
 	Position        int        `json:"position"`
 	Clicks          int        `json:"clicks"`
 	IsActive        bool       `json:"is_active"`

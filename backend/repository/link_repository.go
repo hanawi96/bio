@@ -21,7 +21,7 @@ func (r *LinkRepository) GetByUserIDWithFilters(userID, search, status, layoutTy
 	query := `
 		SELECT l.id, l.profile_id, l.parent_id, l.is_group, l.group_title, l.group_layout, l.grid_columns, l.grid_aspect_ratio,
 		       l.title, l.url, l.description, l.thumbnail_url, l.image_shape, l.layout_type, 
-		       l.image_placement, l.text_alignment, l.text_size, l.show_outline, l.show_shadow,
+		       l.image_placement, l.text_alignment, l.text_size, l.show_outline, l.show_shadow, l.show_description,
 		       l.position, l.clicks, l.is_active, l.is_pinned, l.scheduled_at, l.expires_at, 
 		       l.created_at, l.updated_at
 		FROM links l
@@ -85,7 +85,7 @@ func (r *LinkRepository) GetByUserIDWithFilters(userID, search, status, layoutTy
 		err := rows.Scan(
 			&link.ID, &link.ProfileID, &link.ParentID, &link.IsGroup, &link.GroupTitle, &link.GroupLayout, &link.GridColumns, &link.GridAspectRatio,
 			&link.Title, &link.URL, &link.Description, &link.ThumbnailURL, &link.ImageShape, &link.LayoutType,
-			&link.ImagePlacement, &link.TextAlignment, &link.TextSize, &link.ShowOutline, &link.ShowShadow,
+			&link.ImagePlacement, &link.TextAlignment, &link.TextSize, &link.ShowOutline, &link.ShowShadow, &link.ShowDescription,
 			&link.Position, &link.Clicks, &link.IsActive, &link.IsPinned, &link.ScheduledAt, &link.ExpiresAt,
 			&link.CreatedAt, &link.UpdatedAt,
 		)
@@ -125,17 +125,17 @@ func (r *LinkRepository) Create(userID string, data map[string]interface{}) (*Li
 
 	var link Link
 	query := `
-		INSERT INTO links (profile_id, title, url, position, image_placement, text_alignment, text_size, show_outline, show_shadow, is_group)
-		VALUES ($1, $2, $3, $4, 'left', 'left', 'M', false, false, false)
+		INSERT INTO links (profile_id, title, url, position, image_placement, text_alignment, text_size, show_outline, show_shadow, show_description, is_group)
+		VALUES ($1, $2, $3, $4, 'left', 'left', 'M', false, false, true, false)
 		RETURNING id, profile_id, parent_id, is_group, group_title, group_layout,
 		          title, url, thumbnail_url, layout_type, image_placement, text_alignment, 
-		          text_size, show_outline, show_shadow, position, clicks, is_active, is_pinned,
+		          text_size, show_outline, show_shadow, show_description, position, clicks, is_active, is_pinned,
 		          scheduled_at, expires_at, created_at, updated_at
 	`
 	err = r.db.QueryRow(query, profileID, data["title"], data["url"], maxPosition+1).Scan(
 		&link.ID, &link.ProfileID, &link.ParentID, &link.IsGroup, &link.GroupTitle, &link.GroupLayout,
 		&link.Title, &link.URL, &link.ThumbnailURL, &link.LayoutType,
-		&link.ImagePlacement, &link.TextAlignment, &link.TextSize, &link.ShowOutline, &link.ShowShadow,
+		&link.ImagePlacement, &link.TextAlignment, &link.TextSize, &link.ShowOutline, &link.ShowShadow, &link.ShowDescription,
 		&link.Position, &link.Clicks, &link.IsActive, &link.IsPinned, &link.ScheduledAt, &link.ExpiresAt,
 		&link.CreatedAt, &link.UpdatedAt,
 	)
@@ -158,25 +158,26 @@ func (r *LinkRepository) Update(linkID string, data map[string]interface{}) (*Li
 		    text_size = COALESCE($9, text_size),
 		    show_outline = COALESCE($10, show_outline),
 		    show_shadow = COALESCE($11, show_shadow),
-		    is_active = COALESCE($12, is_active),
-		    scheduled_at = CASE WHEN $13::text IS NOT NULL THEN $13::timestamp ELSE scheduled_at END,
-		    expires_at = CASE WHEN $14::text IS NOT NULL THEN $14::timestamp ELSE expires_at END,
-		    group_title = COALESCE($15, group_title),
-		    group_layout = COALESCE($16, group_layout),
+		    show_description = COALESCE($12, show_description),
+		    is_active = COALESCE($13, is_active),
+		    scheduled_at = CASE WHEN $14::text IS NOT NULL THEN $14::timestamp ELSE scheduled_at END,
+		    expires_at = CASE WHEN $15::text IS NOT NULL THEN $15::timestamp ELSE expires_at END,
+		    group_title = COALESCE($16, group_title),
+		    group_layout = COALESCE($17, group_layout),
 		    updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1
 		RETURNING id, profile_id, parent_id, is_group, group_title, group_layout, grid_columns, grid_aspect_ratio,
 		          title, url, thumbnail_url, image_shape, layout_type, image_placement, text_alignment,
-		          text_size, show_outline, show_shadow, position, clicks, is_active, is_pinned,
+		          text_size, show_outline, show_shadow, show_description, position, clicks, is_active, is_pinned,
 		          scheduled_at, expires_at, created_at, updated_at, description
 	`
 	var link Link
 	err := r.db.QueryRow(query, linkID, data["title"], data["url"], data["thumbnail_url"], data["image_shape"], data["layout_type"],
-		data["image_placement"], data["text_alignment"], data["text_size"], data["show_outline"], data["show_shadow"],
+		data["image_placement"], data["text_alignment"], data["text_size"], data["show_outline"], data["show_shadow"], data["show_description"],
 		data["is_active"], data["scheduled_at"], data["expires_at"], data["group_title"], data["group_layout"]).Scan(
 		&link.ID, &link.ProfileID, &link.ParentID, &link.IsGroup, &link.GroupTitle, &link.GroupLayout, &link.GridColumns, &link.GridAspectRatio,
 		&link.Title, &link.URL, &link.ThumbnailURL, &link.ImageShape, &link.LayoutType,
-		&link.ImagePlacement, &link.TextAlignment, &link.TextSize, &link.ShowOutline, &link.ShowShadow,
+		&link.ImagePlacement, &link.TextAlignment, &link.TextSize, &link.ShowOutline, &link.ShowShadow, &link.ShowDescription,
 		&link.Position, &link.Clicks, &link.IsActive, &link.IsPinned, &link.ScheduledAt, &link.ExpiresAt,
 		&link.CreatedAt, &link.UpdatedAt, &link.Description,
 	)
@@ -284,11 +285,11 @@ func (r *LinkRepository) Duplicate(userID string, linkID string) (*Link, error) 
 	insertQuery := `
 		INSERT INTO links (profile_id, parent_id, is_group, group_title, group_layout, grid_columns, grid_aspect_ratio,
 		                   title, url, description, thumbnail_url, image_shape, layout_type, image_placement, 
-		                   text_alignment, text_size, show_outline, show_shadow, position, is_active)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, true)
+		                   text_alignment, text_size, show_outline, show_shadow, show_description, position, is_active)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, true)
 		RETURNING id, profile_id, parent_id, is_group, group_title, group_layout, grid_columns, grid_aspect_ratio,
 		          title, url, description, thumbnail_url, image_shape, layout_type, image_placement, text_alignment,
-		          text_size, show_outline, show_shadow, position, clicks, is_active, is_pinned,
+		          text_size, show_outline, show_shadow, show_description, position, clicks, is_active, is_pinned,
 		          scheduled_at, expires_at, created_at, updated_at
 	`
 	newTitle := original.Title
@@ -318,13 +319,14 @@ func (r *LinkRepository) Duplicate(userID string, linkID string) (*Link, error) 
 		original.TextSize,
 		original.ShowOutline,
 		original.ShowShadow,
+		original.ShowDescription,
 		maxPosition+1,
 	).Scan(
-		&duplicate.ID, &duplicate.ProfileID, &duplicate.ParentID, &duplicate.IsGroup, &duplicate.GroupTitle, 
+		&duplicate.ID, &duplicate.ProfileID, &duplicate.ParentID, &duplicate.IsGroup, &duplicate.GroupTitle,
 		&duplicate.GroupLayout, &duplicate.GridColumns, &duplicate.GridAspectRatio,
 		&duplicate.Title, &duplicate.URL, &duplicate.Description, &duplicate.ThumbnailURL, &duplicate.ImageShape,
 		&duplicate.LayoutType, &duplicate.ImagePlacement, &duplicate.TextAlignment, &duplicate.TextSize,
-		&duplicate.ShowOutline, &duplicate.ShowShadow, &duplicate.Position, &duplicate.Clicks,
+		&duplicate.ShowOutline, &duplicate.ShowShadow, &duplicate.ShowDescription, &duplicate.Position, &duplicate.Clicks,
 		&duplicate.IsActive, &duplicate.IsPinned, &duplicate.ScheduledAt, &duplicate.ExpiresAt,
 		&duplicate.CreatedAt, &duplicate.UpdatedAt,
 	)
@@ -471,7 +473,7 @@ func (r *LinkRepository) GetChildrenByParentID(parentID string) ([]Link, error) 
 	query := `
 		SELECT id, profile_id, parent_id, is_group, group_title, group_layout, grid_columns, grid_aspect_ratio,
 		       title, url, description, thumbnail_url, image_shape, layout_type, 
-		       image_placement, text_alignment, text_size, show_outline, show_shadow,
+		       image_placement, text_alignment, text_size, show_outline, show_shadow, show_description,
 		       position, clicks, is_active, is_pinned, scheduled_at, expires_at, 
 		       created_at, updated_at
 		FROM links
@@ -491,7 +493,7 @@ func (r *LinkRepository) GetChildrenByParentID(parentID string) ([]Link, error) 
 		err := rows.Scan(
 			&child.ID, &child.ProfileID, &child.ParentID, &child.IsGroup, &child.GroupTitle, &child.GroupLayout, &child.GridColumns, &child.GridAspectRatio,
 			&child.Title, &child.URL, &child.Description, &child.ThumbnailURL, &child.ImageShape, &child.LayoutType,
-			&child.ImagePlacement, &child.TextAlignment, &child.TextSize, &child.ShowOutline, &child.ShowShadow,
+			&child.ImagePlacement, &child.TextAlignment, &child.TextSize, &child.ShowOutline, &child.ShowShadow, &child.ShowDescription,
 			&child.Position, &child.Clicks, &child.IsActive, &child.IsPinned, &child.ScheduledAt, &child.ExpiresAt,
 			&child.CreatedAt, &child.UpdatedAt,
 		)
@@ -527,13 +529,13 @@ func (r *LinkRepository) CreateGroup(userID string, title string, layout string)
 		VALUES ($1, true, $2, $3, $2, '#', $4, true)
 		RETURNING id, profile_id, parent_id, is_group, group_title, group_layout,
 		          title, url, thumbnail_url, layout_type, image_placement, text_alignment,
-		          text_size, show_outline, show_shadow, position, clicks, is_active, is_pinned,
+		          text_size, show_outline, show_shadow, show_description, position, clicks, is_active, is_pinned,
 		          scheduled_at, expires_at, created_at, updated_at
 	`
 	err = r.db.QueryRow(query, profileID, title, layout, maxPosition+1).Scan(
 		&group.ID, &group.ProfileID, &group.ParentID, &group.IsGroup, &group.GroupTitle, &group.GroupLayout,
 		&group.Title, &group.URL, &group.ThumbnailURL, &group.LayoutType,
-		&group.ImagePlacement, &group.TextAlignment, &group.TextSize, &group.ShowOutline, &group.ShowShadow,
+		&group.ImagePlacement, &group.TextAlignment, &group.TextSize, &group.ShowOutline, &group.ShowShadow, &group.ShowDescription,
 		&group.Position, &group.Clicks, &group.IsActive, &group.IsPinned, &group.ScheduledAt, &group.ExpiresAt,
 		&group.CreatedAt, &group.UpdatedAt,
 	)
@@ -569,17 +571,17 @@ func (r *LinkRepository) AddToGroup(userID string, groupID string, data map[stri
 
 	var link Link
 	query := `
-		INSERT INTO links (profile_id, parent_id, title, url, description, position, image_placement, text_alignment, text_size, show_outline, show_shadow, is_active)
-		VALUES ($1, $2, $3, $4, $5, $6, 'left', 'left', 'M', false, false, true)
+		INSERT INTO links (profile_id, parent_id, title, url, description, position, image_placement, text_alignment, text_size, show_outline, show_shadow, show_description, is_active)
+		VALUES ($1, $2, $3, $4, $5, $6, 'left', 'left', 'M', false, false, true, true)
 		RETURNING id, profile_id, parent_id, is_group, group_title, group_layout,
 		          title, url, description, thumbnail_url, layout_type, image_placement, text_alignment,
-		          text_size, show_outline, show_shadow, position, clicks, is_active, is_pinned,
+		          text_size, show_outline, show_shadow, show_description, position, clicks, is_active, is_pinned,
 		          scheduled_at, expires_at, created_at, updated_at
 	`
 	err = r.db.QueryRow(query, profileID, groupID, data["title"], data["url"], data["description"], maxPos+1).Scan(
 		&link.ID, &link.ProfileID, &link.ParentID, &link.IsGroup, &link.GroupTitle, &link.GroupLayout,
 		&link.Title, &link.URL, &link.Description, &link.ThumbnailURL, &link.LayoutType,
-		&link.ImagePlacement, &link.TextAlignment, &link.TextSize, &link.ShowOutline, &link.ShowShadow,
+		&link.ImagePlacement, &link.TextAlignment, &link.TextSize, &link.ShowOutline, &link.ShowShadow, &link.ShowDescription,
 		&link.Position, &link.Clicks, &link.IsActive, &link.IsPinned, &link.ScheduledAt, &link.ExpiresAt,
 		&link.CreatedAt, &link.UpdatedAt,
 	)
@@ -734,7 +736,7 @@ func (r *LinkRepository) DuplicateGroup(userID string, groupID string) (*Link, e
 	query := `
 		SELECT l.id, l.profile_id, l.parent_id, l.is_group, l.group_title, l.group_layout, l.grid_columns, l.grid_aspect_ratio,
 		       l.title, l.url, l.description, l.thumbnail_url, l.image_shape, l.layout_type, 
-		       l.image_placement, l.text_alignment, l.text_size, l.show_outline, l.show_shadow,
+		       l.image_placement, l.text_alignment, l.text_size, l.show_outline, l.show_shadow, l.show_description,
 		       l.position, l.clicks, l.is_active, l.is_pinned, l.scheduled_at, l.expires_at, 
 		       l.created_at, l.updated_at
 		FROM links l
@@ -747,7 +749,7 @@ func (r *LinkRepository) DuplicateGroup(userID string, groupID string) (*Link, e
 		&originalGroup.GroupTitle, &originalGroup.GroupLayout, &originalGroup.GridColumns, &originalGroup.GridAspectRatio, &originalGroup.Title, &originalGroup.URL,
 		&originalGroup.Description, &originalGroup.ThumbnailURL, &originalGroup.ImageShape, &originalGroup.LayoutType, &originalGroup.ImagePlacement,
 		&originalGroup.TextAlignment, &originalGroup.TextSize, &originalGroup.ShowOutline,
-		&originalGroup.ShowShadow, &originalGroup.Position, &originalGroup.Clicks, &originalGroup.IsActive,
+		&originalGroup.ShowShadow, &originalGroup.ShowDescription, &originalGroup.Position, &originalGroup.Clicks, &originalGroup.IsActive,
 		&originalGroup.IsPinned, &originalGroup.ScheduledAt, &originalGroup.ExpiresAt,
 		&originalGroup.CreatedAt, &originalGroup.UpdatedAt,
 	)
@@ -772,21 +774,21 @@ func (r *LinkRepository) DuplicateGroup(userID string, groupID string) (*Link, e
 	fmt.Printf("📝 Creating duplicate group with title: %s\n", newTitle)
 	insertQuery := `
 		INSERT INTO links (profile_id, is_group, group_title, group_layout, grid_columns, grid_aspect_ratio, image_shape,
-		                   text_alignment, text_size, show_outline, show_shadow, title, url, position, is_active)
-		VALUES ($1, true, $2, $3, $4, $5, $6, $7, $8, $9, $10, $2, '#', $11, true)
+		                   text_alignment, text_size, show_outline, show_shadow, show_description, title, url, position, is_active)
+		VALUES ($1, true, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $2, '#', $12, true)
 		RETURNING id, profile_id, parent_id, is_group, group_title, group_layout, grid_columns, grid_aspect_ratio,
 		          title, url, description, thumbnail_url, image_shape, layout_type, image_placement, text_alignment,
-		          text_size, show_outline, show_shadow, position, clicks, is_active, is_pinned,
+		          text_size, show_outline, show_shadow, show_description, position, clicks, is_active, is_pinned,
 		          scheduled_at, expires_at, created_at, updated_at
 	`
-	err = tx.QueryRow(insertQuery, originalGroup.ProfileID, newTitle, originalGroup.GroupLayout, 
+	err = tx.QueryRow(insertQuery, originalGroup.ProfileID, newTitle, originalGroup.GroupLayout,
 		originalGroup.GridColumns, originalGroup.GridAspectRatio, originalGroup.ImageShape,
-		originalGroup.TextAlignment, originalGroup.TextSize, originalGroup.ShowOutline, originalGroup.ShowShadow,
+		originalGroup.TextAlignment, originalGroup.TextSize, originalGroup.ShowOutline, originalGroup.ShowShadow, originalGroup.ShowDescription,
 		maxPosition+1).Scan(
 		&newGroup.ID, &newGroup.ProfileID, &newGroup.ParentID, &newGroup.IsGroup, &newGroup.GroupTitle,
-		&newGroup.GroupLayout, &newGroup.GridColumns, &newGroup.GridAspectRatio, &newGroup.Title, &newGroup.URL, 
-		&newGroup.Description, &newGroup.ThumbnailURL, &newGroup.ImageShape, &newGroup.LayoutType, &newGroup.ImagePlacement, 
-		&newGroup.TextAlignment, &newGroup.TextSize, &newGroup.ShowOutline, &newGroup.ShowShadow, 
+		&newGroup.GroupLayout, &newGroup.GridColumns, &newGroup.GridAspectRatio, &newGroup.Title, &newGroup.URL,
+		&newGroup.Description, &newGroup.ThumbnailURL, &newGroup.ImageShape, &newGroup.LayoutType, &newGroup.ImagePlacement,
+		&newGroup.TextAlignment, &newGroup.TextSize, &newGroup.ShowOutline, &newGroup.ShowShadow, &newGroup.ShowDescription,
 		&newGroup.Position, &newGroup.Clicks, &newGroup.IsActive, &newGroup.IsPinned,
 		&newGroup.ScheduledAt, &newGroup.ExpiresAt, &newGroup.CreatedAt, &newGroup.UpdatedAt,
 	)
@@ -800,7 +802,7 @@ func (r *LinkRepository) DuplicateGroup(userID string, groupID string) (*Link, e
 	fmt.Printf("📝 Fetching children of original group...\n")
 	childrenQuery := `
 		SELECT id, title, url, description, thumbnail_url, layout_type, image_placement, text_alignment, 
-		       text_size, show_outline, show_shadow, position, is_active
+		       text_size, show_outline, show_shadow, show_description, position, is_active
 		FROM links
 		WHERE parent_id = $1
 		ORDER BY position ASC
@@ -813,19 +815,20 @@ func (r *LinkRepository) DuplicateGroup(userID string, groupID string) (*Link, e
 
 	// Load all children into slice first
 	type ChildData struct {
-		ID             string
-		Title          string
-		URL            string
-		Description    *string
-		ThumbnailURL   *string
-		LayoutType     string
-		ImagePlacement string
-		TextAlignment  string
-		TextSize       string
-		ShowOutline    bool
-		ShowShadow     bool
-		Position       int
-		IsActive       bool
+		ID              string
+		Title           string
+		URL             string
+		Description     *string
+		ThumbnailURL    *string
+		LayoutType      string
+		ImagePlacement  string
+		TextAlignment   string
+		TextSize        string
+		ShowOutline     bool
+		ShowShadow      bool
+		ShowDescription bool
+		Position        int
+		IsActive        bool
 	}
 	var childrenData []ChildData
 
@@ -833,7 +836,7 @@ func (r *LinkRepository) DuplicateGroup(userID string, groupID string) (*Link, e
 		var child ChildData
 		err = rows.Scan(&child.ID, &child.Title, &child.URL, &child.Description, &child.ThumbnailURL, &child.LayoutType,
 			&child.ImagePlacement, &child.TextAlignment, &child.TextSize, &child.ShowOutline,
-			&child.ShowShadow, &child.Position, &child.IsActive)
+			&child.ShowShadow, &child.ShowDescription, &child.Position, &child.IsActive)
 		if err != nil {
 			rows.Close()
 			fmt.Printf("❌ Failed to scan child: %v\n", err)
@@ -850,12 +853,12 @@ func (r *LinkRepository) DuplicateGroup(userID string, groupID string) (*Link, e
 
 		_, err = tx.Exec(`
 			INSERT INTO links (profile_id, parent_id, title, url, description, thumbnail_url, layout_type, 
-			                   image_placement, text_alignment, text_size, show_outline, show_shadow, 
+			                   image_placement, text_alignment, text_size, show_outline, show_shadow, show_description,
 			                   position, is_active, is_pinned)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, false)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, false)
 		`, originalGroup.ProfileID, newGroup.ID, child.Title, child.URL, child.Description, child.ThumbnailURL,
 			child.LayoutType, child.ImagePlacement, child.TextAlignment, child.TextSize,
-			child.ShowOutline, child.ShowShadow, child.Position, child.IsActive)
+			child.ShowOutline, child.ShowShadow, child.ShowDescription, child.Position, child.IsActive)
 		if err != nil {
 			fmt.Printf("❌ Failed to insert duplicate child #%d: %v\n", i+1, err)
 			return nil, err
@@ -869,7 +872,7 @@ func (r *LinkRepository) DuplicateGroup(userID string, groupID string) (*Link, e
 	childrenQuery2 := `
 		SELECT id, profile_id, parent_id, is_group, group_title, group_layout, grid_columns, grid_aspect_ratio,
 		       title, url, description, thumbnail_url, image_shape, layout_type, 
-		       image_placement, text_alignment, text_size, show_outline, show_shadow,
+		       image_placement, text_alignment, text_size, show_outline, show_shadow, show_description,
 		       position, clicks, is_active, is_pinned, scheduled_at, expires_at, 
 		       created_at, updated_at
 		FROM links
@@ -890,9 +893,9 @@ func (r *LinkRepository) DuplicateGroup(userID string, groupID string) (*Link, e
 		loadedCount++
 		var child Link
 		err := rows2.Scan(
-			&child.ID, &child.ProfileID, &child.ParentID, &child.IsGroup, &child.GroupTitle, &child.GroupLayout, 
+			&child.ID, &child.ProfileID, &child.ParentID, &child.IsGroup, &child.GroupTitle, &child.GroupLayout,
 			&child.GridColumns, &child.GridAspectRatio, &child.Title, &child.URL, &child.Description, &child.ThumbnailURL, &child.ImageShape,
-			&child.LayoutType, &child.ImagePlacement, &child.TextAlignment, &child.TextSize, &child.ShowOutline, &child.ShowShadow,
+			&child.LayoutType, &child.ImagePlacement, &child.TextSize, &child.TextAlignment, &child.ShowOutline, &child.ShowShadow, &child.ShowDescription,
 			&child.Position, &child.Clicks, &child.IsActive, &child.IsPinned, &child.ScheduledAt, &child.ExpiresAt,
 			&child.CreatedAt, &child.UpdatedAt,
 		)

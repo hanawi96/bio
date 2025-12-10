@@ -20,6 +20,7 @@ export interface Link {
 	text_size: 'S' | 'M' | 'L' | 'XL';
 	show_outline: boolean;
 	show_shadow: boolean;
+	show_description: boolean;
 	position: number;
 	clicks: number;
 	is_active: boolean;

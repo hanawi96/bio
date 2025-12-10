@@ -11,6 +11,7 @@
 	$: textAlignment = group.text_alignment || 'center';
 	$: showOutline = group.show_outline || false;
 	$: showShadow = group.show_shadow || false;
+	$: showDescription = group.show_description !== undefined ? group.show_description : true;
 	
 	function updateLayout(value: string) {
 		dispatch('update', {
@@ -37,6 +38,13 @@
 		dispatch('update', {
 			groupId: group.id,
 			show_shadow: !showShadow
+		});
+	}
+	
+	function updateShowDescription(value: boolean) {
+		dispatch('update', {
+			groupId: group.id,
+			show_description: value
 		});
 	}
 </script>
@@ -411,5 +419,38 @@
 				></span>
 			</button>
 		</label>
+	</div>
+
+	<!-- Show Description Preset -->
+	<div>
+		<h3 class="text-base font-semibold text-gray-900 mb-3">Link description</h3>
+		<div class="flex gap-2">
+			<button
+				type="button"
+				onclick={() => updateShowDescription(true)}
+				class="flex-1 px-4 py-3 border-2 rounded-lg transition-all hover:shadow-md font-medium text-sm"
+				class:border-emerald-500={showDescription}
+				class:bg-emerald-50={showDescription}
+				class:text-emerald-700={showDescription}
+				class:border-gray-200={!showDescription}
+				class:bg-white={!showDescription}
+				class:text-gray-700={!showDescription}
+			>
+				Show
+			</button>
+			<button
+				type="button"
+				onclick={() => updateShowDescription(false)}
+				class="flex-1 px-4 py-3 border-2 rounded-lg transition-all hover:shadow-md font-medium text-sm"
+				class:border-emerald-500={!showDescription}
+				class:bg-emerald-50={!showDescription}
+				class:text-emerald-700={!showDescription}
+				class:border-gray-200={showDescription}
+				class:bg-white={showDescription}
+				class:text-gray-700={showDescription}
+			>
+				Hide
+			</button>
+		</div>
 	</div>
 </div>

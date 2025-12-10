@@ -152,7 +152,7 @@
 														class:text-lg={textSize === 'XL'}
 														style="text-align: {link.text_alignment || 'center'}"
 													>{child.title}</p>
-													{#if child.description}
+													{#if link.show_description !== false && child.description}
 														<p class="text-xs text-gray-500 mt-1 line-clamp-2" style="text-align: {link.text_alignment || 'center'}">{child.description}</p>
 													{/if}
 												</a>
@@ -183,7 +183,7 @@
 															class:text-lg={textSize === 'XL'}
 															style="text-align: {link.text_alignment || 'center'}"
 														>{child.title}</p>
-														{#if child.description}
+														{#if link.show_description !== false && child.description}
 															<p class="text-xs text-gray-500 mt-1 line-clamp-2" style="text-align: {link.text_alignment || 'center'}">{child.description}</p>
 														{/if}
 													</a>
@@ -220,7 +220,7 @@
 																class:text-lg={textSize === 'L'}
 																class:text-xl={textSize === 'XL'}
 															>{child.title}</p>
-															{#if child.description}
+															{#if link.show_description !== false && child.description}
 																<p class="text-xs text-gray-500 mb-1">{child.description}</p>
 															{/if}
 															{#if child.url}
@@ -259,7 +259,7 @@
 																class:text-lg={textSize === 'XL'}
 																style="text-align: {link.text_alignment || 'left'}"
 															>{child.title}</p>
-															{#if child.description}
+															{#if link.show_description !== false && child.description}
 																<p class="text-xs text-gray-500 mt-0.5" style="text-align: {link.text_alignment || 'left'}">{child.description}</p>
 															{/if}
 														</div>

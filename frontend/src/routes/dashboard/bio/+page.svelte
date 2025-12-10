@@ -722,16 +722,23 @@
 
 	async function handleUpdateGroupLayout(event: CustomEvent) {
 		const { groupId, ...settings } = event.detail;
+		
+		// Optimistic update - update local state immediately
+		links = links.map(l => l.id === groupId ? { ...l, ...settings } : l);
+		allLinks = allLinks.map(l => l.id === groupId ? { ...l, ...settings } : l);
+		
 		try {
 			const updatedLink = await linksApi.updateLink(groupId, settings, $auth.token!);
 			
-			// Update local state with full response (includes children)
+			// Update with server response (includes children)
 			links = links.map(l => l.id === groupId ? updatedLink : l);
 			allLinks = allLinks.map(l => l.id === groupId ? updatedLink : l);
 			
 			toast.success('Layout updated!');
 		} catch (error: any) {
 			toast.error(error.message || 'Failed to update layout');
+			// Reload to revert optimistic update on error
+			await loadData();
 		}
 	}
 
