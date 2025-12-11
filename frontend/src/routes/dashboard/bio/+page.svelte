@@ -215,7 +215,8 @@
 			await loadData();
 			showCreateGroupDialog = false;
 			
-			// Auto-expand the newly created group
+			// Auto-expand the newly created group (close others)
+			expandedGroupIds.clear();
 			expandedGroupIds.add(newGroup.id);
 			expandedGroupIds = expandedGroupIds; // Trigger reactivity
 			
@@ -801,6 +802,8 @@
 
 	function handleExpandGroup(event: CustomEvent) {
 		const groupId = event.detail;
+		// Close all other groups - only one expanded at a time
+		expandedGroupIds.clear();
 		expandedGroupIds.add(groupId);
 		expandedGroupIds = expandedGroupIds; // Trigger reactivity
 	}
