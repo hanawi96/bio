@@ -13,6 +13,7 @@
 	import TextBlockDialog from '$lib/components/dashboard/bio/dialogs/TextBlockDialog.svelte';
 	import CreateGroupDialog from '$lib/components/dashboard/bio/dialogs/CreateGroupDialog.svelte';
 	import EditGroupLinkDialog from '$lib/components/dashboard/bio/dialogs/EditGroupLinkDialog.svelte';
+	import DuplicateLinkDialog from '$lib/components/dashboard/bio/dialogs/DuplicateLinkDialog.svelte';
 	import ProfilePreview from '$lib/components/dashboard/preview/ProfilePreview.svelte';
 	import CalendarView from '$lib/components/dashboard/bio/CalendarView.svelte';
 	import { profileApi } from '$lib/api/profile';
@@ -72,6 +73,12 @@
 	let currentGroupId: string | null = null;
 	let currentGroupTitle: string = '';
 	let editingGroupLink: Link | null = null;
+	let isUploadingThumbnail = false;
+	
+	// Duplicate link dialog
+	let showDuplicateLinkDialog = false;
+	let duplicatingLink: Link | null = null;
+	let duplicatingFromGroupId: string = '';
 	
 	// Track which groups are expanded
 	let expandedGroupIds = new Set<string>();
@@ -225,6 +232,7 @@
 			currentGroupId = groupId;
 			currentGroupTitle = group.group_title || 'Group';
 			editingGroupLink = null; // null = add mode
+			isUploadingThumbnail = false;
 			showGroupLinkDialog = true;
 		}
 	}
@@ -371,11 +379,14 @@
 
 	function handleEditGroupLink(event: CustomEvent) {
 		editingGroupLink = event.detail;
+		isUploadingThumbnail = false;
 		showGroupLinkDialog = true;
 	}
 
 	async function handleSaveGroupLink(event: CustomEvent) {
-		const { id, title, url, description } = event.detail;
+		const { id, title, url, description, file } = event.detail;
+		console.log('🔄 handleSaveGroupLink called', { id, hasFile: !!file });
+		
 		try {
 			await linksApi.updateLink(id, { title, url, description }, $auth.token!);
 			
@@ -408,7 +419,50 @@
 			});
 			
 			toast.success('Link updated!');
+			
+			// Upload thumbnail after save if file exists
+			if (file) {
+				console.log('📤 Starting thumbnail upload...');
+				isUploadingThumbnail = true;
+				console.log('✅ isUploadingThumbnail set to TRUE');
+				
+				await linksApi.uploadThumbnail(id, file, $auth.token!)
+					.then(uploadedLink => {
+						console.log('✅ Thumbnail uploaded successfully');
+						// Update with actual uploaded thumbnail
+						links = links.map(link => {
+							if (link.is_group && link.children) {
+								return {
+									...link,
+									children: link.children.map(child => 
+										child.id === id 
+											? { ...child, thumbnail_url: uploadedLink.thumbnail_url }
+											: child
+									)
+								};
+							}
+							return link;
+						});
+						allLinks = allLinks.map(link => 
+							link.id === id 
+								? { ...link, thumbnail_url: uploadedLink.thumbnail_url }
+								: link
+						);
+						toast.success('Thumbnail uploaded!');
+					})
+					.catch(error => {
+						console.error('❌ Thumbnail upload failed:', error);
+						toast.error('Failed to upload thumbnail');
+					})
+					.finally(() => {
+						console.log('🏁 Upload complete, setting isUploadingThumbnail to FALSE');
+						isUploadingThumbnail = false;
+						showGroupLinkDialog = false; // Close modal after upload
+						console.log('🚪 Modal closed');
+					});
+			}
 		} catch (error: any) {
+			console.error('❌ Update link error:', error);
 			toast.error(error.message || 'Failed to update link');
 		}
 	}
@@ -444,8 +498,13 @@
 			
 			// Upload thumbnail in background if file exists
 			if (file) {
+				console.log('📤 Starting thumbnail upload for new link...');
+				isUploadingThumbnail = true;
+				console.log('✅ isUploadingThumbnail set to TRUE');
+				
 				linksApi.uploadThumbnail(newLink.id, file, $auth.token!)
 					.then(uploadedLink => {
+						console.log('✅ Thumbnail uploaded successfully for new link');
 						// Replace temporary preview with actual uploaded link (backend returns full object)
 						links = links.map(link => {
 							if (link.is_group && link.children) {
@@ -465,9 +524,11 @@
 								? uploadedLink
 								: link
 						);
+						toast.success('Thumbnail uploaded!');
 					})
 					.catch(error => {
-						console.warn('Thumbnail upload failed:', error);
+						console.error('❌ Thumbnail upload failed for new link:', error);
+						toast.error('Failed to upload thumbnail');
 						// Remove preview URL on error, keep link without thumbnail
 						links = links.map(link => {
 							if (link.is_group && link.children) {
@@ -480,54 +541,15 @@
 							}
 							return link;
 						});
+					})
+					.finally(() => {
+						console.log('🏁 Upload complete for new link, closing modal');
+						isUploadingThumbnail = false;
+						showGroupLinkDialog = false; // Close modal after upload
 					});
 			}
 		} catch (error: any) {
 			toast.error(error.message || 'Failed to add link');
-		}
-	}
-
-	async function handleUploadGroupLinkThumbnail(event: CustomEvent) {
-		const { linkId, file } = event.detail;
-		try {
-			const updatedLink = await linksApi.uploadThumbnail(linkId, file, $auth.token!);
-			
-			// Update editingGroupLink to trigger dialog update
-			if (editingGroupLink && editingGroupLink.id === linkId) {
-				editingGroupLink = { ...editingGroupLink, thumbnail_url: updatedLink.thumbnail_url };
-			}
-			
-			// Update local state immediately
-			links = links.map(link => {
-				if (link.is_group && link.children) {
-					return {
-						...link,
-						children: link.children.map(child => 
-							child.id === linkId 
-								? { ...child, thumbnail_url: updatedLink.thumbnail_url } 
-								: child
-						)
-					};
-				}
-				return link;
-			});
-			allLinks = allLinks.map(link => {
-				if (link.is_group && link.children) {
-					return {
-						...link,
-						children: link.children.map(child => 
-							child.id === linkId 
-								? { ...child, thumbnail_url: updatedLink.thumbnail_url } 
-								: child
-						)
-					};
-				}
-				return link;
-			});
-			
-			toast.success('Thumbnail uploaded!');
-		} catch (error: any) {
-			toast.error(error.message || 'Failed to upload thumbnail');
 		}
 	}
 
@@ -611,27 +633,69 @@
 		}
 	}
 
-	async function handleDuplicateGroupLink(event: CustomEvent) {
-		const linkId = event.detail;
+	function handleDuplicateGroupLink(event: CustomEvent) {
+		const { linkId, groupId } = event.detail;
+		
+		// Find the link - it's inside group's children, not in allLinks
+		let foundLink: Link | null = null;
+		for (const link of links) {
+			if (link.is_group && link.children) {
+				const childLink = link.children.find(c => c.id === linkId);
+				if (childLink) {
+					foundLink = childLink;
+					break;
+				}
+			}
+		}
+		
+		if (!foundLink) return;
+		
+		duplicatingLink = foundLink;
+		duplicatingFromGroupId = groupId;
+		showDuplicateLinkDialog = true;
+	}
+	
+	async function handleDuplicateLinkConfirm(event: CustomEvent) {
+		const { linkId, targetGroupId } = event.detail;
+		
 		try {
+			// Step 1: Duplicate the link (will be in same group)
 			const newLink = await linksApi.duplicateLink(linkId, $auth.token!);
 			
-			// Update local state without reloading - keep UI expanded
-			links = links.map(link => {
-				if (link.is_group && link.children) {
-					// Find the original link to get its position
-					const originalIndex = link.children.findIndex(c => c.id === linkId);
-					if (originalIndex !== -1) {
-						// Insert duplicated link right after the original
-						const newChildren = [...link.children];
-						newChildren.splice(originalIndex + 1, 0, newLink);
-						return { ...link, children: newChildren };
+			// Step 2: If target is different group, move it
+			if (targetGroupId !== duplicatingFromGroupId) {
+				const movedLink = await linksApi.moveToGroup(newLink.id, targetGroupId, $auth.token!);
+				
+				// Update UI: Add to target group
+				links = links.map(link => {
+					if (link.id === targetGroupId && link.is_group) {
+						return {
+							...link,
+							children: [...(link.children || []), movedLink]
+						};
 					}
-				}
-				return link;
-			});
-			
-			toast.success('Link duplicated!');
+					return link;
+				});
+				allLinks = [...allLinks, movedLink];
+				
+				toast.success(`Link duplicated to another group!`);
+			} else {
+				// Same group: Add next to original
+				links = links.map(link => {
+					if (link.is_group && link.children) {
+						const originalIndex = link.children.findIndex(c => c.id === linkId);
+						if (originalIndex !== -1) {
+							const newChildren = [...link.children];
+							newChildren.splice(originalIndex + 1, 0, newLink);
+							return { ...link, children: newChildren };
+						}
+					}
+					return link;
+				});
+				allLinks = [...allLinks, newLink];
+				
+				toast.success('Link duplicated in same group!');
+			}
 		} catch (error: any) {
 			toast.error(error.message || 'Failed to duplicate link');
 		}
@@ -1206,7 +1270,6 @@
 									on:pinlink={handlePinGroupLink}
 									on:duplicatelink={handleDuplicateGroupLink}
 									on:duplicate={handleDuplicateGroup}
-									on:uploadThumbnail={handleUploadGroupLinkThumbnail}
 									on:toggleNewTab={handleToggleNewTab}
 									on:reorderlinks={handleReorderGroupLinks}
 									on:togglelinkvisibility={handleToggleLinkVisibility}
@@ -1446,11 +1509,19 @@
 <EditGroupLinkDialog 
 	bind:open={showGroupLinkDialog}
 	link={editingGroupLink}
-	groupTitle={currentGroupTitle}
+	isUploading={isUploadingThumbnail}
 	on:save={handleSaveGroupLink}
 	on:add={handleAddGroupLink}
-	on:uploadThumbnail={handleUploadGroupLinkThumbnail}
 	on:removeThumbnail={handleRemoveGroupLinkThumbnail}
+/>
+
+<!-- Duplicate Link Dialog -->
+<DuplicateLinkDialog 
+	bind:open={showDuplicateLinkDialog}
+	link={duplicatingLink}
+	groups={links.filter(l => l.is_group)}
+	currentGroupId={duplicatingFromGroupId}
+	on:duplicate={handleDuplicateLinkConfirm}
 />
 
 

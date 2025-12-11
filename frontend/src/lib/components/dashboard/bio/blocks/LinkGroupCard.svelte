@@ -15,8 +15,10 @@
 	let activeTab: 'links' | 'layouts' = 'links';
 	let linkMenuOpen: string | null = null; // Track which link's menu is open
 	let groupMenuOpen = false; // Track if group menu is open
-	let fileInput: HTMLInputElement;
-	let uploadingLinkId: string | null = null;
+	let linkMenuButtonRef: HTMLElement | null = null; // Reference to link menu button
+	let groupMenuButtonRef: HTMLElement | null = null; // Reference to group menu button
+	let shouldLinkMenuOpenUpward = false; // Track if link menu should open upward
+	let shouldGroupMenuOpenUpward = false; // Track if group menu should open upward
 	
 	// Sync isExpanded with prop
 	$: isExpanded = expanded;
@@ -46,19 +48,7 @@
 		}
 	}
 	
-	function handleThumbnailClick(linkId: string) {
-		uploadingLinkId = linkId;
-		fileInput?.click();
-	}
-	
-	function handleFileSelect(event: Event) {
-		const target = event.target as HTMLInputElement;
-		const file = target.files?.[0];
-		if (file && uploadingLinkId) {
-			dispatch('uploadThumbnail', { linkId: uploadingLinkId, file });
-			uploadingLinkId = null;
-		}
-	}
+
 	
 	function handleDndConsider(e: CustomEvent) {
 		const newItems = e.detail.items;
@@ -159,6 +149,7 @@
 			<button
 				onclick={() => dispatch('expand', group.id)}
 				class="flex-shrink-0 w-14 h-14 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow"
+				aria-label="Expand group {group.group_title || 'Links'}"
 			>
 				<svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
@@ -208,8 +199,21 @@
 				<!-- 3-dot Menu Button -->
 				<div class="relative" use:clickOutsideGroupMenu>
 					<button
+						bind:this={groupMenuButtonRef}
 						onclick={(e) => { 
 							e.stopPropagation();
+							
+							// Detect if menu should open upward
+							if (groupMenuButtonRef) {
+								const rect = groupMenuButtonRef.getBoundingClientRect();
+								const windowHeight = window.innerHeight;
+								const spaceBelow = windowHeight - rect.bottom;
+								const menuHeight = 200; // Approximate group menu height
+								
+								// If not enough space below (including taskbar ~40px), open upward
+								shouldGroupMenuOpenUpward = spaceBelow < menuHeight + 60;
+							}
+							
 							groupMenuOpen = !groupMenuOpen;
 						}}
 						class="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
@@ -223,7 +227,7 @@
 					</button>
 
 					{#if groupMenuOpen}
-						<div class="absolute right-0 top-full mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-20">
+						<div class="absolute right-0 {shouldGroupMenuOpenUpward ? 'bottom-full mb-1' : 'top-full mt-1'} w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-20">
 							<!-- Edit Group -->
 							<button
 								onclick={(e) => { 
@@ -278,6 +282,7 @@
 				<button
 					class="drag-handle cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-400 p-1 transition-colors"
 					onclick={(e) => e.stopPropagation()}
+					aria-label="Drag to reorder group"
 				>
 					<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
 						<circle cx="9" cy="7" r="1.5"/>
@@ -420,6 +425,7 @@
 								<button
 									class="drag-handle cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-400 p-1 transition-colors flex-shrink-0"
 									onclick={(e) => e.stopPropagation()}
+									aria-label="Drag to reorder link {link.title}"
 								>
 									<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
 										<circle cx="9" cy="7" r="1.5"/>
@@ -431,11 +437,11 @@
 									</svg>
 								</button>
 
-								<!-- Thumbnail - Clickable to upload -->
+								<!-- Thumbnail - Click to edit -->
 								<button
-									onclick={() => handleThumbnailClick(link.id)}
+									onclick={() => dispatch('editlink', link)}
 									class="flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden hover:opacity-80 transition-opacity group/thumb relative"
-									title="Click to upload thumbnail"
+									title="Click to edit"
 								>
 									{#if link.thumbnail_url}
 										<img 
@@ -513,8 +519,21 @@
 									<!-- More Menu (3 dots) -->
 									<div class="relative" use:clickOutsideLinkMenu>
 										<button
+											bind:this={linkMenuButtonRef}
 											onclick={(e) => { 
-												e.stopPropagation(); 
+												e.stopPropagation();
+												
+												// Detect if menu should open upward
+												if (linkMenuButtonRef) {
+													const rect = linkMenuButtonRef.getBoundingClientRect();
+													const windowHeight = window.innerHeight;
+													const spaceBelow = windowHeight - rect.bottom;
+													const menuHeight = 280; // Approximate menu height
+													
+													// If not enough space below (including taskbar ~40px), open upward
+													shouldLinkMenuOpenUpward = spaceBelow < menuHeight + 60;
+												}
+												
 												linkMenuOpen = linkMenuOpen === link.id ? null : link.id;
 											}}
 											class="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
@@ -528,7 +547,7 @@
 										</button>
 
 										{#if linkMenuOpen === link.id}
-											<div class="absolute right-0 top-full mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-20">
+											<div class="absolute right-0 {shouldLinkMenuOpenUpward ? 'bottom-full mb-1' : 'top-full mt-1'} w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-20">
 												<!-- Edit Link -->
 												<button
 													onclick={(e) => { 
@@ -548,7 +567,7 @@
 												<button
 													onclick={(e) => { 
 														e.stopPropagation();
-														dispatch('duplicatelink', link.id); 
+														dispatch('duplicatelink', { linkId: link.id, groupId: group.id }); 
 														linkMenuOpen = null; 
 													}}
 													class="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-green-50 flex items-center gap-3 transition-all group"
@@ -565,6 +584,7 @@
 												<div 
 													class="px-4 py-2.5"
 													onclick={(e) => e.stopPropagation()}
+													role="none"
 												>
 													<label class="flex items-center justify-between cursor-pointer group">
 														<div class="flex items-center gap-3">
@@ -582,11 +602,12 @@
 																console.log('🔄 Toggle clicked for link:', link.id, 'Current state:', link.open_in_new_tab);
 																dispatch('toggleNewTab', link.id);
 															}}
-															class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none"
+															class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1"
+															role="switch"
+															aria-checked={link.open_in_new_tab ? 'true' : 'false'}
+															aria-label="Open link in new tab"
 															class:bg-indigo-600={link.open_in_new_tab}
 															class:bg-gray-200={!link.open_in_new_tab}
-															role="switch"
-															aria-checked={link.open_in_new_tab}
 														>
 															<span
 																class="inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform"
@@ -631,15 +652,6 @@
 		</div>
 	</div>
 {/if}
-
-<!-- Hidden file input for thumbnail upload -->
-<input
-	bind:this={fileInput}
-	type="file"
-	accept="image/*"
-	onchange={handleFileSelect}
-	class="hidden"
-/>
 
 <!-- Click outside to close menus -->
 {#if showMenu || linkMenuOpen || groupMenuOpen}
