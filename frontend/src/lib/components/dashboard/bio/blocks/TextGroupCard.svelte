@@ -98,9 +98,7 @@
 	}
 
 	function handleDelete() {
-		if (confirm(`Delete "${group.group_title}" and all its text items?`)) {
-			dispatch('delete', group.id);
-		}
+		dispatch('delete', group.id);
 	}
 	
 	function handleToggleGroupVisibility() {

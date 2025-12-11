@@ -80,6 +80,14 @@
 	let duplicatingLink: Link | null = null;
 	let duplicatingFromGroupId: string = '';
 	
+	// Delete confirmation modal
+	let showDeleteConfirmModal = false;
+	let deleteTarget: { 
+		type: 'link-group' | 'text-group' | 'block'; 
+		id: string; 
+		title: string;
+	} | null = null;
+	
 	// Track which groups are expanded (for both link and text groups)
 	let expandedGroupIds = new Set<string>();
 	let expandedTextGroupIds = new Set<string>();
@@ -890,8 +898,14 @@
 		const group = links.find(l => l.id === id);
 		if (!group) return;
 		
-		const confirmed = confirm(`Delete "${group.group_title}" and all its links?`);
-		if (!confirmed) return;
+		// Show confirmation modal
+		deleteTarget = { type: 'link-group', id, title: group.group_title };
+		showDeleteConfirmModal = true;
+	}
+	
+	async function confirmDeleteGroup(id: string) {
+		const group = links.find(l => l.id === id);
+		if (!group) return;
 		
 		try {
 			await linksApi.deleteLink(id, $auth.token!);
@@ -1058,6 +1072,15 @@
 
 	async function handleDeleteTextGroup(event: CustomEvent) {
 		const id = event.detail;
+		const group = Array.isArray(blocks) ? blocks.find(b => b.id === id) : null;
+		if (!group) return;
+		
+		// Show confirmation modal
+		deleteTarget = { type: 'text-group', id, title: group.group_title || 'Text Group' };
+		showDeleteConfirmModal = true;
+	}
+	
+	async function confirmDeleteTextGroup(id: string) {
 		try {
 			await blocksApi.deleteBlock(id, $auth.token!);
 			blocks = Array.isArray(blocks) ? blocks.filter(b => b.id !== id) : [];
@@ -1207,6 +1230,19 @@
 
 	async function handleDeleteBlock(event: CustomEvent) {
 		const id = event.detail;
+		const block = Array.isArray(blocks) ? blocks.find(b => b.id === id) : null;
+		if (!block) return;
+		
+		// Show confirmation modal
+		deleteTarget = { 
+			type: 'block', 
+			id, 
+			title: block.content || block.block_type || 'Block'
+		};
+		showDeleteConfirmModal = true;
+	}
+	
+	async function confirmDeleteBlock(id: string) {
 		try {
 			await blocksApi.deleteBlock(id, $auth.token!);
 			blocks = Array.isArray(blocks) ? blocks.filter(b => b.id !== id) : [];
@@ -1796,4 +1832,79 @@
 	on:duplicate={handleDuplicateLinkConfirm}
 />
 
+<!-- Delete Confirmation Modal -->
+{#if showDeleteConfirmModal && deleteTarget}
+	<!-- svelte-ignore a11y-click-events-have-key-events -->
+	<!-- svelte-ignore a11y-no-static-element-interactions -->
+	<div 
+		class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+		onclick={() => {
+			showDeleteConfirmModal = false;
+			deleteTarget = null;
+		}}
+	>
+		<!-- svelte-ignore a11y-click-events-have-key-events -->
+		<!-- svelte-ignore a11y-no-static-element-interactions -->
+		<div 
+			class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 max-w-md w-full"
+			onclick={(e) => e.stopPropagation()}
+		>
+			<!-- Icon -->
+			<div class="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 mx-auto mb-4">
+				<svg class="w-6 h-6 text-red-600 dark:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+				</svg>
+			</div>
+			
+			<!-- Title -->
+			<h3 class="text-xl font-bold text-center text-gray-900 dark:text-white mb-2">
+				Delete {
+					deleteTarget.type === 'link-group' ? 'Link Group' : 
+					deleteTarget.type === 'text-group' ? 'Text Group' :
+					'Block'
+				}?
+			</h3>
+			
+			<!-- Description -->
+			<p class="text-center text-gray-600 dark:text-gray-400 mb-6">
+				{#if deleteTarget.type === 'link-group' || deleteTarget.type === 'text-group'}
+					Are you sure you want to delete "<span class="font-semibold">{deleteTarget.title}</span>" and all its content? This action cannot be undone.
+				{:else}
+					Are you sure you want to delete "<span class="font-semibold">{deleteTarget.title}</span>"? This action cannot be undone.
+				{/if}
+			</p>
+			
+			<!-- Actions -->
+			<div class="flex gap-3">
+				<button
+					onclick={() => {
+						showDeleteConfirmModal = false;
+						deleteTarget = null;
+					}}
+					class="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg font-medium transition-colors"
+				>
+					Cancel
+				</button>
+				<button
+					onclick={() => {
+						if (deleteTarget) {
+							if (deleteTarget.type === 'link-group') {
+								confirmDeleteGroup(deleteTarget.id);
+							} else if (deleteTarget.type === 'text-group') {
+								confirmDeleteTextGroup(deleteTarget.id);
+							} else if (deleteTarget.type === 'block') {
+								confirmDeleteBlock(deleteTarget.id);
+							}
+						}
+						showDeleteConfirmModal = false;
+						deleteTarget = null;
+					}}
+					class="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+				>
+					Delete
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
