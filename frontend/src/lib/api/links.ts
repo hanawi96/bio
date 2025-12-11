@@ -21,6 +21,7 @@ export interface Link {
 	show_outline: boolean;
 	show_shadow: boolean;
 	show_description: boolean;
+	show_text: boolean;
 	position: number;
 	clicks: number;
 	is_active: boolean;

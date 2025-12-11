@@ -12,40 +12,7 @@
 	export let showInactive: boolean = true;
 
 	onMount(() => {
-		console.log('🚀 [ProfilePreview] Component mounted', {
-			linksCount: links?.length || 0,
-			blocksCount: blocks?.length || 0,
-			links: links?.map(l => ({ id: l.id, title: l.title || l.group_title, isGroup: l.is_group, layout: l.group_layout })) || []
-		});
-
-		// Find all carousel containers and add listeners
-		const carousels = document.querySelectorAll('.overflow-x-scroll');
-		console.log('🎯 [ProfilePreview] Found carousels:', carousels.length);
-		
-		carousels.forEach((carousel, idx) => {
-			console.log(`📊 [Carousel ${idx}] Properties:`, {
-				scrollWidth: carousel.scrollWidth,
-				clientWidth: carousel.clientWidth,
-				overflowX: getComputedStyle(carousel).overflowX,
-				canScroll: carousel.scrollWidth > carousel.clientWidth
-			});
-
-			carousel.addEventListener('scroll', (e) => {
-				console.log(`📜 [Carousel ${idx}] Scrolling:`, {
-					scrollLeft: carousel.scrollLeft,
-					scrollWidth: carousel.scrollWidth,
-					clientWidth: carousel.clientWidth
-				});
-			});
-
-			carousel.addEventListener('touchstart', () => {
-				console.log(`👆 [Carousel ${idx}] Touch started`);
-			});
-
-			carousel.addEventListener('touchmove', () => {
-				console.log(`👆 [Carousel ${idx}] Touch moving`);
-			});
-		});
+		// Carousel scroll functionality works natively with CSS
 	});
 
 	// Get link_ids from inactive blocks - these links should be hidden
@@ -160,13 +127,6 @@
 											// Then by position
 											return a.position - b.position;
 										})}
-									{console.log('🔍 [ProfilePreview] Group Link:', {
-										id: link.id,
-										title: link.group_title,
-										layout: link.group_layout,
-										children: sortedChildren.length,
-										childrenData: sortedChildren
-									})}
 									{#if link.group_layout === 'grid'}
 										{@const gridCols = link.grid_columns || 2}
 										{@const aspectRatio = link.grid_aspect_ratio || '3:2'}
@@ -211,18 +171,12 @@
 											const map = { '1:1': '1/1', '3:2': '3/2', '16:9': '16/9', '3:1': '3/1', '2:3': '2/3' };
 											return `aspect-ratio: ${map[ratio] || '3/2'}`;
 										}}
-										{console.log('🎠 [Carousel] Rendering:', {
-											sortedChildren: sortedChildren.length,
-											textSize,
-											aspectRatio,
-											children: sortedChildren.map(c => ({ id: c.id, title: c.title, url: c.url, thumbnail: c.thumbnail_url }))
-										})}
+
 										<div class="relative group">
 											<!-- Carousel Container -->
 											<div id={carouselId} class="overflow-x-scroll snap-x snap-mandatory scrollbar-hide" style="scroll-behavior: smooth;">
 												<div class="flex gap-3 px-4">
 													{#each sortedChildren as child, idx}
-														{console.log(`🔖 [Carousel Card ${idx}]:`, child.title)}
 														<a
 															href={child.url}
 															target="_blank"
@@ -236,15 +190,17 @@
 															{#if child.thumbnail_url}
 																<img src={child.thumbnail_url} alt={child.title} class="w-full object-cover rounded-lg mb-3" style={getAspectStyle(aspectRatio)}/>
 															{/if}
-															<p class="font-medium text-gray-900 mb-1"
-																class:text-xs={textSize === 'S'}
-																class:text-sm={textSize === 'M'}
-																class:text-base={textSize === 'L'}
-																class:text-lg={textSize === 'XL'}
-																style="text-align: {link.text_alignment || 'center'}"
-															>{child.title}</p>
-															{#if link.show_description !== false && child.description}
-																<p class="text-xs text-gray-500 line-clamp-2" style="text-align: {link.text_alignment || 'center'}">{child.description}</p>
+															{#if link.show_text !== false}
+																<p class="font-medium text-gray-900 mb-1"
+																	class:text-xs={textSize === 'S'}
+																	class:text-sm={textSize === 'M'}
+																	class:text-base={textSize === 'L'}
+																	class:text-lg={textSize === 'XL'}
+																	style="text-align: {link.text_alignment || 'center'}"
+																>{child.title}</p>
+																{#if child.description}
+																	<p class="text-xs text-gray-500 line-clamp-2" style="text-align: {link.text_alignment || 'center'}">{child.description}</p>
+																{/if}
 															{/if}
 														</a>
 													{/each}

@@ -35,6 +35,7 @@ type Link struct {
 	ShowOutline     bool       `json:"show_outline"`
 	ShowShadow      bool       `json:"show_shadow"`
 	ShowDescription bool       `json:"show_description"`
+	ShowText        bool       `json:"show_text"`
 	Position        int        `json:"position"`
 	Clicks          int        `json:"clicks"`
 	IsActive        bool       `json:"is_active"`

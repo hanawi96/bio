@@ -11,7 +11,7 @@
 	$: textAlignment = group.text_alignment || 'center';
 	$: showOutline = group.show_outline || false;
 	$: showShadow = group.show_shadow || false;
-	$: showDescription = group.show_description !== undefined ? group.show_description : true;
+	$: showText = group.show_text !== undefined ? group.show_text : true;
 	
 	function updateLayout(value: string) {
 		dispatch('update', {
@@ -41,10 +41,10 @@
 		});
 	}
 	
-	function updateShowDescription(value: boolean) {
+	function updateShowText(value: boolean) {
 		dispatch('update', {
 			groupId: group.id,
-			show_description: value
+			show_text: value
 		});
 	}
 </script>
@@ -222,6 +222,42 @@
 					</button>
 				{/each}
 			</div>
+		</div>
+	{/if}
+
+	<!-- Text Visibility Toggle (only for carousel layout) -->
+	{#if layout === 'carousel'}
+		<div>
+			<h3 class="text-base font-semibold text-gray-900 mb-3">Text visibility</h3>
+			<div class="flex gap-2">
+				<button
+					type="button"
+					onclick={() => updateShowText(true)}
+					class="flex-1 px-4 py-3 border-2 rounded-lg transition-all hover:shadow-md font-medium text-sm"
+					class:border-emerald-500={showText}
+					class:bg-emerald-50={showText}
+					class:text-emerald-700={showText}
+					class:border-gray-200={!showText}
+					class:bg-white={!showText}
+					class:text-gray-700={!showText}
+				>
+					Show
+				</button>
+				<button
+					type="button"
+					onclick={() => updateShowText(false)}
+					class="flex-1 px-4 py-3 border-2 rounded-lg transition-all hover:shadow-md font-medium text-sm"
+					class:border-emerald-500={!showText}
+					class:bg-emerald-50={!showText}
+					class:text-emerald-700={!showText}
+					class:border-gray-200={showText}
+					class:bg-white={showText}
+					class:text-gray-700={showText}
+				>
+					Hide
+				</button>
+			</div>
+			<p class="text-xs text-gray-500 mt-2">Toggle title and description visibility in carousel cards</p>
 		</div>
 	{/if}
 
@@ -422,38 +458,5 @@
 				></span>
 			</button>
 		</label>
-	</div>
-
-	<!-- Show Description Preset -->
-	<div>
-		<h3 class="text-base font-semibold text-gray-900 mb-3">Link description</h3>
-		<div class="flex gap-2">
-			<button
-				type="button"
-				onclick={() => updateShowDescription(true)}
-				class="flex-1 px-4 py-3 border-2 rounded-lg transition-all hover:shadow-md font-medium text-sm"
-				class:border-emerald-500={showDescription}
-				class:bg-emerald-50={showDescription}
-				class:text-emerald-700={showDescription}
-				class:border-gray-200={!showDescription}
-				class:bg-white={!showDescription}
-				class:text-gray-700={!showDescription}
-			>
-				Show
-			</button>
-			<button
-				type="button"
-				onclick={() => updateShowDescription(false)}
-				class="flex-1 px-4 py-3 border-2 rounded-lg transition-all hover:shadow-md font-medium text-sm"
-				class:border-emerald-500={!showDescription}
-				class:bg-emerald-50={!showDescription}
-				class:text-emerald-700={!showDescription}
-				class:border-gray-200={showDescription}
-				class:bg-white={showDescription}
-				class:text-gray-700={showDescription}
-			>
-				Hide
-			</button>
-		</div>
 	</div>
 </div>

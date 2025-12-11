@@ -258,15 +258,17 @@
 														{#if child.thumbnail_url}
 															<img src={child.thumbnail_url} alt={child.title} class="w-full object-cover rounded-lg mb-3" style={getAspectStyle(aspectRatio)}/>
 														{/if}
-														<p class="font-medium text-gray-900 mb-1"
-															class:text-xs={textSize === 'S'}
-															class:text-sm={textSize === 'M'}
-															class:text-base={textSize === 'L'}
-															class:text-lg={textSize === 'XL'}
-															style="text-align: {link.text_alignment || 'center'}"
-														>{child.title}</p>
-														{#if link.show_description !== false && child.description}
-															<p class="text-xs text-gray-500 line-clamp-2" style="text-align: {link.text_alignment || 'center'}">{child.description}</p>
+														{#if link.show_text !== false}
+															<p class="font-medium text-gray-900 mb-1"
+																class:text-xs={textSize === 'S'}
+																class:text-sm={textSize === 'M'}
+																class:text-base={textSize === 'L'}
+																class:text-lg={textSize === 'XL'}
+																style="text-align: {link.text_alignment || 'center'}"
+															>{child.title}</p>
+															{#if child.description}
+																<p class="text-xs text-gray-500 line-clamp-2" style="text-align: {link.text_alignment || 'center'}">{child.description}</p>
+															{/if}
 														{/if}
 													</a>
 												{/each}
