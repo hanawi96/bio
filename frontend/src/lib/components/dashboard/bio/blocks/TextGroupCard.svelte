@@ -23,6 +23,12 @@
 	let groupMenuButtonRef: HTMLElement | null = null;
 	let shouldGroupMenuOpenUpward = false;
 	
+	// Title editing
+	let isEditingTitle = false;
+	let editedTitle = '';
+	let titleInputRef: HTMLInputElement | null = null;
+	let isSavingTitle = false;
+	
 	// Group style from parent block
 	$: groupStyle = (() => {
 		try {
@@ -187,6 +193,55 @@
 		dispatch('duplicate', group.id);
 		groupMenuOpen = false;
 	}
+	
+	function startEditTitle() {
+		isEditingTitle = true;
+		editedTitle = group.group_title || '';
+		setTimeout(() => titleInputRef?.focus(), 0);
+	}
+	
+	function saveTitle() {
+		if (isSavingTitle) return; // Prevent double save
+		isSavingTitle = true;
+		
+		if (!editedTitle.trim()) {
+			editedTitle = group.group_title || 'Text Group';
+		}
+		if (editedTitle.trim() !== group.group_title) {
+			dispatch('updatetitle', { groupId: group.id, title: editedTitle.trim() });
+		}
+		isEditingTitle = false;
+		
+		// Reset saving flag after a short delay
+		setTimeout(() => {
+			isSavingTitle = false;
+		}, 100);
+	}
+	
+	function cancelEditTitle() {
+		if (isSavingTitle) return; // Don't cancel if saving
+		isEditingTitle = false;
+		editedTitle = '';
+	}
+	
+	function handleTitleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			titleInputRef?.blur(); // Blur first to prevent onblur trigger
+			saveTitle();
+		} else if (e.key === 'Escape') {
+			e.preventDefault();
+			titleInputRef?.blur();
+			cancelEditTitle();
+		}
+	}
+	
+	function handleTitleBlur() {
+		// Only save on blur if not already saving (from Enter key)
+		if (!isSavingTitle) {
+			saveTitle();
+		}
+	}
 </script>
 
 <div class="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all border border-gray-100">
@@ -212,14 +267,32 @@
 		</div>
 
 		<!-- Title & Count -->
-		<button onclick={toggleExpand} class="flex-1 text-left min-w-0">
-			<h3 class="text-base font-semibold text-gray-900 truncate">
-				{group.group_title || 'Text Group'}
-			</h3>
+		<div onclick={expanded ? undefined : toggleExpand} class="flex-1 min-w-0" class:cursor-pointer={!expanded}>
+			{#if expanded && isEditingTitle}
+				<input
+					bind:this={titleInputRef}
+					bind:value={editedTitle}
+					onkeydown={handleTitleKeydown}
+					onblur={handleTitleBlur}
+					class="text-base font-semibold text-gray-900 border-b-2 border-purple-500 focus:outline-none bg-transparent w-full"
+					placeholder="Group title"
+				/>
+			{:else}
+				<button 
+					onclick={expanded ? startEditTitle : toggleExpand} 
+					class="text-left w-full"
+					class:hover:text-purple-600={expanded}
+					class:transition-colors={expanded}
+				>
+					<h3 class="text-base font-semibold text-gray-900 truncate">
+						{group.group_title || 'Text Group'}
+					</h3>
+				</button>
+			{/if}
 			<p class="text-sm text-gray-500">
 				{group.children?.length || 0} text {group.children?.length === 1 ? 'item' : 'items'}
 			</p>
-		</button>
+		</div>
 
 		<!-- Actions -->
 		<div class="flex items-center gap-1">

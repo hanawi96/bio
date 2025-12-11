@@ -705,8 +705,20 @@
 	async function handleDuplicateGroup(event: CustomEvent) {
 		const groupId = event.detail;
 		try {
-			await linksApi.duplicateGroup(groupId, $auth.token!);
-			await loadData();
+			const newGroup = await linksApi.duplicateGroup(groupId, $auth.token!);
+			
+			// Optimistic update - insert new group after original
+			const originalIndex = links.findIndex(l => l.id === groupId);
+			if (originalIndex !== -1) {
+				const newLinks = [...links];
+				newLinks.splice(originalIndex + 1, 0, newGroup);
+				links = newLinks;
+				allLinks = [...allLinks, newGroup];
+			} else {
+				links = [...links, newGroup];
+				allLinks = [...allLinks, newGroup];
+			}
+			
 			toast.success('Group duplicated!');
 		} catch (error: any) {
 			toast.error(error.message || 'Failed to duplicate group');
@@ -716,8 +728,18 @@
 	async function handleDuplicateTextGroup(event: CustomEvent) {
 		const groupId = event.detail;
 		try {
-			await blocksApi.duplicateGroup(groupId, $auth.token!);
-			await loadData();
+			const newGroup = await blocksApi.duplicateGroup(groupId, $auth.token!);
+			
+			// Optimistic update - insert new group after original
+			const originalIndex = Array.isArray(blocks) ? blocks.findIndex(b => b.id === groupId) : -1;
+			if (originalIndex !== -1) {
+				const newBlocks = [...(Array.isArray(blocks) ? blocks : [])];
+				newBlocks.splice(originalIndex + 1, 0, newGroup);
+				blocks = newBlocks;
+			} else {
+				blocks = Array.isArray(blocks) ? [...blocks, newGroup] : [newGroup];
+			}
+			
 			toast.success('Text group duplicated!');
 		} catch (error: any) {
 			toast.error(error.message || 'Failed to duplicate text group');
@@ -791,6 +813,43 @@
 		} catch (error: any) {
 			console.error('❌ Failed to toggle group:', error);
 			toast.error(error.message || 'Failed to toggle group');
+		}
+	}
+	
+	async function handleUpdateGroupTitle(event: CustomEvent) {
+		const { groupId, title } = event.detail;
+		
+		// Optimistic update - update UI immediately
+		const oldLinks = links;
+		const oldAllLinks = allLinks;
+		links = links.map(l => l.id === groupId ? {...l, group_title: title} : l);
+		allLinks = allLinks.map(l => l.id === groupId ? {...l, group_title: title} : l);
+		
+		try {
+			await linksApi.updateLink(groupId, { group_title: title }, $auth.token!);
+			toast.success('Group title updated!');
+		} catch (error: any) {
+			// Revert on error
+			links = oldLinks;
+			allLinks = oldAllLinks;
+			toast.error(error.message || 'Failed to update title');
+		}
+	}
+	
+	async function handleUpdateTextGroupTitle(event: CustomEvent) {
+		const { groupId, title } = event.detail;
+		
+		// Optimistic update - update UI immediately
+		const oldBlocks = blocks;
+		blocks = Array.isArray(blocks) ? blocks.map(b => b.id === groupId ? {...b, group_title: title} : b) : [];
+		
+		try {
+			await blocksApi.updateBlock(groupId, { group_title: title }, $auth.token!);
+			toast.success('Text group title updated!');
+		} catch (error: any) {
+			// Revert on error
+			blocks = oldBlocks;
+			toast.error(error.message || 'Failed to update title');
 		}
 	}
 
@@ -1478,6 +1537,7 @@
 									on:reorderlinks={handleReorderGroupLinks}
 									on:togglelinkvisibility={handleToggleLinkVisibility}
 									on:updatelayout={handleUpdateGroupLayout}
+									on:updatetitle={handleUpdateGroupTitle}
 								/>
 							{:else if item.type === 'block' && item.data.is_group && item.data.block_type === 'text'}
 								<TextGroupCard 
@@ -1494,6 +1554,7 @@
 									on:reordertexts={handleReorderTextsInGroup}
 									on:togglevisibility={handleToggleTextGroup}
 									on:toggletextvisibility={handleToggleTextInGroup}
+									on:updatetitle={handleUpdateTextGroupTitle}
 								/>
 							{:else if item.type === 'block' && item.data.block_type === 'text' && !item.data.is_group}
 								<TextBlock 

@@ -20,6 +20,12 @@
 	let shouldLinkMenuOpenUpward = false; // Track if link menu should open upward
 	let shouldGroupMenuOpenUpward = false; // Track if group menu should open upward
 	
+	// Title editing
+	let isEditingTitle = false;
+	let editedTitle = '';
+	let titleInputRef: HTMLInputElement | null = null;
+	let isSavingTitle = false;
+	
 	// Sync isExpanded with prop
 	$: isExpanded = expanded;
 	
@@ -133,6 +139,55 @@
 				document.removeEventListener('mousedown', handleClick, true);
 			}
 		};
+	}
+	
+	function startEditTitle() {
+		isEditingTitle = true;
+		editedTitle = group.group_title || '';
+		setTimeout(() => titleInputRef?.focus(), 0);
+	}
+	
+	function saveTitle() {
+		if (isSavingTitle) return; // Prevent double save
+		isSavingTitle = true;
+		
+		if (!editedTitle.trim()) {
+			editedTitle = group.group_title || 'Links';
+		}
+		if (editedTitle.trim() !== group.group_title) {
+			dispatch('updatetitle', { groupId: group.id, title: editedTitle.trim() });
+		}
+		isEditingTitle = false;
+		
+		// Reset saving flag after a short delay
+		setTimeout(() => {
+			isSavingTitle = false;
+		}, 100);
+	}
+	
+	function cancelEditTitle() {
+		if (isSavingTitle) return; // Don't cancel if saving
+		isEditingTitle = false;
+		editedTitle = '';
+	}
+	
+	function handleTitleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			titleInputRef?.blur(); // Blur first to prevent onblur trigger
+			saveTitle();
+		} else if (e.key === 'Escape') {
+			e.preventDefault();
+			titleInputRef?.blur();
+			cancelEditTitle();
+		}
+	}
+	
+	function handleTitleBlur() {
+		// Only save on blur if not already saving (from Enter key)
+		if (!isSavingTitle) {
+			saveTitle();
+		}
 	}
 </script>
 
@@ -320,7 +375,23 @@
 						</svg>
 					</div>
 					
-					<h2 class="text-xl font-bold text-gray-900">{group.group_title || 'Links'}</h2>
+					{#if isEditingTitle}
+						<input
+							bind:this={titleInputRef}
+							bind:value={editedTitle}
+							onkeydown={handleTitleKeydown}
+							onblur={handleTitleBlur}
+							class="text-xl font-bold text-gray-900 border-b-2 border-emerald-500 focus:outline-none bg-transparent px-2 py-1"
+							placeholder="Group title"
+						/>
+					{:else}
+						<button
+							onclick={startEditTitle}
+							class="text-xl font-bold text-gray-900 hover:text-emerald-600 transition-colors px-2 py-1 rounded hover:bg-emerald-50"
+						>
+							{group.group_title || 'Links'}
+						</button>
+					{/if}
 				</div>
 
 				<!-- Right side: Action buttons -->
