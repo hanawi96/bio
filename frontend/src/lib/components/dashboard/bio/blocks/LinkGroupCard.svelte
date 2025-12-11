@@ -145,6 +145,22 @@
 		class:shadow-sm={!selected}
 	>
 		<div class="flex items-center gap-4 px-4 py-3.5">
+			<!-- Drag Handle -->
+			<button
+				class="drag-handle cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-400 p-1 transition-colors flex-shrink-0"
+				onclick={(e) => e.stopPropagation()}
+				aria-label="Drag to reorder group"
+			>
+				<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+					<circle cx="9" cy="7" r="1.5"/>
+					<circle cx="9" cy="12" r="1.5"/>
+					<circle cx="9" cy="17" r="1.5"/>
+					<circle cx="15" cy="7" r="1.5"/>
+					<circle cx="15" cy="12" r="1.5"/>
+					<circle cx="15" cy="17" r="1.5"/>
+				</svg>
+			</button>
+
 			<!-- Thumbnail/Icon -->
 			<button
 				onclick={() => dispatch('expand', group.id)}
@@ -277,22 +293,6 @@
 						</div>
 					{/if}
 				</div>
-
-				<!-- Drag Handle -->
-				<button
-					class="drag-handle cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-400 p-1 transition-colors"
-					onclick={(e) => e.stopPropagation()}
-					aria-label="Drag to reorder group"
-				>
-					<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-						<circle cx="9" cy="7" r="1.5"/>
-						<circle cx="9" cy="12" r="1.5"/>
-						<circle cx="9" cy="17" r="1.5"/>
-						<circle cx="15" cy="7" r="1.5"/>
-						<circle cx="15" cy="12" r="1.5"/>
-						<circle cx="15" cy="17" r="1.5"/>
-					</svg>
-				</button>
 			</div>
 		</div>
 	</div>

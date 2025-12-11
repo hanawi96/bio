@@ -376,3 +376,173 @@ func (r *BlockRepository) ReorderGroupBlocks(userID string, groupID string, bloc
 
 	return tx.Commit()
 }
+
+func (r *BlockRepository) DuplicateGroup(userID string, groupID string) (*Block, error) {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	// Get original group
+	var originalGroup Block
+	query := `
+		SELECT b.id, b.profile_id, b.parent_id, b.is_group, b.group_title, b.group_layout,
+		       b.grid_columns, b.grid_aspect_ratio, b.block_type, b.position, b.is_active,
+		       b.content, b.text_style, b.style, b.image_url, b.alt_text, b.video_url,
+		       b.social_links, b.divider_style, b.placeholder, b.embed_url, b.embed_type,
+		       b.created_at, b.updated_at
+		FROM blocks b
+		JOIN profiles p ON b.profile_id = p.id
+		WHERE b.id = $1 AND p.user_id = $2 AND b.is_group = true
+	`
+	
+	var socialLinksJSON []byte
+	err = tx.QueryRow(query, groupID, userID).Scan(
+		&originalGroup.ID, &originalGroup.ProfileID, &originalGroup.ParentID, &originalGroup.IsGroup,
+		&originalGroup.GroupTitle, &originalGroup.GroupLayout, &originalGroup.GridColumns, &originalGroup.GridAspectRatio,
+		&originalGroup.BlockType, &originalGroup.Position, &originalGroup.IsActive,
+		&originalGroup.Content, &originalGroup.TextStyle, &originalGroup.Style, &originalGroup.ImageURL,
+		&originalGroup.AltText, &originalGroup.VideoURL, &socialLinksJSON, &originalGroup.DividerStyle,
+		&originalGroup.Placeholder, &originalGroup.EmbedURL, &originalGroup.EmbedType,
+		&originalGroup.CreatedAt, &originalGroup.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	
+	if socialLinksJSON != nil {
+		json.Unmarshal(socialLinksJSON, &originalGroup.SocialLinks)
+	}
+
+	// Get max position
+	var maxBlockPos, maxLinkPos int
+	tx.QueryRow(`SELECT COALESCE(MAX(position), -1) FROM blocks WHERE profile_id = $1 AND parent_id IS NULL`, originalGroup.ProfileID).Scan(&maxBlockPos)
+	tx.QueryRow(`SELECT COALESCE(MAX(position), -1) FROM links WHERE profile_id = $1 AND parent_id IS NULL`, originalGroup.ProfileID).Scan(&maxLinkPos)
+	maxPosition := maxBlockPos
+	if maxLinkPos > maxPosition {
+		maxPosition = maxLinkPos
+	}
+
+	// Create duplicate group
+	var newGroup Block
+	newTitle := ""
+	if originalGroup.GroupTitle != nil {
+		newTitle = *originalGroup.GroupTitle + " (Copy)"
+	}
+	
+	insertQuery := `
+		INSERT INTO blocks (profile_id, is_group, group_title, group_layout, grid_columns, grid_aspect_ratio,
+		                    block_type, position, is_active, style)
+		VALUES ($1, true, $2, $3, $4, $5, $6, $7, true, $8)
+		RETURNING id, profile_id, parent_id, is_group, group_title, group_layout, grid_columns, grid_aspect_ratio,
+		          block_type, position, is_active, content, text_style, style, image_url, alt_text, video_url,
+		          social_links, divider_style, placeholder, embed_url, embed_type, created_at, updated_at
+	`
+	
+	err = tx.QueryRow(insertQuery, originalGroup.ProfileID, newTitle, originalGroup.GroupLayout,
+		originalGroup.GridColumns, originalGroup.GridAspectRatio, originalGroup.BlockType,
+		maxPosition+1, originalGroup.Style).Scan(
+		&newGroup.ID, &newGroup.ProfileID, &newGroup.ParentID, &newGroup.IsGroup, &newGroup.GroupTitle,
+		&newGroup.GroupLayout, &newGroup.GridColumns, &newGroup.GridAspectRatio, &newGroup.BlockType,
+		&newGroup.Position, &newGroup.IsActive, &newGroup.Content, &newGroup.TextStyle, &newGroup.Style,
+		&newGroup.ImageURL, &newGroup.AltText, &newGroup.VideoURL, &socialLinksJSON,
+		&newGroup.DividerStyle, &newGroup.Placeholder, &newGroup.EmbedURL, &newGroup.EmbedType,
+		&newGroup.CreatedAt, &newGroup.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	
+	if socialLinksJSON != nil {
+		json.Unmarshal(socialLinksJSON, &newGroup.SocialLinks)
+	}
+
+	// Get all children of original group
+	childrenQuery := `
+		SELECT id, content, text_style, position, is_active
+		FROM blocks
+		WHERE parent_id = $1
+		ORDER BY position ASC
+	`
+	rows, err := tx.Query(childrenQuery, groupID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Load all children into slice first
+	type ChildData struct {
+		ID        string
+		Content   *string
+		TextStyle *string
+		Position  int
+		IsActive  bool
+	}
+	var childrenData []ChildData
+
+	for rows.Next() {
+		var child ChildData
+		err = rows.Scan(&child.ID, &child.Content, &child.TextStyle, &child.Position, &child.IsActive)
+		if err != nil {
+			rows.Close()
+			return nil, err
+		}
+		childrenData = append(childrenData, child)
+	}
+	rows.Close()
+
+	// Insert duplicates
+	for _, child := range childrenData {
+		_, err = tx.Exec(`
+			INSERT INTO blocks (profile_id, parent_id, block_type, content, text_style, position, is_active)
+			VALUES ($1, $2, 'text', $3, $4, $5, $6)
+		`, originalGroup.ProfileID, newGroup.ID, child.Content, child.TextStyle, child.Position, child.IsActive)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Load children for the new group
+	childrenQuery2 := `
+		SELECT id, profile_id, parent_id, is_group, group_title, group_layout, grid_columns, grid_aspect_ratio,
+		       block_type, position, is_active, content, text_style, style, image_url, alt_text, video_url,
+		       social_links, divider_style, placeholder, embed_url, embed_type, created_at, updated_at
+		FROM blocks
+		WHERE parent_id = $1
+		ORDER BY position ASC
+	`
+
+	rows2, err := tx.Query(childrenQuery2, newGroup.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows2.Close()
+
+	var children []Block
+	for rows2.Next() {
+		var child Block
+		var socialLinksJSON2 []byte
+		err := rows2.Scan(
+			&child.ID, &child.ProfileID, &child.ParentID, &child.IsGroup, &child.GroupTitle,
+			&child.GroupLayout, &child.GridColumns, &child.GridAspectRatio, &child.BlockType,
+			&child.Position, &child.IsActive, &child.Content, &child.TextStyle, &child.Style,
+			&child.ImageURL, &child.AltText, &child.VideoURL, &socialLinksJSON2,
+			&child.DividerStyle, &child.Placeholder, &child.EmbedURL, &child.EmbedType,
+			&child.CreatedAt, &child.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		if socialLinksJSON2 != nil {
+			json.Unmarshal(socialLinksJSON2, &child.SocialLinks)
+		}
+		children = append(children, child)
+	}
+	newGroup.Children = children
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return &newGroup, nil
+}

@@ -82,6 +82,7 @@ func SetupRoutes(api fiber.Router, db *sql.DB, cfg *config.Config) {
 	protected.Post("/blocks", blockHandler.CreateBlock)
 	protected.Put("/blocks/reorder", blockHandler.ReorderBlocks)
 	protected.Put("/blocks/groups/:groupId/reorder", blockHandler.ReorderGroupBlocks)
+	protected.Post("/blocks/groups/:groupId/duplicate", blockHandler.DuplicateGroup)
 	protected.Post("/blocks/bulk-delete", blockHandler.BulkDelete)
 	protected.Put("/blocks/:id", blockHandler.UpdateBlock)
 	protected.Delete("/blocks/:id", blockHandler.DeleteBlock)

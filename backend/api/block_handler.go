@@ -131,3 +131,15 @@ func (h *BlockHandler) ReorderGroupBlocks(c *fiber.Ctx) error {
 
 	return c.SendStatus(fiber.StatusNoContent)
 }
+
+func (h *BlockHandler) DuplicateGroup(c *fiber.Ctx) error {
+	userID := c.Locals("userID").(string)
+	groupID := c.Params("groupId")
+
+	block, err := h.service.DuplicateGroup(userID, groupID)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(block)
+}

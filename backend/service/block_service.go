@@ -38,3 +38,8 @@ func (s *BlockService) BulkDeleteBlocks(userID string, blockIDs []string) error 
 func (s *BlockService) ReorderGroupBlocks(userID string, groupID string, blockIDs []string) error {
 	return s.repo.ReorderGroupBlocks(userID, groupID, blockIDs)
 }
+
+// DuplicateGroup duplicates a block group and all its children
+func (s *BlockService) DuplicateGroup(userID string, groupID string) (*repository.Block, error) {
+	return s.repo.DuplicateGroup(userID, groupID)
+}

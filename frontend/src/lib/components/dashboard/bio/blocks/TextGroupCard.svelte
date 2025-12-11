@@ -18,6 +18,11 @@
 	let editingTextId: string | null = null;
 	let editingTextContent = '';
 	
+	// Menu state
+	let groupMenuOpen = false;
+	let groupMenuButtonRef: HTMLElement | null = null;
+	let shouldGroupMenuOpenUpward = false;
+	
 	// Group style from parent block
 	$: groupStyle = (() => {
 		try {
@@ -159,30 +164,49 @@
 		groupStyle = { ...presets[preset] };
 		applyGroupStyle();
 	}
+	
+	// Click outside handler for group menu
+	function clickOutsideGroupMenu(node: HTMLElement) {
+		const handleClick = (event: MouseEvent) => {
+			const target = event.target as Node;
+			if (node && !node.contains(target) && !event.defaultPrevented) {
+				groupMenuOpen = false;
+			}
+		};
+		
+		document.addEventListener('mousedown', handleClick, true);
+		
+		return {
+			destroy() {
+				document.removeEventListener('mousedown', handleClick, true);
+			}
+		};
+	}
+	
+	function handleDuplicate() {
+		dispatch('duplicate', group.id);
+		groupMenuOpen = false;
+	}
 </script>
 
 <div class="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all border border-gray-100">
 	<!-- Group Header -->
 	<div class="flex items-center gap-3 p-4">
-		<!-- Expand/Collapse Button -->
-		<button
-			onclick={toggleExpand}
-			class="flex-shrink-0 w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors"
-			aria-label={expanded ? 'Collapse group' : 'Expand group'}
-		>
-			<svg 
-				class="w-5 h-5 text-gray-500 transition-transform {expanded ? 'rotate-90' : ''}" 
-				fill="none" 
-				stroke="currentColor" 
-				viewBox="0 0 24 24"
-			>
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+		<!-- Drag Handle -->
+		<button class="drag-handle cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-400 p-2 transition-colors flex-shrink-0" aria-label="Drag to reorder">
+			<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+				<circle cx="9" cy="7" r="1.5"/>
+				<circle cx="9" cy="12" r="1.5"/>
+				<circle cx="9" cy="17" r="1.5"/>
+				<circle cx="15" cy="7" r="1.5"/>
+				<circle cx="15" cy="12" r="1.5"/>
+				<circle cx="15" cy="17" r="1.5"/>
 			</svg>
 		</button>
 
 		<!-- Icon -->
-		<div class="flex-shrink-0 w-12 h-12 rounded-lg bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center shadow-sm">
-			<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+		<div class="flex-shrink-0 w-14 h-14 rounded-lg bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center shadow-sm">
+			<svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
 			</svg>
 		</div>
@@ -216,29 +240,87 @@
 					</svg>
 				{/if}
 			</button>
-			
-			<!-- Drag Handle -->
-			<button class="drag-handle cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-400 p-2 transition-colors" aria-label="Drag to reorder">
-				<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-					<circle cx="9" cy="7" r="1.5"/>
-					<circle cx="9" cy="12" r="1.5"/>
-					<circle cx="9" cy="17" r="1.5"/>
-					<circle cx="15" cy="7" r="1.5"/>
-					<circle cx="15" cy="12" r="1.5"/>
-					<circle cx="15" cy="17" r="1.5"/>
-				</svg>
-			</button>
 
-			<!-- Delete -->
-			<button
-				onclick={handleDelete}
-				class="p-2 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
-				title="Delete group"
-			>
-				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-				</svg>
-			</button>
+			<!-- 3-dot Menu Button -->
+			<div class="relative" use:clickOutsideGroupMenu>
+				<button
+					bind:this={groupMenuButtonRef}
+					onclick={(e) => { 
+						e.stopPropagation();
+						
+						// Detect if menu should open upward
+						if (groupMenuButtonRef) {
+							const rect = groupMenuButtonRef.getBoundingClientRect();
+							const windowHeight = window.innerHeight;
+							const spaceBelow = windowHeight - rect.bottom;
+							const menuHeight = 200; // Approximate menu height
+							
+							// If not enough space below, open upward
+							shouldGroupMenuOpenUpward = spaceBelow < menuHeight + 60;
+						}
+						
+						groupMenuOpen = !groupMenuOpen;
+					}}
+					class="p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-lg hover:bg-gray-100"
+					title="More options"
+				>
+					<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+						<circle cx="10" cy="4" r="1.5"/>
+						<circle cx="10" cy="10" r="1.5"/>
+						<circle cx="10" cy="16" r="1.5"/>
+					</svg>
+				</button>
+
+				{#if groupMenuOpen}
+					<div class="absolute right-0 {shouldGroupMenuOpenUpward ? 'bottom-full mb-1' : 'top-full mt-1'} w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-20">
+						<!-- Edit Group -->
+						<button
+							onclick={(e) => { 
+								e.stopPropagation();
+								toggleExpand();
+								groupMenuOpen = false;
+							}}
+							class="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-blue-50 flex items-center gap-3 transition-all group"
+						>
+							<svg class="w-4 h-4 text-blue-500 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+							</svg>
+							<span class="font-medium">Edit group</span>
+						</button>
+
+						<!-- Duplicate Group -->
+						<button
+							onclick={(e) => { 
+								e.stopPropagation();
+								handleDuplicate();
+							}}
+							class="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-green-50 flex items-center gap-3 transition-all group"
+						>
+							<svg class="w-4 h-4 text-green-500 group-hover:text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+							</svg>
+							<span class="font-medium">Duplicate group</span>
+						</button>
+
+						<div class="border-t border-gray-100 my-1"></div>
+
+						<!-- Delete Group -->
+						<button
+							onclick={(e) => { 
+								e.stopPropagation();
+								handleDelete();
+								groupMenuOpen = false;
+							}}
+							class="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-all group"
+						>
+							<svg class="w-4 h-4 text-red-500 group-hover:text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+							</svg>
+							<span class="font-medium">Delete group</span>
+						</button>
+					</div>
+				{/if}
+			</div>
 		</div>
 	</div>
 

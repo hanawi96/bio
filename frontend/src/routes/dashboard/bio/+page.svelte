@@ -712,6 +712,17 @@
 			toast.error(error.message || 'Failed to duplicate group');
 		}
 	}
+	
+	async function handleDuplicateTextGroup(event: CustomEvent) {
+		const groupId = event.detail;
+		try {
+			await blocksApi.duplicateGroup(groupId, $auth.token!);
+			await loadData();
+			toast.success('Text group duplicated!');
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to duplicate text group');
+		}
+	}
 
 	async function handleReorderGroupLinks(event: CustomEvent) {
 		const { groupId, linkIds } = event.detail;
@@ -1475,6 +1486,7 @@
 									on:expand={handleExpandTextGroup}
 									on:collapse={handleCollapseTextGroup}
 									on:delete={handleDeleteTextGroup}
+									on:duplicate={handleDuplicateTextGroup}
 									on:addtext={handleAddTextToGroup}
 									on:updatestyle={handleUpdateGroupStyle}
 									on:edittext={handleEditTextInGroup}
