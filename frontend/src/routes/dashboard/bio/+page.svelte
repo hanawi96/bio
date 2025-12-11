@@ -151,8 +151,8 @@
 		
 		try {
 			await linksApi.bulkAction(Array.from(selectedIds), 'delete', $auth.token!);
-			links = links.filter(l => !selectedIds.has(l.id));
-			allLinks = allLinks.filter(l => !selectedIds.has(l.id));
+			links = [...links.filter(l => !selectedIds.has(l.id))];
+			allLinks = [...allLinks.filter(l => !selectedIds.has(l.id))];
 			toast.success(`Deleted ${selectedIds.size} links`);
 			clearSelection();
 		} catch (error: any) {
@@ -165,8 +165,8 @@
 		
 		try {
 			await linksApi.bulkAction(Array.from(selectedIds), 'activate', $auth.token!);
-			links = links.map(l => selectedIds.has(l.id) ? {...l, is_active: true} : l);
-			allLinks = allLinks.map(l => selectedIds.has(l.id) ? {...l, is_active: true} : l);
+			links = [...links.map(l => selectedIds.has(l.id) ? {...l, is_active: true} : l)];
+			allLinks = [...allLinks.map(l => selectedIds.has(l.id) ? {...l, is_active: true} : l)];
 			toast.success(`Activated ${selectedIds.size} links`);
 			clearSelection();
 		} catch (error: any) {
@@ -179,8 +179,8 @@
 		
 		try {
 			await linksApi.bulkAction(Array.from(selectedIds), 'deactivate', $auth.token!);
-			links = links.map(l => selectedIds.has(l.id) ? {...l, is_active: false} : l);
-			allLinks = allLinks.map(l => selectedIds.has(l.id) ? {...l, is_active: false} : l);
+			links = [...links.map(l => selectedIds.has(l.id) ? {...l, is_active: false} : l)];
+			allLinks = [...allLinks.map(l => selectedIds.has(l.id) ? {...l, is_active: false} : l)];
 			toast.success(`Deactivated ${selectedIds.size} links`);
 			clearSelection();
 		} catch (error: any) {
@@ -197,7 +197,7 @@
 			);
 			await Promise.all(updatePromises);
 			
-			links = links.map(l => selectedIds.has(l.id) ? {...l, layout_type: layoutType} : l);
+			links = [...links.map(l => selectedIds.has(l.id) ? {...l, layout_type: layoutType} : l)];
 			allLinks = allLinks.map(l => selectedIds.has(l.id) ? {...l, layout_type: layoutType} : l);
 			clearSelection();
 		} catch (error: any) {
@@ -242,8 +242,8 @@
 		const linkId = event.detail;
 		try {
 			await linksApi.removeFromGroup(linkId, $auth.token!);
-			// Update local state without reloading - keep UI expanded
-			links = links.map(link => {
+			// Update local state - force reactivity with spread
+			links = [...links.map(link => {
 				if (link.is_group && link.children) {
 					return {
 						...link,
@@ -251,8 +251,8 @@
 					};
 				}
 				return link;
-			});
-			allLinks = allLinks.filter(l => l.id !== linkId);
+			})];
+			allLinks = [...allLinks.filter(l => l.id !== linkId)];
 			toast.success('Link removed!');
 		} catch (error: any) {
 			toast.error(error.message || 'Failed to remove link');
@@ -630,7 +630,6 @@
 			// No toast for pin/unpin - visual feedback (icon color change) is sufficient
 		} catch (error: any) {
 			toast.error(error.message || 'Failed to toggle pin');
-			await loadData(); // Reload on error
 		}
 	}
 
@@ -735,7 +734,6 @@
 			});
 		} catch (error: any) {
 			toast.error(error.message || 'Failed to reorder links');
-			await loadData(); // Reload on error to restore correct state
 		}
 	}
 
@@ -824,8 +822,12 @@
 		
 		try {
 			await linksApi.deleteLink(id, $auth.token!);
-			links = links.filter(l => l.id !== id);
-			allLinks = allLinks.filter(l => l.id !== id);
+			
+			// Remove group and update state - force reactivity
+			const childIds = new Set(group.children?.map(c => c.id) || []);
+			links = [...links.filter(l => l.id !== id)];
+			allLinks = [...allLinks.filter(l => l.id !== id && !childIds.has(l.id))];
+			
 			toast.success('Group deleted!');
 		} catch (error: any) {
 			toast.error(error.message || 'Failed to delete group');
@@ -879,8 +881,8 @@
 					break;
 			}
 
-			await blocksApi.createBlock(blockData, $auth.token!);
-			await loadData();
+			const newBlock = await blocksApi.createBlock(blockData, $auth.token!);
+			blocks = [...blocks, newBlock];
 			toast.success('Block added!');
 		} catch (error: any) {
 			toast.error(error.message || 'Failed to add block');
@@ -904,24 +906,25 @@
 
 			if (editingTextBlock) {
 				// Update existing block
-				await blocksApi.updateBlock(editingTextBlock.id, {
+				const updatedData = {
 					content,
 					text_style: fontSize.startsWith('headline') ? 'heading' : 'paragraph',
 					style
-				}, $auth.token!);
-				await loadData();
+				};
+				await blocksApi.updateBlock(editingTextBlock.id, updatedData, $auth.token!);
+				blocks = blocks.map(b => b.id === editingTextBlock.id ? { ...b, ...updatedData } : b);
 				toast.success('Text block updated!');
 				editingTextBlock = null;
 			} else {
 				// Create new block
-				await blocksApi.createBlock({
+				const newBlock = await blocksApi.createBlock({
 					block_type: 'text',
 					is_active: true,
 					content,
 					text_style: fontSize.startsWith('headline') ? 'heading' : 'paragraph',
 					style
 				}, $auth.token!);
-				await loadData();
+				blocks = [...blocks, newBlock];
 				toast.success('Text block added!');
 			}
 		} catch (error: any) {
@@ -938,7 +941,7 @@
 		const { id, ...data } = event.detail;
 		try {
 			await blocksApi.updateBlock(id, data, $auth.token!);
-			blocks = (blocks || []).map(b => b.id === id ? { ...b, ...data } : b);
+			blocks = [...blocks.map(b => b.id === id ? { ...b, ...data } : b)];
 			toast.success('Block updated!');
 		} catch (error: any) {
 			toast.error(error.message || 'Failed to update block');
@@ -949,7 +952,7 @@
 		const id = event.detail;
 		try {
 			await blocksApi.deleteBlock(id, $auth.token!);
-			blocks = (blocks || []).filter(b => b.id !== id);
+			blocks = [...blocks.filter(b => b.id !== id)];
 			toast.success('Block deleted!');
 		} catch (error: any) {
 			toast.error(error.message || 'Failed to delete block');
