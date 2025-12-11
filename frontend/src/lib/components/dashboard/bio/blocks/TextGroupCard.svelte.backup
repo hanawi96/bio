@@ -1,0 +1,337 @@
+<script lang="ts">
+	import { createEventDispatcher } from 'svelte';
+	import { dndzone } from 'svelte-dnd-action';
+	import type { Block } from '$lib/api/blocks';
+
+	export let group: Block;
+	export let expanded = false;
+	
+	const dispatch = createEventDispatcher();
+	
+	// Group style from parent block
+	$: groupStyle = group.style ? JSON.parse(group.style) : {
+		textAlign: 'left',
+		fontSize: 'text-medium',
+		textColor: '#000000',
+		isBold: false,
+		isItalic: false
+	};
+	
+	let newTextContent = '';
+	let styleExpanded = false;
+
+	// Drag & drop items
+	type DndItem = { id: string; data: Block };
+	let dndItems: DndItem[] = [];
+	
+	// Group style state - parse from group.style
+	let groupStyle = group.style ? JSON.parse(group.style) : {
+		textAlign: 'left',
+		fontSize: 'text-medium',
+		textColor: '#000000',
+		isBold: false,
+		isItalic: false
+	};
+	
+	// Text input
+	let newTextContent = '';
+	let styleExpanded = false;
+	
+	// Sync dndItems from children
+	$: {
+		const children = group.children || [];
+		if (dndItems.length === 0 || dndItems.length !== children.length) {
+			dndItems = children
+				.slice()
+				.sort((a, b) => a.position - b.position)
+				.map(block => ({ id: block.id, data: block }));
+		} else {
+			dndItems = dndItems.map(item => {
+				const updated = children.find(c => c.id === item.id);
+				return updated ? { ...item, data: updated } : item;
+			});
+		}
+	}
+
+	function handleDndConsider(e: CustomEvent) {
+		dndItems = e.detail.items;
+	}
+	
+	function handleDndFinalize(e: CustomEvent) {
+		dndItems = e.detail.items;
+		const blockIds = dndItems.map(item => item.id);
+		dispatch('reordertexts', { groupId: group.id, blockIds });
+	}
+
+	function toggleExpand() {
+		dispatch(expanded ? 'collapse' : 'expand', group.id);
+	}
+
+	function handleDelete() {
+		if (confirm(`Delete "${group.group_title}" and all its text items?`)) {
+			dispatch('delete', group.id);
+		}
+	}
+
+	function handleAddText() {
+		if (!newTextContent.trim()) return;
+		dispatch('addtext', { groupId: group.id, content: newTextContent.trim() });
+		newTextContent = '';
+	}
+
+	function handleDeleteText(textId: string) {
+		dispatch('deletetext', { groupId: group.id, textId });
+	}
+	
+	function applyGroupStyle() {
+		dispatch('updatestyle', { groupId: group.id, style: groupStyle });
+	}
+	
+	// Presets
+	const presets = {
+		default: { textAlign: 'left', fontSize: 'text-medium', textColor: '#000000', isBold: false, isItalic: false },
+		faq: { textAlign: 'left', fontSize: 'text-medium', textColor: '#1f2937', isBold: true, isItalic: false },
+		quote: { textAlign: 'center', fontSize: 'text-large', textColor: '#4b5563', isBold: false, isItalic: true },
+		feature: { textAlign: 'left', fontSize: 'text-medium', textColor: '#1f2937', isBold: true, isItalic: false }
+	};
+	
+	function applyPreset(preset: keyof typeof presets) {
+		groupStyle = { ...presets[preset] };
+		applyGroupStyle();
+	}
+</script>
+
+<div class="bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100">
+	<!-- Group Header -->
+	<div class="flex items-center gap-3 p-4">
+		<!-- Expand/Collapse Button -->
+		<button
+			onclick={toggleExpand}
+			class="flex-shrink-0 w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors"
+			aria-label={expanded ? 'Collapse group' : 'Expand group'}
+		>
+			<svg 
+				class="w-5 h-5 text-gray-500 transition-transform {expanded ? 'rotate-90' : ''}" 
+				fill="none" 
+				stroke="currentColor" 
+				viewBox="0 0 24 24"
+			>
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+			</svg>
+		</button>
+
+		<!-- Icon -->
+		<div class="flex-shrink-0 w-12 h-12 rounded-lg bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center shadow-sm">
+			<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
+			</svg>
+		</div>
+
+		<!-- Title & Count -->
+		<button onclick={toggleExpand} class="flex-1 text-left min-w-0">
+			<h3 class="text-base font-semibold text-gray-900 truncate">
+				{group.group_title || 'Text Group'}
+			</h3>
+			<p class="text-sm text-gray-500">
+				{group.children?.length || 0} text {group.children?.length === 1 ? 'item' : 'items'}
+			</p>
+		</button>
+
+		<!-- Actions -->
+		<div class="flex items-center gap-1">
+			<!-- Drag Handle -->
+			<button class="drag-handle cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-400 p-2 transition-colors" aria-label="Drag to reorder">
+				<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+					<circle cx="9" cy="7" r="1.5"/>
+					<circle cx="9" cy="12" r="1.5"/>
+					<circle cx="9" cy="17" r="1.5"/>
+					<circle cx="15" cy="7" r="1.5"/>
+					<circle cx="15" cy="12" r="1.5"/>
+					<circle cx="15" cy="17" r="1.5"/>
+				</svg>
+			</button>
+
+			<!-- Delete -->
+			<button
+				onclick={handleDelete}
+				class="p-2 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
+				title="Delete group"
+			>
+				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+				</svg>
+			</button>
+		</div>
+	</div>
+
+	<!-- Expanded Content -->
+	{#if expanded}
+		<div class="border-t border-gray-100">
+			<!-- Group Style Section (Collapsible) -->
+			<div class="border-b border-gray-100">
+				<button 
+					onclick={() => styleExpanded = !styleExpanded}
+					class="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+				>
+					<span class="text-sm font-medium text-gray-700">🎨 Group Style</span>
+					<svg class="w-4 h-4 transition-transform {styleExpanded ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+					</svg>
+				</button>
+				
+				{#if styleExpanded}
+					<div class="px-4 pb-4 space-y-3 bg-gray-50/50">
+						<!-- Presets -->
+						<div>
+							<label class="text-xs font-medium text-gray-600 mb-2 block">Quick Presets</label>
+							<div class="flex gap-2">
+								<button onclick={() => applyPreset('default')} class="px-3 py-1.5 text-xs bg-white border rounded-lg hover:bg-gray-100">Default</button>
+								<button onclick={() => applyPreset('faq')} class="px-3 py-1.5 text-xs bg-white border rounded-lg hover:bg-gray-100">FAQ</button>
+								<button onclick={() => applyPreset('quote')} class="px-3 py-1.5 text-xs bg-white border rounded-lg hover:bg-gray-100">Quote</button>
+								<button onclick={() => applyPreset('feature')} class="px-3 py-1.5 text-xs bg-white border rounded-lg hover:bg-gray-100">Feature</button>
+							</div>
+						</div>
+						
+						<!-- Manual Controls -->
+						<div class="grid grid-cols-2 gap-3">
+							<!-- Text Align -->
+							<div>
+								<label class="text-xs font-medium text-gray-600 mb-1.5 block">Align</label>
+								<div class="flex gap-1">
+									<button onclick={() => { groupStyle.textAlign = 'left'; applyGroupStyle(); }} class="flex-1 p-2 bg-white border rounded-lg hover:bg-gray-100 {groupStyle.textAlign === 'left' ? 'ring-2 ring-purple-500' : ''}">
+										<svg class="w-4 h-4 mx-auto" fill="currentColor" viewBox="0 0 24 24"><path d="M3 4h18v2H3V4zm0 7h12v2H3v-2zm0 7h18v2H3v-2z"/></svg>
+									</button>
+									<button onclick={() => { groupStyle.textAlign = 'center'; applyGroupStyle(); }} class="flex-1 p-2 bg-white border rounded-lg hover:bg-gray-100 {groupStyle.textAlign === 'center' ? 'ring-2 ring-purple-500' : ''}">
+										<svg class="w-4 h-4 mx-auto" fill="currentColor" viewBox="0 0 24 24"><path d="M3 4h18v2H3V4zm4 7h10v2H7v-2zm-4 7h18v2H3v-2z"/></svg>
+									</button>
+									<button onclick={() => { groupStyle.textAlign = 'right'; applyGroupStyle(); }} class="flex-1 p-2 bg-white border rounded-lg hover:bg-gray-100 {groupStyle.textAlign === 'right' ? 'ring-2 ring-purple-500' : ''}">
+										<svg class="w-4 h-4 mx-auto" fill="currentColor" viewBox="0 0 24 24"><path d="M3 4h18v2H3V4zm6 7h12v2H9v-2zm-6 7h18v2H3v-2z"/></svg>
+									</button>
+								</div>
+							</div>
+							
+							<!-- Font Size -->
+							<div>
+								<label class="text-xs font-medium text-gray-600 mb-1.5 block">Size</label>
+								<select bind:value={groupStyle.fontSize} onchange={applyGroupStyle} class="w-full p-2 bg-white border rounded-lg text-sm">
+									<option value="text-small">Small</option>
+									<option value="text-medium">Medium</option>
+									<option value="text-large">Large</option>
+									<option value="headline-small">Headline S</option>
+									<option value="headline-medium">Headline M</option>
+									<option value="headline-large">Headline L</option>
+								</select>
+							</div>
+						</div>
+						
+						<!-- Style Toggles -->
+						<div>
+							<label class="text-xs font-medium text-gray-600 mb-1.5 block">Style</label>
+							<div class="flex gap-2">
+								<button onclick={() => { groupStyle.isBold = !groupStyle.isBold; applyGroupStyle(); }} class="px-3 py-1.5 font-bold text-sm bg-white border rounded-lg hover:bg-gray-100 {groupStyle.isBold ? 'ring-2 ring-purple-500' : ''}">B</button>
+								<button onclick={() => { groupStyle.isItalic = !groupStyle.isItalic; applyGroupStyle(); }} class="px-3 py-1.5 italic text-sm bg-white border rounded-lg hover:bg-gray-100 {groupStyle.isItalic ? 'ring-2 ring-purple-500' : ''}">I</button>
+							</div>
+						</div>
+						
+						<!-- Text Color -->
+						<div>
+							<label class="text-xs font-medium text-gray-600 mb-1.5 block">Text Color</label>
+							<div class="flex gap-2 items-center">
+								<input type="color" bind:value={groupStyle.textColor} onchange={applyGroupStyle} class="w-12 h-8 rounded border cursor-pointer" />
+								<span class="text-xs text-gray-500">{groupStyle.textColor}</span>
+							</div>
+						</div>
+					</div>
+				{/if}
+			</div>
+
+			<!-- Add Text Section -->
+			<div class="p-4 bg-gray-50/50 border-b border-gray-100">
+				<label class="text-sm font-medium text-gray-700 mb-2 block">➕ Add Text</label>
+				<div class="flex gap-2">
+					<input 
+						type="text" 
+						bind:value={newTextContent}
+						on:keydown={(e) => e.key === 'Enter' && handleAddText()}
+						placeholder="Type your text here..."
+						class="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+					/>
+					<button 
+						onclick={handleAddText}
+						disabled={!newTextContent.trim()}
+						class="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+					>
+						Add
+					</button>
+				</div>
+			</div>
+
+			<!-- Children Text Items -->
+			{#if group.children && group.children.length > 0}
+				<div 
+					class="p-4 space-y-3"
+					use:dndzone={{items: dndItems, flipDurationMs: 200, dropTargetStyle: {}}}
+					onconsider={handleDndConsider}
+					onfinalize={handleDndFinalize}
+				>
+					{#each dndItems as item (item.id)}
+						{@const textBlock = item.data}
+						<div class="bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-200/60">
+							<div class="flex items-center gap-4 p-3.5">
+								<!-- Drag Handle -->
+								<button
+									class="drag-handle cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-400 p-1 transition-colors flex-shrink-0"
+									onclick={(e) => e.stopPropagation()}
+									aria-label="Drag to reorder text"
+								>
+									<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+										<circle cx="9" cy="7" r="1.5"/>
+										<circle cx="9" cy="12" r="1.5"/>
+										<circle cx="9" cy="17" r="1.5"/>
+										<circle cx="15" cy="7" r="1.5"/>
+										<circle cx="15" cy="12" r="1.5"/>
+										<circle cx="15" cy="17" r="1.5"/>
+									</svg>
+								</button>
+
+								<!-- Icon -->
+								<div class="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center">
+									<svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+									</svg>
+								</div>
+
+								<!-- Text Content with Group Style -->
+								<div class="flex-1 min-w-0">
+									<p 
+										class="text-gray-900 break-words"
+										style="
+											font-size: {groupStyle.fontSize === 'headline-large' ? '1.5rem' : groupStyle.fontSize === 'headline-medium' ? '1.25rem' : groupStyle.fontSize === 'headline-small' ? '1.125rem' : groupStyle.fontSize === 'text-large' ? '1.125rem' : groupStyle.fontSize === 'text-small' ? '0.875rem' : '1rem'};
+											text-align: {groupStyle.textAlign || 'left'};
+											font-weight: {groupStyle.isBold ? 'bold' : 'normal'};
+											font-style: {groupStyle.isItalic ? 'italic' : 'normal'};
+											color: {groupStyle.textColor || '#000000'};
+										"
+									>
+										{textBlock.content || 'Empty text'}
+									</p>
+								</div>
+
+								<!-- Actions -->
+								<button
+									onclick={() => handleDeleteText(textBlock.id)}
+									class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
+									title="Delete"
+								>
+									<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+									</svg>
+								</button>
+							</div>
+						</div>
+					{#each}`n</div>`n{/if}`n</div>`n{/if}`n</div>
+				</div>
+			{/if}
+		</div>
+	{/if}
+</div>

@@ -33,3 +33,8 @@ func (s *BlockService) ReorderBlocks(userID string, blockIDs []string) error {
 func (s *BlockService) BulkDeleteBlocks(userID string, blockIDs []string) error {
 	return s.repo.BulkDelete(userID, blockIDs)
 }
+
+// ReorderGroupBlocks reorders blocks within a group
+func (s *BlockService) ReorderGroupBlocks(userID string, groupID string, blockIDs []string) error {
+	return s.repo.ReorderGroupBlocks(userID, groupID, blockIDs)
+}

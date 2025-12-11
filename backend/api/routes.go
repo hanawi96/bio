@@ -47,7 +47,7 @@ func SetupRoutes(api fiber.Router, db *sql.DB, cfg *config.Config) {
 
 	// Protected routes
 	protected := api.Group("", middleware.AuthRequired(cfg))
-	
+
 	// Profile management
 	protected.Get("/profile", profileHandler.GetMyProfile)
 	protected.Put("/profile", profileHandler.UpdateProfile)
@@ -57,13 +57,13 @@ func SetupRoutes(api fiber.Router, db *sql.DB, cfg *config.Config) {
 	protected.Post("/links", linkHandler.CreateLink)
 	protected.Put("/items/reorder", linkHandler.ReorderAll)
 	protected.Post("/links/bulk", linkHandler.BulkAction)
-	
+
 	// Link group management (MUST be before /:id routes)
 	protected.Post("/links/groups", linkHandler.CreateGroup)
 	protected.Post("/links/groups/:groupId/items", linkHandler.AddToGroup)
 	protected.Post("/links/groups/:groupId/duplicate", linkHandler.DuplicateGroup)
 	protected.Put("/links/groups/:groupId/reorder", linkHandler.ReorderGroupLinks)
-	
+
 	// Link individual operations (with :id param)
 	protected.Post("/links/:id/duplicate", linkHandler.DuplicateLink)
 	protected.Post("/links/:id/pin", linkHandler.TogglePin)
@@ -81,6 +81,7 @@ func SetupRoutes(api fiber.Router, db *sql.DB, cfg *config.Config) {
 	protected.Get("/blocks", blockHandler.GetBlocks)
 	protected.Post("/blocks", blockHandler.CreateBlock)
 	protected.Put("/blocks/reorder", blockHandler.ReorderBlocks)
+	protected.Put("/blocks/groups/:groupId/reorder", blockHandler.ReorderGroupBlocks)
 	protected.Post("/blocks/bulk-delete", blockHandler.BulkDelete)
 	protected.Put("/blocks/:id", blockHandler.UpdateBlock)
 	protected.Delete("/blocks/:id", blockHandler.DeleteBlock)

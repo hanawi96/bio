@@ -31,16 +31,21 @@
 
 	// Combine and sort items: pinned links first, then by position
 	type Item = { type: 'link'; data: Link; isPinned: boolean } | { type: 'block'; data: Block; isPinned: boolean };
-	$: items = [
-		...visibleLinks.map(link => ({ type: 'link' as const, data: link, position: link.position, isPinned: link.is_pinned || false })),
-		...(blocks || []).map(block => ({ type: 'block' as const, data: block, position: block.position, isPinned: false }))
-	].sort((a, b) => {
-		// Pinned items first
-		if (a.isPinned && !b.isPinned) return -1;
-		if (!a.isPinned && b.isPinned) return 1;
-		// Then by position
-		return a.position - b.position;
-	});
+	let items: Item[] = [];
+	
+	$: {
+		console.log('[ProfilePreview] Rebuilding items, blocks:', blocks?.map(b => ({ id: b.id, style: b.style?.substring(0, 50) })));
+		items = [
+			...visibleLinks.map(link => ({ type: 'link' as const, data: link, position: link.position, isPinned: link.is_pinned || false })),
+			...(blocks || []).map(block => ({ type: 'block' as const, data: block, position: block.position, isPinned: false }))
+		].sort((a, b) => {
+			// Pinned items first
+			if (a.isPinned && !b.isPinned) return -1;
+			if (!a.isPinned && b.isPinned) return 1;
+			// Then by position
+			return a.position - b.position;
+		});
+	}
 </script>
 
 <div class="w-full max-w-sm mx-auto">
@@ -74,9 +79,9 @@
 
 				<!-- Links & Blocks -->
 				<div class="space-y-3">
-					{#each items as item}
+					{#each items as item (item.type === 'block' ? item.data.id : item.data.id)}
 						{#if item.type === 'block' && (showInactive || item.data.is_active)}
-							{#if item.data.block_type === 'text'}
+							{#if item.data.block_type === 'text' && !item.data.is_group}
 								{@const styleConfig = item.data.style ? JSON.parse(item.data.style) : {}}
 								<div 
 									class="w-full"
@@ -100,6 +105,49 @@
 								>
 									{item.data.content || 'Empty text'}
 								</div>
+							{:else if item.data.block_type === 'text' && item.data.is_group}
+								<!-- Text Group: Render all children with group style -->
+								{#if item.data.children && item.data.children.length > 0}
+									{@const sortedChildren = item.data.children
+										.filter(c => c.is_active)
+										.sort((a, b) => a.position - b.position)}
+									{@const groupStyle = (() => {
+										try {
+											if (!item.data.style) {
+												console.log('[ProfilePreview] No style for group:', item.data.id);
+												return { textAlign: 'left', fontSize: 'text-medium', textColor: '#000000' };
+											}
+											if (typeof item.data.style === 'string') {
+												const parsed = JSON.parse(item.data.style);
+												console.log('[ProfilePreview] Parsed group style:', { groupId: item.data.id, style: parsed });
+												return parsed;
+											}
+											console.log('[ProfilePreview] Using object style:', { groupId: item.data.id, style: item.data.style });
+											return item.data.style;
+										} catch (e) {
+											console.error('[ProfilePreview] Failed to parse groupStyle:', item.data.style, e);
+											return { textAlign: 'left', fontSize: 'text-medium', textColor: '#000000' };
+										}
+									})()}
+									<div class="space-y-2">
+										{#each sortedChildren as child}
+											<div class="bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-xl shadow-sm border border-gray-200/60 p-3.5">
+												<p 
+													class="text-gray-900 break-words"
+													style="
+														font-size: {groupStyle.fontSize === 'headline-large' ? '1.5rem' : groupStyle.fontSize === 'headline-medium' ? '1.25rem' : groupStyle.fontSize === 'headline-small' ? '1.125rem' : groupStyle.fontSize === 'text-large' ? '1.125rem' : groupStyle.fontSize === 'text-small' ? '0.875rem' : '1rem'};
+														text-align: {groupStyle.textAlign || 'left'};
+														font-weight: {groupStyle.isBold ? 'bold' : 'normal'};
+														font-style: {groupStyle.isItalic ? 'italic' : 'normal'};
+														color: {groupStyle.textColor || '#000000'};
+													"
+												>
+													{child.content || 'Empty text'}
+												</p>
+											</div>
+										{/each}
+									</div>
+								{/if}
 							{:else if item.data.block_type === 'divider'}
 								{#if item.data.divider_style === 'line'}
 									<div class="border-t border-gray-200"></div>

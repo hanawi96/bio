@@ -53,9 +53,9 @@ type Block struct {
 	ParentID        *string                  `json:"parent_id"`
 	IsGroup         bool                     `json:"is_group"`
 	GroupTitle      *string                  `json:"group_title"`
-	GroupLayout     string                   `json:"group_layout"`
-	GridColumns     int                      `json:"grid_columns"`
-	GridAspectRatio string                   `json:"grid_aspect_ratio"`
+	GroupLayout     *string                  `json:"group_layout"`
+	GridColumns     *int                     `json:"grid_columns"`
+	GridAspectRatio *string                  `json:"grid_aspect_ratio"`
 	BlockType       string                   `json:"block_type"`
 	Position        int                      `json:"position"`
 	IsActive        bool                     `json:"is_active"`

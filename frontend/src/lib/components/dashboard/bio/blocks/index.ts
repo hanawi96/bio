@@ -1,4 +1,5 @@
 export { default as LinkGroupCard } from './LinkGroupCard.svelte';
+export { default as TextGroupCard } from './TextGroupCard.svelte';
 export { default as TextBlock } from './TextBlock.svelte';
 export { default as ImageBlock } from './ImageBlock.svelte';
 export { default as VideoBlock } from './VideoBlock.svelte';

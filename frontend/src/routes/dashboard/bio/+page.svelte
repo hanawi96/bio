@@ -8,9 +8,8 @@
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { toast } from 'svelte-sonner';
 	
-	import { LinkGroupCard, TextBlock, ImageBlock, VideoBlock, SocialBlock, DividerBlock, EmailCollectorBlock, EmbedBlock } from '$lib/components/dashboard/bio/blocks';
+	import { LinkGroupCard, TextGroupCard, TextBlock, ImageBlock, VideoBlock, SocialBlock, DividerBlock, EmailCollectorBlock, EmbedBlock } from '$lib/components/dashboard/bio/blocks';
 	import { AddBlockDialog } from '$lib/components/dashboard/bio/dialogs';
-	import TextBlockDialog from '$lib/components/dashboard/bio/dialogs/TextBlockDialog.svelte';
 	import CreateGroupDialog from '$lib/components/dashboard/bio/dialogs/CreateGroupDialog.svelte';
 	import EditGroupLinkDialog from '$lib/components/dashboard/bio/dialogs/EditGroupLinkDialog.svelte';
 	import DuplicateLinkDialog from '$lib/components/dashboard/bio/dialogs/DuplicateLinkDialog.svelte';
@@ -35,16 +34,19 @@
 		| { type: 'block'; data: Block; id: string; position: number };
 	let items: CombinedItem[] = [];
 	
-	$: items = [
-		...(links || []).map(link => ({ type: 'link' as const, data: link, id: link.id, position: link.position })),
-		...(blocks || []).map(block => ({ type: 'block' as const, data: block, id: block.id, position: block.position }))
-	].sort((a, b) => a.position - b.position);
+	$: {
+		const linkItems = Array.isArray(links) ? links.map(link => ({ type: 'link' as const, data: link, id: link.id, position: link.position })) : [];
+		const blockItems = Array.isArray(blocks) ? blocks.map(block => ({ type: 'block' as const, data: block, id: block.id, position: block.position })) : [];
+		items = [...linkItems, ...blockItems].sort((a, b) => a.position - b.position);
+	}
 
 	// Get link_ids from inactive blocks - these links should be hidden
 	$: hiddenLinkIds = new Set(
-		(blocks || [])
-			.filter(block => !block.is_active && block.link_id)
-			.map(block => block.link_id!)
+		Array.isArray(blocks) 
+			? blocks
+				.filter(block => !block.is_active && block.link_id)
+				.map(block => block.link_id!)
+			: []
 	);
 
 	$: selectedCount = selectedIds.size;
@@ -64,8 +66,6 @@
 	}
 
 	let showAddBlockDialog = false;
-	let showTextBlockDialog = false;
-	let editingTextBlock: Block | null = null;
 	let showCalendarView = false;
 	
 	let showCreateGroupDialog = false;
@@ -80,8 +80,9 @@
 	let duplicatingLink: Link | null = null;
 	let duplicatingFromGroupId: string = '';
 	
-	// Track which groups are expanded
+	// Track which groups are expanded (for both link and text groups)
 	let expandedGroupIds = new Set<string>();
+	let expandedTextGroupIds = new Set<string>();
 
 	onMount(async () => {
 		await loadData();
@@ -747,7 +748,7 @@
 		}
 		
 		// Find the block that contains this link group
-		const block = (blocks || []).find(b => b.link_id === id);
+		const block = Array.isArray(blocks) ? blocks.find(b => b.link_id === id) : undefined;
 		
 		console.log('🔄 Toggling group visibility:', { 
 			groupId: id, 
@@ -768,7 +769,7 @@
 			// Also toggle the block if it exists
 			if (block) {
 				await blocksApi.updateBlock(block.id, { is_active: !group.is_active }, $auth.token!);
-				blocks = (blocks || []).map(b => b.id === block.id ? {...b, is_active: !group.is_active} : b);
+				blocks = Array.isArray(blocks) ? blocks.map(b => b.id === block.id ? {...b, is_active: !group.is_active} : b) : [];
 			}
 			
 			console.log('✅ Group visibility toggled!', { 
@@ -800,16 +801,18 @@
 
 	function handleExpandGroup(event: CustomEvent) {
 		const groupId = event.detail;
-		// Close all other groups - only one expanded at a time
+		// Close ALL groups (both link and text groups)
 		expandedGroupIds.clear();
+		expandedTextGroupIds.clear();
 		expandedGroupIds.add(groupId);
-		expandedGroupIds = expandedGroupIds; // Trigger reactivity
+		expandedGroupIds = expandedGroupIds;
+		expandedTextGroupIds = expandedTextGroupIds;
 	}
 
 	function handleCollapseGroup(event: CustomEvent) {
 		const groupId = event.detail;
 		expandedGroupIds.delete(groupId);
-		expandedGroupIds = expandedGroupIds; // Trigger reactivity
+		expandedGroupIds = expandedGroupIds;
 	}
 
 	async function handleDeleteGroup(event: CustomEvent) {
@@ -844,9 +847,27 @@
 			return;
 		}
 		
-		// If text block, show the text dialog instead
+		// If text block, create text group and expand it
 		if (type === 'text') {
-			showTextBlockDialog = true;
+			try {
+				const newTextGroup = await blocksApi.createBlock({
+					block_type: 'text',
+					is_group: true,
+					group_title: 'New Text Group',
+					is_active: true
+				}, $auth.token!);
+				
+				blocks = Array.isArray(blocks) ? [...blocks, newTextGroup] : [newTextGroup];
+				
+				// Auto-expand the new group (close others)
+				expandedTextGroupIds.clear();
+				expandedTextGroupIds.add(newTextGroup.id);
+				expandedTextGroupIds = expandedTextGroupIds;
+				
+				toast.success('Text group created!');
+			} catch (error: any) {
+				toast.error(error.message || 'Failed to create text group');
+			}
 			return;
 		}
 		
@@ -882,66 +903,232 @@
 			}
 
 			const newBlock = await blocksApi.createBlock(blockData, $auth.token!);
-			blocks = [...blocks, newBlock];
+			blocks = Array.isArray(blocks) ? [...blocks, newBlock] : [newBlock];
 			toast.success('Block added!');
 		} catch (error: any) {
 			toast.error(error.message || 'Failed to add block');
 		}
 	}
 
-	async function handleSaveTextBlock(event: CustomEvent) {
-		const { content, fontSize, textAlign, isBold, isItalic, isUnderline, isStrikethrough, textColor, backgroundColor } = event.detail;
+	// Text group handlers
+	function handleExpandTextGroup(event: CustomEvent) {
+		const groupId = event.detail;
+		// Close ALL groups (both link and text groups)
+		expandedGroupIds.clear();
+		expandedTextGroupIds.clear();
+		expandedTextGroupIds.add(groupId);
+		expandedGroupIds = expandedGroupIds;
+		expandedTextGroupIds = expandedTextGroupIds;
+	}
+
+	function handleCollapseTextGroup(event: CustomEvent) {
+		const groupId = event.detail;
+		expandedTextGroupIds.delete(groupId);
+		expandedTextGroupIds = expandedTextGroupIds;
+	}
+
+	async function handleAddTextToGroup(event: CustomEvent) {
+		const { groupId, content } = event.detail;
 		
 		try {
-			const style = JSON.stringify({
-				fontSize,
-				textAlign,
-				isBold,
-				isItalic,
-				isUnderline,
-				isStrikethrough,
-				textColor,
-				backgroundColor
-			});
-
-			if (editingTextBlock) {
-				// Update existing block
-				const updatedData = {
-					content,
-					text_style: fontSize.startsWith('headline') ? 'heading' : 'paragraph',
-					style
-				};
-				await blocksApi.updateBlock(editingTextBlock.id, updatedData, $auth.token!);
-				blocks = blocks.map(b => b.id === editingTextBlock.id ? { ...b, ...updatedData } : b);
-				toast.success('Text block updated!');
-				editingTextBlock = null;
-			} else {
-				// Create new block
-				const newBlock = await blocksApi.createBlock({
-					block_type: 'text',
-					is_active: true,
-					content,
-					text_style: fontSize.startsWith('headline') ? 'heading' : 'paragraph',
-					style
-				}, $auth.token!);
-				blocks = [...blocks, newBlock];
-				toast.success('Text block added!');
-			}
+			const newTextBlock = await blocksApi.createBlock({
+				block_type: 'text',
+				parent_id: groupId,
+				is_group: false,
+				is_active: true,
+				content
+			}, $auth.token!);
+			
+			// Update the group's children
+			blocks = Array.isArray(blocks) ? blocks.map(b => {
+				if (b.id === groupId) {
+					return {
+						...b,
+						children: [...(b.children || []), newTextBlock]
+					};
+				}
+				return b;
+			}) : [];
+			
+			toast.success('Text added to group!');
 		} catch (error: any) {
-			toast.error(error.message || 'Failed to save text block');
+			toast.error(error.message || 'Failed to add text');
 		}
 	}
 
-	function handleEditTextBlock(event: CustomEvent) {
-		editingTextBlock = event.detail;
-		showTextBlockDialog = true;
+	async function handleUpdateGroupStyle(event: CustomEvent) {
+		const { groupId, style } = event.detail;
+		
+		console.log('handleUpdateGroupStyle called:', { groupId, style });
+		
+		try {
+			await blocksApi.updateBlock(groupId, { style: JSON.stringify(style) }, $auth.token!);
+			
+			// Update local state - create completely new array to force reactivity
+			const updatedBlocks = blocks.map(b => {
+				if (b.id === groupId) {
+					console.log('Updating block style:', { oldStyle: b.style, newStyle: JSON.stringify(style) });
+					// Create new object with spread to ensure Svelte detects change
+					return { ...b, style: JSON.stringify(style) };
+				}
+				return b;
+			});
+			
+			// Force reactivity with new array reference
+			blocks = [...updatedBlocks];
+			
+			console.log('Blocks after update:', blocks.find(b => b.id === groupId));
+			
+			// No toast for better UX (updates happen frequently)
+		} catch (error: any) {
+			console.error('handleUpdateGroupStyle error:', error);
+			toast.error(error.message || 'Failed to update style');
+		}
+	}
+
+	async function handleDeleteTextGroup(event: CustomEvent) {
+		const id = event.detail;
+		try {
+			await blocksApi.deleteBlock(id, $auth.token!);
+			blocks = Array.isArray(blocks) ? blocks.filter(b => b.id !== id) : [];
+			expandedTextGroupIds.delete(id);
+			expandedTextGroupIds = expandedTextGroupIds;
+			toast.success('Text group deleted!');
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to delete text group');
+		}
+	}
+
+	async function handleDeleteTextFromGroup(event: CustomEvent) {
+		const { groupId, textId } = event.detail;
+		try {
+			await blocksApi.deleteBlock(textId, $auth.token!);
+			
+			// Update group's children
+			blocks = Array.isArray(blocks) ? blocks.map(b => {
+				if (b.id === groupId && b.children) {
+					return {
+						...b,
+						children: b.children.filter(c => c.id !== textId)
+					};
+				}
+				return b;
+			}) : [];
+			
+			toast.success('Text deleted!');
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to delete text');
+		}
+	}
+
+	async function handleReorderTextsInGroup(event: CustomEvent) {
+		const { groupId, blockIds } = event.detail;
+		try {
+			await blocksApi.reorderGroupBlocks(groupId, blockIds, $auth.token!);
+			
+			// Update local state
+			blocks = blocks.map(b => {
+				if (b.id === groupId && b.children) {
+					const orderedChildren = blockIds.map((id: string, index: number) => {
+						const child = b.children!.find(c => c.id === id);
+						if (child) {
+							return { ...child, position: index };
+						}
+						return null;
+					}).filter(Boolean) as Block[];
+					return { ...b, children: orderedChildren };
+				}
+				return b;
+			});
+		} catch (error: any) {
+			toast.error(error.message || 'Failed to reorder texts');
+		}
+	}
+
+	async function handleEditTextInGroup(event: CustomEvent) {
+		const { groupId, textId, content } = event.detail;
+		try {
+			// Update the text block content
+			await blocksApi.updateBlock(textId, { content }, $auth.token!);
+			
+			// Update local state - find and update the text block in the group's children
+			blocks = blocks.map(block => {
+				if (block.id === groupId && block.children) {
+					return {
+						...block,
+						children: block.children.map(child =>
+							child.id === textId ? { ...child, content } : child
+						)
+					};
+				}
+				return block;
+			});
+			
+			toast.success('Text updated!');
+		} catch (error: any) {
+			console.error('handleEditTextInGroup error:', error);
+			toast.error(error.message || 'Failed to update text');
+		}
+	}
+	
+	async function handleToggleTextGroup(event: CustomEvent) {
+		const groupId = event.detail;
+		try {
+			const group = blocks.find(b => b.id === groupId);
+			if (!group) return;
+			
+			const newState = !group.is_active;
+			await blocksApi.updateBlock(groupId, { is_active: newState }, $auth.token!);
+			
+			blocks = blocks.map(b => 
+				b.id === groupId ? { ...b, is_active: newState } : b
+			);
+			
+			toast.success(newState ? 'Text group shown!' : 'Text group hidden!');
+		} catch (error: any) {
+			console.error('handleToggleTextGroup error:', error);
+			toast.error(error.message || 'Failed to toggle text group');
+		}
+	}
+	
+	async function handleToggleTextInGroup(event: CustomEvent) {
+		const { groupId, textId } = event.detail;
+		try {
+			// Find the text block
+			const group = blocks.find(b => b.id === groupId);
+			if (!group || !group.children) return;
+			
+			const textBlock = group.children.find(c => c.id === textId);
+			if (!textBlock) return;
+			
+			const newState = !textBlock.is_active;
+			await blocksApi.updateBlock(textId, { is_active: newState }, $auth.token!);
+			
+			// Update local state
+			blocks = blocks.map(block => {
+				if (block.id === groupId && block.children) {
+					return {
+						...block,
+						children: block.children.map(child =>
+							child.id === textId ? { ...child, is_active: newState } : child
+						)
+					};
+				}
+				return block;
+			});
+			
+			toast.success(newState ? 'Text shown!' : 'Text hidden!');
+		} catch (error: any) {
+			console.error('handleToggleTextInGroup error:', error);
+			toast.error(error.message || 'Failed to toggle text');
+		}
 	}
 
 	async function handleUpdateBlock(event: CustomEvent) {
 		const { id, ...data } = event.detail;
 		try {
 			await blocksApi.updateBlock(id, data, $auth.token!);
-			blocks = [...blocks.map(b => b.id === id ? { ...b, ...data } : b)];
+			blocks = Array.isArray(blocks) ? blocks.map(b => b.id === id ? { ...b, ...data } : b) : [];
 			toast.success('Block updated!');
 		} catch (error: any) {
 			toast.error(error.message || 'Failed to update block');
@@ -952,7 +1139,7 @@
 		const id = event.detail;
 		try {
 			await blocksApi.deleteBlock(id, $auth.token!);
-			blocks = [...blocks.filter(b => b.id !== id)];
+			blocks = Array.isArray(blocks) ? blocks.filter(b => b.id !== id) : [];
 			toast.success('Block deleted!');
 		} catch (error: any) {
 			toast.error(error.message || 'Failed to delete block');
@@ -971,12 +1158,12 @@
 
 	async function handleToggleBlock(event: CustomEvent) {
 		const id = event.detail;
-		const block = (blocks || []).find(b => b.id === id);
+		const block = Array.isArray(blocks) ? blocks.find(b => b.id === id) : undefined;
 		if (!block) return;
 		
 		try {
 			await blocksApi.updateBlock(id, { is_active: !block.is_active }, $auth.token!);
-			blocks = (blocks || []).map(b => b.id === id ? { ...b, is_active: !b.is_active } : b);
+			blocks = Array.isArray(blocks) ? blocks.map(b => b.id === id ? { ...b, is_active: !b.is_active } : b) : [];
 		} catch (error: any) {
 			toast.error('Failed to toggle block');
 		}
@@ -984,7 +1171,7 @@
 
 	async function handleDuplicateBlock(event: CustomEvent) {
 		const id = event.detail;
-		const block = (blocks || []).find(b => b.id === id);
+		const block = Array.isArray(blocks) ? blocks.find(b => b.id === id) : undefined;
 		if (!block) return;
 		
 		try {
@@ -998,12 +1185,12 @@
 			links = links.map(l => 
 				l.position >= targetPos ? { ...l, position: l.position + 1 } : l
 			);
-			blocks = (blocks || []).map(b => 
+			blocks = Array.isArray(blocks) ? blocks.map(b => 
 				b.position >= targetPos ? { ...b, position: b.position + 1 } : b
-			);
+			) : [];
 			
 			// Add new block with correct position
-			blocks = [...(blocks || []), { ...newBlock, position: targetPos }];
+			blocks = Array.isArray(blocks) ? [...blocks, { ...newBlock, position: targetPos }] : [{ ...newBlock, position: targetPos }];
 			
 			// Reorder on backend
 			const newItems = [
@@ -1060,8 +1247,8 @@
 				if (item.type === 'link') {
 					const linkIndex = links.findIndex(l => l.id === item.id);
 					if (linkIndex !== -1) links[linkIndex].position = idx;
-				} else {
-					const blockIndex = (blocks || []).findIndex(b => b.id === item.id);
+				} else if (Array.isArray(blocks)) {
+					const blockIndex = blocks.findIndex(b => b.id === item.id);
 					if (blockIndex !== -1) blocks[blockIndex].position = idx;
 				}
 			});
@@ -1080,11 +1267,11 @@
 	$: displayProfile = profile || { 
 		username: 'loading...', 
 		bio: '', 
-		avatar_url: null,
+		avatar_url: undefined,
 		id: '',
 		user_id: '',
 		theme_config: {},
-		custom_css: null,
+		custom_css: undefined,
 		created_at: new Date(),
 		updated_at: new Date()
 	};
@@ -1281,17 +1468,31 @@
 									on:togglelinkvisibility={handleToggleLinkVisibility}
 									on:updatelayout={handleUpdateGroupLayout}
 								/>
-							{:else if item.data.block_type === 'text'}
+							{:else if item.type === 'block' && item.data.is_group && item.data.block_type === 'text'}
+								<TextGroupCard 
+									group={item.data}
+									expanded={expandedTextGroupIds.has(item.data.id)}
+									on:expand={handleExpandTextGroup}
+									on:collapse={handleCollapseTextGroup}
+									on:delete={handleDeleteTextGroup}
+									on:addtext={handleAddTextToGroup}
+									on:updatestyle={handleUpdateGroupStyle}
+									on:edittext={handleEditTextInGroup}
+									on:deletetext={handleDeleteTextFromGroup}
+									on:reordertexts={handleReorderTextsInGroup}
+									on:togglevisibility={handleToggleTextGroup}
+									on:toggletextvisibility={handleToggleTextInGroup}
+								/>
+							{:else if item.type === 'block' && item.data.block_type === 'text' && !item.data.is_group}
 								<TextBlock 
 									block={item.data}
 									selected={selectedIds.has(item.id)}
-									on:edit={handleEditTextBlock}
 									on:delete={handleDeleteBlock}
 									on:select={handleSelectBlock}
 									on:toggle={handleToggleBlock}
 									on:duplicate={handleDuplicateBlock}
 								/>
-							{:else if item.data.block_type === 'image'}
+							{:else if item.type === 'block' && item.data.block_type === 'image'}
 								<ImageBlock 
 									block={item.data}
 									selected={selectedIds.has(item.id)}
@@ -1299,7 +1500,7 @@
 									on:delete={handleDeleteBlock}
 									on:select={handleSelectBlock}
 								/>
-							{:else if item.data.block_type === 'video'}
+							{:else if item.type === 'block' && item.data.block_type === 'video'}
 								<VideoBlock 
 									block={item.data}
 									selected={selectedIds.has(item.id)}
@@ -1307,7 +1508,7 @@
 									on:delete={handleDeleteBlock}
 									on:select={handleSelectBlock}
 								/>
-							{:else if item.data.block_type === 'social'}
+							{:else if item.type === 'block' && item.data.block_type === 'social'}
 								<SocialBlock 
 									block={item.data}
 									selected={selectedIds.has(item.id)}
@@ -1315,14 +1516,14 @@
 									on:delete={handleDeleteBlock}
 									on:select={handleSelectBlock}
 								/>
-							{:else if item.data.block_type === 'divider'}
+							{:else if item.type === 'block' && item.data.block_type === 'divider'}
 								<DividerBlock 
 									block={item.data}
 									selected={selectedIds.has(item.id)}
 									on:delete={handleDeleteBlock}
 									on:select={handleSelectBlock}
 								/>
-							{:else if item.data.block_type === 'email'}
+							{:else if item.type === 'block' && item.data.block_type === 'email'}
 								<EmailCollectorBlock 
 									block={item.data}
 									selected={selectedIds.has(item.id)}
@@ -1330,7 +1531,7 @@
 									on:delete={handleDeleteBlock}
 									on:select={handleSelectBlock}
 								/>
-							{:else if item.data.block_type === 'embed'}
+							{:else if item.type === 'block' && item.data.block_type === 'embed'}
 								<EmbedBlock 
 									block={item.data}
 									selected={selectedIds.has(item.id)}
@@ -1491,14 +1692,6 @@
 
 <!-- Add Block Dialog -->
 <AddBlockDialog bind:open={showAddBlockDialog} on:select={handleAddBlock} />
-
-<!-- Text Block Dialog -->
-<TextBlockDialog 
-	bind:open={showTextBlockDialog} 
-	editingBlock={editingTextBlock}
-	on:save={handleSaveTextBlock}
-	on:close={() => editingTextBlock = null}
-/>
 
 <!-- Calendar View -->
 {#if showCalendarView}

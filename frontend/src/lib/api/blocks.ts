@@ -42,6 +42,9 @@ export const blocksApi = {
 	reorderBlocks: (blockIds: string[], token: string) =>
 		api.put('/blocks/reorder', { block_ids: blockIds }, token),
 	
+	reorderGroupBlocks: (groupId: string, blockIds: string[], token: string) =>
+		api.put(`/blocks/groups/${groupId}/reorder`, { block_ids: blockIds }, token),
+	
 	bulkDelete: (blockIds: string[], token: string) =>
 		api.post('/blocks/bulk-delete', { block_ids: blockIds }, token)
 };
