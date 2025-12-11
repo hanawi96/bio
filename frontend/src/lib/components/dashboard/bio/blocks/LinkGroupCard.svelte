@@ -297,16 +297,28 @@
 		<!-- Header -->
 		<div class="border-b border-gray-100 px-6 py-4">
 			<div class="flex items-center justify-between mb-4">
-				<button
-					onclick={() => dispatch('collapse', group.id)}
-					class="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-				>
-					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-					</svg>
-					<span class="text-sm font-medium">Back</span>
-				</button>
+				<!-- Left side: Back button + Icon + Title -->
+				<div class="flex items-center gap-3">
+					<button
+						onclick={() => dispatch('collapse', group.id)}
+						class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+						title="Back"
+					>
+						<svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+						</svg>
+					</button>
+					
+					<div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+						<svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+						</svg>
+					</div>
+					
+					<h2 class="text-xl font-bold text-gray-900">{group.group_title || 'Links'}</h2>
+				</div>
 
+				<!-- Right side: Action buttons -->
 				<div class="flex items-center gap-3">
 					<button class="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Help">
 						<svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -350,15 +362,6 @@
 						{/if}
 					</button>
 				</div>
-			</div>
-
-			<div class="flex items-center gap-3 mb-4">
-				<div class="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center">
-					<svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
-					</svg>
-				</div>
-				<h2 class="text-2xl font-bold text-gray-900">{group.group_title || 'Links'}</h2>
 			</div>
 
 			<!-- Tabs -->

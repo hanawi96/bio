@@ -16,6 +16,43 @@
 			profile = data.profile;
 			links = data.links || [];
 			blocks = data.blocks || [];
+			
+			console.log('🌐 [Public Page] Data loaded:', {
+				linksCount: links.length,
+				blocksCount: blocks.length,
+				links: links.map(l => ({ id: l.id, title: l.title || l.group_title, isGroup: l.is_group, layout: l.group_layout, children: l.children?.length }))
+			});
+
+			// Wait for DOM to render then check carousels
+			setTimeout(() => {
+				const carousels = document.querySelectorAll('.overflow-x-scroll');
+				console.log('🎯 [Public Page] Found carousels:', carousels.length);
+				
+				carousels.forEach((carousel, idx) => {
+					console.log(`📊 [Public Carousel ${idx}] Properties:`, {
+						scrollWidth: carousel.scrollWidth,
+						clientWidth: carousel.clientWidth,
+						overflowX: getComputedStyle(carousel).overflowX,
+						canScroll: carousel.scrollWidth > carousel.clientWidth
+					});
+
+					carousel.addEventListener('scroll', (e) => {
+						console.log(`📜 [Public Carousel ${idx}] Scrolling:`, {
+							scrollLeft: carousel.scrollLeft,
+							scrollWidth: carousel.scrollWidth,
+							clientWidth: carousel.clientWidth
+						});
+					});
+
+					carousel.addEventListener('touchstart', () => {
+						console.log(`👆 [Public Carousel ${idx}] Touch started`);
+					});
+
+					carousel.addEventListener('touchmove', () => {
+						console.log(`👆 [Public Carousel ${idx}] Touch moving`);
+					});
+				});
+			}, 500);
 		} catch (err: any) {
 			error = err.message || 'Profile not found';
 		} finally {
@@ -144,6 +181,13 @@
 									if (!a.is_pinned && b.is_pinned) return 1;
 									return a.position - b.position;
 								})}
+							{console.log('🌐 [Public Page] Group Link:', {
+								id: link.id,
+								title: link.group_title,
+								layout: link.group_layout,
+								children: sortedChildren.length,
+								childrenData: sortedChildren
+							})}
 							<div class="space-y-3">
 								{#if link.group_layout === 'grid'}
 									{@const gridCols = link.grid_columns || 2}
@@ -183,35 +227,96 @@
 									</div>
 								{:else if link.group_layout === 'carousel'}
 									{@const textSize = link.text_size || 'M'}
-									<div class="overflow-x-auto -mx-4 px-4">
-										<div class="flex gap-3 pb-2">
-											{#each sortedChildren as child}
-												<a
-													href={child.url}
-													target="{child.open_in_new_tab ? '_blank' : '_self'}"
-													rel="noopener noreferrer"
-													class="block bg-white hover:bg-gray-50 rounded-xl p-3 transition-all flex-shrink-0 w-40"
-													class:shadow-sm={link.show_shadow}
-													class:hover:shadow-md={link.show_shadow}
-													class:border-2={link.show_outline}
-													class:border-gray-200={link.show_outline}
-												>
-													{#if child.thumbnail_url}
-														<img src={child.thumbnail_url} alt={child.title} class="w-full h-24 object-cover rounded-lg mb-2"/>
-													{/if}
-													<p class="font-medium text-gray-900 truncate"
-														class:text-xs={textSize === 'S'}
-														class:text-sm={textSize === 'M'}
-														class:text-base={textSize === 'L'}
-														class:text-lg={textSize === 'XL'}
-														style="text-align: {link.text_alignment || 'center'}"
-													>{child.title}</p>
-													{#if link.show_description !== false && child.description}
-														<p class="text-xs text-gray-500 mt-1 line-clamp-2" style="text-align: {link.text_alignment || 'center'}">{child.description}</p>
-													{/if}
-												</a>
-											{/each}
+									{@const aspectRatio = link.grid_aspect_ratio || '3:2'}
+									{@const carouselId = `public-carousel-${link.id}`}
+									{@const getAspectStyle = (ratio) => {
+										const map = { '1:1': '1/1', '3:2': '3/2', '16:9': '16/9', '3:1': '3/1', '2:3': '2/3' };
+										return `aspect-ratio: ${map[ratio] || '3/2'}`;
+									}}
+									{console.log('🎠 [Public Carousel] Rendering:', {
+										sortedChildren: sortedChildren.length,
+										textSize,
+										aspectRatio,
+										children: sortedChildren.map(c => ({ id: c.id, title: c.title, url: c.url, thumbnail: c.thumbnail_url }))
+									})}
+									<div class="relative group">
+										<!-- Carousel Container -->
+										<div id={carouselId} class="overflow-x-scroll snap-x snap-mandatory scrollbar-hide" style="scroll-behavior: smooth;">
+											<div class="flex gap-3 px-4">
+												{#each sortedChildren as child, idx}
+													{console.log(`🔖 [Public Card ${idx}]:`, child.title)}
+													<a
+														href={child.url}
+														target="{child.open_in_new_tab ? '_blank' : '_self'}"
+														rel="noopener noreferrer"
+														class="block bg-white hover:bg-gray-50 rounded-xl p-4 transition-all flex-shrink-0 snap-center w-[85%]"
+														class:shadow-sm={link.show_shadow}
+														class:hover:shadow-md={link.show_shadow}
+														class:border-2={link.show_outline}
+														class:border-gray-200={link.show_outline}
+													>
+														{#if child.thumbnail_url}
+															<img src={child.thumbnail_url} alt={child.title} class="w-full object-cover rounded-lg mb-3" style={getAspectStyle(aspectRatio)}/>
+														{/if}
+														<p class="font-medium text-gray-900 mb-1"
+															class:text-xs={textSize === 'S'}
+															class:text-sm={textSize === 'M'}
+															class:text-base={textSize === 'L'}
+															class:text-lg={textSize === 'XL'}
+															style="text-align: {link.text_alignment || 'center'}"
+														>{child.title}</p>
+														{#if link.show_description !== false && child.description}
+															<p class="text-xs text-gray-500 line-clamp-2" style="text-align: {link.text_alignment || 'center'}">{child.description}</p>
+														{/if}
+													</a>
+												{/each}
+											</div>
 										</div>
+
+										<!-- Navigation Arrows -->
+										{#if sortedChildren.length > 1}
+											<button
+												onclick={() => {
+													const el = document.getElementById(carouselId);
+													if (el) el.scrollBy({ left: -el.clientWidth * 0.85, behavior: 'smooth' });
+												}}
+												class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 hover:bg-white rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+												aria-label="Previous"
+											>
+												<svg class="w-5 h-5 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+												</svg>
+											</button>
+											<button
+												onclick={() => {
+													const el = document.getElementById(carouselId);
+													if (el) el.scrollBy({ left: el.clientWidth * 0.85, behavior: 'smooth' });
+												}}
+												class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 hover:bg-white rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+												aria-label="Next"
+											>
+												<svg class="w-5 h-5 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+												</svg>
+											</button>
+
+											<!-- Dots Indicator -->
+											<div class="flex justify-center gap-1.5 mt-3">
+												{#each sortedChildren as _, idx}
+													<button
+														onclick={() => {
+															const el = document.getElementById(carouselId);
+															if (el) {
+																const cardWidth = el.clientWidth * 0.85;
+																el.scrollTo({ left: cardWidth * idx, behavior: 'smooth' });
+															}
+														}}
+														class="w-1.5 h-1.5 rounded-full bg-gray-300 hover:bg-gray-500 transition-colors cursor-pointer"
+														aria-label={`Go to slide ${idx + 1}`}
+													></button>
+												{/each}
+											</div>
+										{/if}
 									</div>
 								{:else if link.group_layout === 'card'}
 									<!-- Card layout -->
@@ -361,3 +466,14 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	.scrollbar-hide {
+		-ms-overflow-style: none;
+		scrollbar-width: none;
+		-webkit-overflow-scrolling: touch;
+	}
+	.scrollbar-hide::-webkit-scrollbar {
+		display: none;
+	}
+</style>

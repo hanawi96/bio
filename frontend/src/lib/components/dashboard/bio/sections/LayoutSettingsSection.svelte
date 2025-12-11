@@ -193,8 +193,11 @@
 				{/each}
 			</div>
 		</div>
+	{/if}
 
-		<div class="mt-4">
+	<!-- Aspect Ratio Section (for Grid and Carousel layouts) -->
+	{#if layout === 'grid' || layout === 'carousel'}
+		<div class:mt-4={layout === 'grid'}>
 			<h3 class="text-base font-semibold text-gray-900 mb-3">Aspect ratio</h3>
 			<div class="grid grid-cols-3 gap-2">
 				{#each [
