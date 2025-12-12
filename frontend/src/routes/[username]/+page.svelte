@@ -385,16 +385,26 @@
 										<div id={carouselId} class="overflow-x-scroll snap-x snap-mandatory scrollbar-hide" style="scroll-behavior: smooth;">
 											<div class="flex gap-3 px-4">
 												{#each sortedChildren as child, idx}
-													{console.log(`🔖 [Public Card ${idx}]:`, child.title)}
+													{@const hasCustomBg = link.has_card_background !== undefined ? link.has_card_background : true}
+													{@const bgColor = link.card_background_color || '#ffffff'}
+													{@const bgOpacity = link.card_background_opacity !== undefined ? link.card_background_opacity : 100}
+													{@const borderRadius = link.card_border_radius !== undefined ? link.card_border_radius : 12}
+													{@const r = parseInt(bgColor.slice(1,3), 16)}
+													{@const g = parseInt(bgColor.slice(3,5), 16)}
+													{@const b = parseInt(bgColor.slice(5,7), 16)}
+													{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px;` : ''}
 													<a
 														href={child.url}
 														target="{child.open_in_new_tab ? '_blank' : '_self'}"
 														rel="noopener noreferrer"
-														class="block bg-white hover:bg-gray-50 rounded-xl p-4 transition-all flex-shrink-0 snap-center w-[85%]"
+														class="block hover:bg-gray-50 p-4 transition-all flex-shrink-0 snap-center w-[85%]"
+														class:bg-white={!hasCustomBg}
+														class:rounded-xl={!hasCustomBg}
 														class:shadow-sm={link.show_shadow}
 														class:hover:shadow-md={link.show_shadow}
 														class:border-2={link.show_outline}
 														class:border-gray-200={link.show_outline}
+														style={bgStyle}
 													>
 														{#if child.thumbnail_url}
 															<img src={child.thumbnail_url} alt={child.title} class="w-full object-cover rounded-lg mb-3" style={getAspectStyle(aspectRatio)}/>
@@ -468,15 +478,26 @@
 									<div class="space-y-3">
 										{#each sortedChildren as child, index}
 											{@const shouldReverse = imagePlacement === 'right' || (imagePlacement === 'alternating' && index % 2 === 0)}
+											{@const hasCustomBg = link.has_card_background !== undefined ? link.has_card_background : true}
+											{@const bgColor = link.card_background_color || '#ffffff'}
+											{@const bgOpacity = link.card_background_opacity !== undefined ? link.card_background_opacity : 100}
+											{@const borderRadius = link.card_border_radius !== undefined ? link.card_border_radius : 12}
+											{@const r = parseInt(bgColor.slice(1,3), 16)}
+											{@const g = parseInt(bgColor.slice(3,5), 16)}
+											{@const b = parseInt(bgColor.slice(5,7), 16)}
+											{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px;` : ''}
 											<a
 												href={child.url}
 												target="{child.open_in_new_tab ? '_blank' : '_self'}"
 												rel="noopener noreferrer"
-												class="block bg-white hover:bg-gray-50 rounded-xl overflow-hidden transition-all"
+												class="block hover:bg-gray-50 overflow-hidden transition-all"
+												class:bg-white={!hasCustomBg}
+												class:rounded-xl={!hasCustomBg}
 												class:shadow-sm={link.show_shadow}
 												class:hover:shadow-md={link.show_shadow}
 												class:border-2={link.show_outline}
 												class:border-gray-200={link.show_outline}
+												style={bgStyle}
 											>
 												<div class="flex items-stretch" class:flex-row-reverse={shouldReverse}>
 													{#if child.thumbnail_url}
@@ -506,15 +527,26 @@
 									{@const imageShape = link.image_shape || 'square'}
 									<div class="space-y-2">
 										{#each sortedChildren as child}
+											{@const hasCustomBg = link.has_card_background !== undefined ? link.has_card_background : true}
+											{@const bgColor = link.card_background_color || '#ffffff'}
+											{@const bgOpacity = link.card_background_opacity !== undefined ? link.card_background_opacity : 100}
+											{@const borderRadius = link.card_border_radius !== undefined ? link.card_border_radius : 12}
+											{@const r = parseInt(bgColor.slice(1,3), 16)}
+											{@const g = parseInt(bgColor.slice(3,5), 16)}
+											{@const b = parseInt(bgColor.slice(5,7), 16)}
+											{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px;` : ''}
 											<a
 												href={child.url}
 												target="{child.open_in_new_tab ? '_blank' : '_self'}"
 												rel="noopener noreferrer"
-												class="block bg-white hover:bg-gray-50 rounded-xl p-3 transition-all"
+												class="block hover:bg-gray-50 p-3 transition-all"
+												class:bg-white={!hasCustomBg}
+												class:rounded-xl={!hasCustomBg}
 												class:shadow-sm={link.show_shadow}
 												class:hover:shadow-md={link.show_shadow}
 												class:border-2={link.show_outline}
 												class:border-gray-200={link.show_outline}
+												style={bgStyle}
 											>
 												<div class="flex items-center gap-3">
 													{#if child.thumbnail_url}

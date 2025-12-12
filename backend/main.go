@@ -75,6 +75,34 @@ func main() {
 		log.Println("✅ Migration: show_description column ready")
 	}
 
+	// Add link card background columns (safe - uses IF NOT EXISTS)
+	_, err = db.Exec(`
+		ALTER TABLE links ADD COLUMN IF NOT EXISTS has_card_background BOOLEAN DEFAULT true NOT NULL;
+		ALTER TABLE links ADD COLUMN IF NOT EXISTS card_background_color VARCHAR(7) DEFAULT '#ffffff';
+		ALTER TABLE links ADD COLUMN IF NOT EXISTS card_background_opacity INT DEFAULT 100;
+		ALTER TABLE links ADD COLUMN IF NOT EXISTS card_border_radius INT DEFAULT 12;
+	`)
+	if err != nil {
+		log.Println("⚠️ Card background migration warning:", err)
+	} else {
+		log.Println("✅ Migration: card background columns ready")
+	}
+
+	// Add constraints for card background columns
+	_, err = db.Exec(`
+		ALTER TABLE links DROP CONSTRAINT IF EXISTS chk_links_card_background_opacity;
+		ALTER TABLE links DROP CONSTRAINT IF EXISTS chk_links_card_border_radius;
+		ALTER TABLE links ADD CONSTRAINT chk_links_card_background_opacity 
+		  CHECK (card_background_opacity >= 0 AND card_background_opacity <= 100);
+		ALTER TABLE links ADD CONSTRAINT chk_links_card_border_radius 
+		  CHECK (card_border_radius >= 0 AND card_border_radius <= 32);
+	`)
+	if err != nil {
+		log.Println("⚠️ Card background constraints warning:", err)
+	} else {
+		log.Println("✅ Migration: card background constraints ready")
+	}
+
 	// Create Fiber app
 	app := fiber.New(fiber.Config{
 		AppName:      "LinkBio API",

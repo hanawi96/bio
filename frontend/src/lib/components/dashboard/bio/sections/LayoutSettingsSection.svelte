@@ -459,4 +459,117 @@
 			</button>
 		</label>
 	</div>
+
+	<!-- Divider -->
+	<div class="border-t border-gray-200 my-6"></div>
+
+	<!-- Link Card Background Section -->
+	<div class="space-y-4">
+		<h3 class="text-base font-semibold text-gray-900">Link Card Background</h3>
+		
+		<!-- Enable Background -->
+		<div class="flex items-center justify-between">
+			<label class="text-sm font-medium text-gray-700">Enable Custom Background</label>
+			<button
+				type="button"
+				onclick={() => dispatch('update', { groupId: group.id, has_card_background: !(group.has_card_background || false) })}
+				class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+				class:bg-emerald-600={group.has_card_background}
+				class:bg-gray-300={!group.has_card_background}
+			>
+				<span
+					class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
+					class:translate-x-6={group.has_card_background}
+					class:translate-x-1={!group.has_card_background}
+				></span>
+			</button>
+		</div>
+
+		{#if group.has_card_background}
+			<!-- Background Color -->
+			<div>
+				<label class="text-sm font-medium text-gray-700 mb-2 block">Background Color</label>
+				<div class="space-y-3">
+					<div class="flex gap-3 items-center">
+						<input 
+							type="color" 
+							value={group.card_background_color || '#ffffff'}
+							onchange={(e) => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: e.currentTarget.value })}
+							class="w-10 h-10 rounded-full border-2 border-gray-200 cursor-pointer overflow-hidden" 
+						/>
+						<span class="text-sm text-gray-600 font-mono">{group.card_background_color || '#ffffff'}</span>
+					</div>
+					
+					<!-- Color Presets -->
+					<div class="flex gap-2 flex-wrap">
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#ffffff' })} class="w-7 h-7 rounded-full border-2 bg-white hover:scale-110 transition-transform" title="White"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#f3f4f6' })} class="w-7 h-7 rounded-full border-2 bg-gray-100 hover:scale-110 transition-transform" title="Light Gray"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#000000' })} class="w-7 h-7 rounded-full border-2 bg-black hover:scale-110 transition-transform" title="Black"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#3b82f6' })} class="w-7 h-7 rounded-full border-2 bg-blue-500 hover:scale-110 transition-transform" title="Blue"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#8b5cf6' })} class="w-7 h-7 rounded-full border-2 bg-purple-500 hover:scale-110 transition-transform" title="Purple"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#10b981' })} class="w-7 h-7 rounded-full border-2 bg-green-500 hover:scale-110 transition-transform" title="Green"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#ef4444' })} class="w-7 h-7 rounded-full border-2 bg-red-500 hover:scale-110 transition-transform" title="Red"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#f59e0b' })} class="w-7 h-7 rounded-full border-2 bg-amber-500 hover:scale-110 transition-transform" title="Amber"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#ec4899' })} class="w-7 h-7 rounded-full border-2 bg-pink-500 hover:scale-110 transition-transform" title="Pink"></button>
+					</div>
+				</div>
+			</div>
+
+			<!-- Opacity -->
+			<div>
+				<label class="text-sm font-medium text-gray-700 mb-2 block">Opacity: {group.card_background_opacity || 100}%</label>
+				<input 
+					type="range" 
+					min="0" 
+					max="100" 
+					value={group.card_background_opacity || 100}
+					oninput={(e) => dispatch('update', { groupId: group.id, has_card_background: true, card_background_opacity: parseInt(e.currentTarget.value) })}
+					class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+				/>
+			</div>
+
+			<!-- Border Radius -->
+			<div>
+				<label class="text-sm font-medium text-gray-700 mb-2 block">Border Radius: {group.card_border_radius || 12}px</label>
+				<input 
+					type="range" 
+					min="0" 
+					max="32" 
+					value={group.card_border_radius || 12}
+					oninput={(e) => dispatch('update', { groupId: group.id, has_card_background: true, card_border_radius: parseInt(e.currentTarget.value) })}
+					class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+				/>
+				<div class="flex gap-2 mt-2">
+					<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_border_radius: 0 })} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">Sharp</button>
+					<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_border_radius: 8 })} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">Small</button>
+					<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_border_radius: 12 })} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">Medium</button>
+					<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_border_radius: 16 })} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">Large</button>
+					<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_border_radius: 24 })} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">XL</button>
+				</div>
+			</div>
+		{/if}
+	</div>
 </div>
+
+<style>
+	/* Remove default browser styling from color input to make color fill the entire circle */
+	input[type="color"] {
+		padding: 0;
+		background: none;
+	}
+	
+	input[type="color"]::-webkit-color-swatch-wrapper {
+		padding: 0;
+		border: none;
+	}
+	
+	input[type="color"]::-webkit-color-swatch {
+		border: none;
+		border-radius: 50%;
+	}
+	
+	input[type="color"]::-moz-color-swatch {
+		border: none;
+		border-radius: 50%;
+	}
+</style>

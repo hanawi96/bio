@@ -864,15 +864,13 @@
 	async function handleUpdateGroupLayout(event: CustomEvent) {
 		const { groupId, ...settings } = event.detail;
 		
-		// Optimistic update - update local state immediately
+		// Update group only - children will inherit settings when rendering
 		links = links.map(l => l.id === groupId ? { ...l, ...settings } : l);
 		allLinks = allLinks.map(l => l.id === groupId ? { ...l, ...settings } : l);
 		
 		try {
 			await linksApi.updateLink(groupId, settings, $auth.token!);
-			// No need to update again - optimistic update is sufficient
 		} catch (error: any) {
-			// Reload to revert optimistic update on error
 			await loadData();
 		}
 	}
