@@ -396,7 +396,7 @@ func (r *BlockRepository) DuplicateGroup(userID string, groupID string) (*Block,
 		JOIN profiles p ON b.profile_id = p.id
 		WHERE b.id = $1 AND p.user_id = $2 AND b.is_group = true
 	`
-	
+
 	var socialLinksJSON []byte
 	err = tx.QueryRow(query, groupID, userID).Scan(
 		&originalGroup.ID, &originalGroup.ProfileID, &originalGroup.ParentID, &originalGroup.IsGroup,
@@ -410,7 +410,7 @@ func (r *BlockRepository) DuplicateGroup(userID string, groupID string) (*Block,
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if socialLinksJSON != nil {
 		json.Unmarshal(socialLinksJSON, &originalGroup.SocialLinks)
 	}
@@ -430,7 +430,7 @@ func (r *BlockRepository) DuplicateGroup(userID string, groupID string) (*Block,
 	if originalGroup.GroupTitle != nil {
 		newTitle = *originalGroup.GroupTitle + " (Copy)"
 	}
-	
+
 	insertQuery := `
 		INSERT INTO blocks (profile_id, is_group, group_title, group_layout, grid_columns, grid_aspect_ratio,
 		                    block_type, position, is_active, style)
@@ -439,7 +439,7 @@ func (r *BlockRepository) DuplicateGroup(userID string, groupID string) (*Block,
 		          block_type, position, is_active, content, text_style, style, image_url, alt_text, video_url,
 		          social_links, divider_style, placeholder, embed_url, embed_type, created_at, updated_at
 	`
-	
+
 	err = tx.QueryRow(insertQuery, originalGroup.ProfileID, newTitle, originalGroup.GroupLayout,
 		originalGroup.GridColumns, originalGroup.GridAspectRatio, originalGroup.BlockType,
 		maxPosition+1, originalGroup.Style).Scan(
@@ -453,7 +453,7 @@ func (r *BlockRepository) DuplicateGroup(userID string, groupID string) (*Block,
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if socialLinksJSON != nil {
 		json.Unmarshal(socialLinksJSON, &newGroup.SocialLinks)
 	}

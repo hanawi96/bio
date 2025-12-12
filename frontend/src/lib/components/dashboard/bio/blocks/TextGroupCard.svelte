@@ -29,33 +29,101 @@
 	let titleInputRef: HTMLInputElement | null = null;
 	let isSavingTitle = false;
 	
-	// Group style from parent block
-	$: groupStyle = (() => {
+	// Group style from parent block - using let instead of $: for mutability
+	let groupStyle = {
+		textAlign: 'left',
+		fontSize: 'text-medium',
+		textColor: '#000000',
+		isBold: false,
+		isItalic: false,
+		hasBackground: false,
+		backgroundColor: '#ffffff',
+		backgroundOpacity: 90,
+		borderRadius: 12,
+		padding: 16,
+		shadow: 'none',
+		hasBorder: false,
+		borderColor: '#e5e7eb',
+		borderWidth: 1
+	};
+	
+	// Parse and update groupStyle whenever group.style changes
+	$: {
 		try {
 			if (!group.style) {
-				return {
+				groupStyle = {
 					textAlign: 'left',
 					fontSize: 'text-medium',
 					textColor: '#000000',
 					isBold: false,
-					isItalic: false
+					isItalic: false,
+					hasBackground: false,
+					backgroundColor: '#ffffff',
+					backgroundOpacity: 90,
+					borderRadius: 12,
+					padding: 16,
+					shadow: 'none',
+					hasBorder: false,
+					borderColor: '#e5e7eb',
+					borderWidth: 1
+				};
+			} else if (typeof group.style === 'string') {
+				const parsed = JSON.parse(group.style);
+				groupStyle = {
+					textAlign: parsed.textAlign || 'left',
+					fontSize: parsed.fontSize || 'text-medium',
+					textColor: parsed.textColor || '#000000',
+					isBold: parsed.isBold || false,
+					isItalic: parsed.isItalic || false,
+					hasBackground: parsed.hasBackground || false,
+					backgroundColor: parsed.backgroundColor || '#ffffff',
+					backgroundOpacity: parsed.backgroundOpacity !== undefined ? parsed.backgroundOpacity : 90,
+					borderRadius: parsed.borderRadius !== undefined ? parsed.borderRadius : 12,
+					padding: parsed.padding || 16,
+					shadow: parsed.shadow || 'none',
+					hasBorder: parsed.hasBorder || false,
+					borderColor: parsed.borderColor || '#e5e7eb',
+					borderWidth: parsed.borderWidth || 1
+				};
+			} else {
+				const style = group.style as any;
+				groupStyle = {
+					textAlign: style.textAlign || 'left',
+					fontSize: style.fontSize || 'text-medium',
+					textColor: style.textColor || '#000000',
+					isBold: style.isBold || false,
+					isItalic: style.isItalic || false,
+					hasBackground: style.hasBackground || false,
+					backgroundColor: style.backgroundColor || '#ffffff',
+					backgroundOpacity: style.backgroundOpacity !== undefined ? style.backgroundOpacity : 90,
+					borderRadius: style.borderRadius !== undefined ? style.borderRadius : 12,
+					padding: style.padding || 16,
+					shadow: style.shadow || 'none',
+					hasBorder: style.hasBorder || false,
+					borderColor: style.borderColor || '#e5e7eb',
+					borderWidth: style.borderWidth || 1
 				};
 			}
-			if (typeof group.style === 'string') {
-				return JSON.parse(group.style);
-			}
-			return group.style;
 		} catch (e) {
 			console.error('Failed to parse group.style:', group.style, e);
-			return {
+			groupStyle = {
 				textAlign: 'left',
 				fontSize: 'text-medium',
 				textColor: '#000000',
 				isBold: false,
-				isItalic: false
+				isItalic: false,
+				hasBackground: false,
+				backgroundColor: '#ffffff',
+				backgroundOpacity: 90,
+				borderRadius: 12,
+				padding: 16,
+				shadow: 'none',
+				hasBorder: false,
+				borderColor: '#e5e7eb',
+				borderWidth: 1
 			};
 		}
-	})();
+	}
 	
 	let newTextContent = '';
 
@@ -158,15 +226,35 @@
 	
 	// Presets
 	const presets = {
-		default: { textAlign: 'left', fontSize: 'text-medium', textColor: '#000000', isBold: false, isItalic: false },
-		faq: { textAlign: 'left', fontSize: 'text-medium', textColor: '#1f2937', isBold: true, isItalic: false },
-		quote: { textAlign: 'center', fontSize: 'text-large', textColor: '#4b5563', isBold: false, isItalic: true },
-		feature: { textAlign: 'left', fontSize: 'text-medium', textColor: '#1f2937', isBold: true, isItalic: false }
+		default: { 
+			textAlign: 'left', fontSize: 'text-medium', textColor: '#000000', isBold: false, isItalic: false,
+			hasBackground: false, backgroundColor: '#ffffff', backgroundOpacity: 90, borderRadius: 12, padding: 16, shadow: 'none', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+		},
+		faq: { 
+			textAlign: 'left', fontSize: 'text-medium', textColor: '#1f2937', isBold: true, isItalic: false,
+			hasBackground: false, backgroundColor: '#ffffff', backgroundOpacity: 90, borderRadius: 12, padding: 16, shadow: 'none', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+		},
+		quote: { 
+			textAlign: 'center', fontSize: 'text-large', textColor: '#4b5563', isBold: false, isItalic: true,
+			hasBackground: false, backgroundColor: '#ffffff', backgroundOpacity: 90, borderRadius: 12, padding: 16, shadow: 'none', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+		},
+		feature: { 
+			textAlign: 'left', fontSize: 'text-medium', textColor: '#1f2937', isBold: true, isItalic: false,
+			hasBackground: false, backgroundColor: '#ffffff', backgroundOpacity: 90, borderRadius: 12, padding: 16, shadow: 'none', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+		}
 	};
 	
 	function applyPreset(preset: keyof typeof presets) {
 		groupStyle = { ...presets[preset] };
 		applyGroupStyle();
+	}
+	
+	// Helper function to convert hex to rgba
+	function hexToRgba(hex: string, opacity: number) {
+		const r = parseInt(hex.slice(1, 3), 16);
+		const g = parseInt(hex.slice(3, 5), 16);
+		const b = parseInt(hex.slice(5, 7), 16);
+		return `rgba(${r}, ${g}, ${b}, ${opacity / 100})`;
 	}
 	
 	// Click outside handler for group menu
@@ -587,7 +675,7 @@
 											<!-- Icon -->
 											<div class="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center">
 												<svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
 												</svg>
 											</div>
 
@@ -672,10 +760,10 @@
 						<!-- Text Alignment -->
 						<div>
 							<label class="text-sm font-medium text-gray-700 mb-3 block">Text Alignment</label>
-							<div class="flex gap-2">
+							<div class="grid grid-cols-4 gap-2">
 								<button 
 									onclick={() => { groupStyle.textAlign = 'left'; applyGroupStyle(); }} 
-									class="flex-1 p-3 bg-white border rounded-lg hover:bg-gray-50 transition-colors {groupStyle.textAlign === 'left' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
+									class="p-3 bg-white border rounded-lg hover:bg-gray-50 transition-colors {groupStyle.textAlign === 'left' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
 								>
 									<svg class="w-5 h-5 mx-auto text-gray-700" fill="currentColor" viewBox="0 0 24 24">
 										<path d="M3 4h18v2H3V4zm0 7h12v2H3v-2zm0 7h18v2H3v-2z"/>
@@ -683,7 +771,7 @@
 								</button>
 								<button 
 									onclick={() => { groupStyle.textAlign = 'center'; applyGroupStyle(); }} 
-									class="flex-1 p-3 bg-white border rounded-lg hover:bg-gray-50 transition-colors {groupStyle.textAlign === 'center' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
+									class="p-3 bg-white border rounded-lg hover:bg-gray-50 transition-colors {groupStyle.textAlign === 'center' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
 								>
 									<svg class="w-5 h-5 mx-auto text-gray-700" fill="currentColor" viewBox="0 0 24 24">
 										<path d="M3 4h18v2H3V4zm4 7h10v2H7v-2zm-4 7h18v2H3v-2z"/>
@@ -691,33 +779,66 @@
 								</button>
 								<button 
 									onclick={() => { groupStyle.textAlign = 'right'; applyGroupStyle(); }} 
-									class="flex-1 p-3 bg-white border rounded-lg hover:bg-gray-50 transition-colors {groupStyle.textAlign === 'right' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
+									class="p-3 bg-white border rounded-lg hover:bg-gray-50 transition-colors {groupStyle.textAlign === 'right' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
 								>
 									<svg class="w-5 h-5 mx-auto text-gray-700" fill="currentColor" viewBox="0 0 24 24">
 										<path d="M3 4h18v2H3V4zm6 7h12v2H9v-2zm-6 7h18v2H3v-2z"/>
 									</svg>
 								</button>
+								<button 
+									onclick={() => { groupStyle.textAlign = 'justify'; applyGroupStyle(); }} 
+									class="p-3 bg-white border rounded-lg hover:bg-gray-50 transition-colors {groupStyle.textAlign === 'justify' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
+									title="Justify"
+								>
+									<svg class="w-5 h-5 mx-auto text-gray-700" fill="currentColor" viewBox="0 0 24 24">
+										<path d="M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z"/>
+									</svg>
+								</button>
 							</div>
 						</div>
 						
-						<!-- Font Size -->
-						<div>
-							<label class="text-sm font-medium text-gray-700 mb-3 block">Font Size</label>
-							<select 
-								bind:value={groupStyle.fontSize} 
-								onchange={applyGroupStyle} 
-								class="w-full p-3 bg-white border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+					<!-- Font Size -->
+					<div>
+						<label class="text-sm font-medium text-gray-700 mb-3 block">Font Size</label>
+						<div class="grid grid-cols-3 gap-2">
+							<button
+								onclick={() => { groupStyle.fontSize = 'text-small'; applyGroupStyle(); }}
+								class="px-3 py-2 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors {groupStyle.fontSize === 'text-small' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
 							>
-								<option value="text-small">Small</option>
-								<option value="text-medium">Medium</option>
-								<option value="text-large">Large</option>
-								<option value="headline-small">Headline Small</option>
-								<option value="headline-medium">Headline Medium</option>
-								<option value="headline-large">Headline Large</option>
-							</select>
+								Small
+							</button>
+							<button
+								onclick={() => { groupStyle.fontSize = 'text-medium'; applyGroupStyle(); }}
+								class="px-3 py-2 text-sm bg-white border rounded-lg hover:bg-gray-50 transition-colors {groupStyle.fontSize === 'text-medium' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
+							>
+								Medium
+							</button>
+							<button
+								onclick={() => { groupStyle.fontSize = 'text-large'; applyGroupStyle(); }}
+								class="px-3 py-2 text-base bg-white border rounded-lg hover:bg-gray-50 transition-colors {groupStyle.fontSize === 'text-large' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
+							>
+								Large
+							</button>
+							<button
+								onclick={() => { groupStyle.fontSize = 'headline-small'; applyGroupStyle(); }}
+								class="px-3 py-2 text-sm font-bold bg-white border rounded-lg hover:bg-gray-50 transition-colors {groupStyle.fontSize === 'headline-small' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
+							>
+								H3
+							</button>
+							<button
+								onclick={() => { groupStyle.fontSize = 'headline-medium'; applyGroupStyle(); }}
+								class="px-3 py-2 text-base font-bold bg-white border rounded-lg hover:bg-gray-50 transition-colors {groupStyle.fontSize === 'headline-medium' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
+							>
+								H2
+							</button>
+							<button
+								onclick={() => { groupStyle.fontSize = 'headline-large'; applyGroupStyle(); }}
+								class="px-3 py-2 text-lg font-bold bg-white border rounded-lg hover:bg-gray-50 transition-colors {groupStyle.fontSize === 'headline-large' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
+							>
+								H1
+							</button>
 						</div>
-						
-						<!-- Text Style -->
+					</div>						<!-- Text Style -->
 						<div>
 							<label class="text-sm font-medium text-gray-700 mb-3 block">Text Style</label>
 							<div class="flex gap-2">
@@ -736,22 +857,212 @@
 							</div>
 						</div>
 						
-						<!-- Text Color -->
-						<div>
-							<label class="text-sm font-medium text-gray-700 mb-3 block">Text Color</label>
-							<div class="flex gap-3 items-center">
-								<input 
-									type="color" 
-									bind:value={groupStyle.textColor} 
-									onchange={applyGroupStyle} 
-									class="w-16 h-10 rounded-lg border cursor-pointer" 
-								/>
-								<span class="text-sm text-gray-600 font-mono">{groupStyle.textColor}</span>
-							</div>
+					<!-- Text Color -->
+					<div>
+						<label class="text-sm font-medium text-gray-700 mb-3 block">Text Color</label>
+						<div class="flex gap-3 items-center">
+							<input 
+								type="color" 
+								bind:value={groupStyle.textColor} 
+								onchange={applyGroupStyle} 
+								class="w-10 h-10 rounded-full border-2 border-gray-200 cursor-pointer overflow-hidden" 
+							/>
+							<span class="text-sm text-gray-600 font-mono">{groupStyle.textColor}</span>
 						</div>
+					</div>						<!-- Divider -->
+						<div class="border-t border-gray-200 my-6"></div>
+						
+						<!-- Text Card Appearance -->
+						<div class="space-y-4">
+							<h3 class="text-sm font-semibold text-gray-800 flex items-center gap-2">
+								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+								</svg>
+								Text Card Appearance
+							</h3>
+							
+							<!-- Enable Background -->
+							<div class="flex items-center justify-between">
+								<label class="text-sm font-medium text-gray-700">Enable Background</label>
+								<button
+									onclick={() => { groupStyle.hasBackground = !groupStyle.hasBackground; applyGroupStyle(); }}
+									class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {groupStyle.hasBackground ? 'bg-purple-600' : 'bg-gray-300'}"
+								>
+									<span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {groupStyle.hasBackground ? 'translate-x-6' : 'translate-x-1'}"></span>
+								</button>
+							</div>
+							
+							{#if groupStyle.hasBackground}
+							<!-- Background Color -->
+							<div>
+								<label class="text-sm font-medium text-gray-700 mb-2 block">Background Color</label>
+								<div class="space-y-3">
+									<div class="flex gap-3 items-center">
+										<input 
+											type="color" 
+											bind:value={groupStyle.backgroundColor} 
+											onchange={applyGroupStyle} 
+											class="w-10 h-10 rounded-full border-2 border-gray-200 cursor-pointer overflow-hidden" 
+										/>
+										<span class="text-sm text-gray-600 font-mono">{groupStyle.backgroundColor}</span>
+									</div>
+									
+									<!-- Color Presets -->
+									<div class="flex gap-2 flex-wrap">
+										<button onclick={() => { groupStyle.backgroundColor = '#ffffff'; applyGroupStyle(); }} class="w-7 h-7 rounded-full border-2 bg-white hover:scale-110 transition-transform" title="White"></button>
+										<button onclick={() => { groupStyle.backgroundColor = '#f3f4f6'; applyGroupStyle(); }} class="w-7 h-7 rounded-full border-2 bg-gray-100 hover:scale-110 transition-transform" title="Light Gray"></button>
+										<button onclick={() => { groupStyle.backgroundColor = '#000000'; applyGroupStyle(); }} class="w-7 h-7 rounded-full border-2 bg-black hover:scale-110 transition-transform" title="Black"></button>
+										<button onclick={() => { groupStyle.backgroundColor = '#3b82f6'; applyGroupStyle(); }} class="w-7 h-7 rounded-full border-2 bg-blue-500 hover:scale-110 transition-transform" title="Blue"></button>
+										<button onclick={() => { groupStyle.backgroundColor = '#8b5cf6'; applyGroupStyle(); }} class="w-7 h-7 rounded-full border-2 bg-purple-500 hover:scale-110 transition-transform" title="Purple"></button>
+										<button onclick={() => { groupStyle.backgroundColor = '#10b981'; applyGroupStyle(); }} class="w-7 h-7 rounded-full border-2 bg-green-500 hover:scale-110 transition-transform" title="Green"></button>
+										<button onclick={() => { groupStyle.backgroundColor = '#ef4444'; applyGroupStyle(); }} class="w-7 h-7 rounded-full border-2 bg-red-500 hover:scale-110 transition-transform" title="Red"></button>
+									</div>
+								</div>
+							</div>								<!-- Opacity -->
+								<div>
+									<label class="text-sm font-medium text-gray-700 mb-2 block">Opacity: {groupStyle.backgroundOpacity}%</label>
+									<input 
+										type="range" 
+										min="0" 
+										max="100" 
+										bind:value={groupStyle.backgroundOpacity} 
+										onchange={applyGroupStyle} 
+										class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+									/>
+								</div>
+								
+								<!-- Border Radius -->
+								<div>
+									<label class="text-sm font-medium text-gray-700 mb-2 block">Border Radius: {groupStyle.borderRadius}px</label>
+									<input 
+										type="range" 
+										min="0" 
+										max="24" 
+										bind:value={groupStyle.borderRadius} 
+										onchange={applyGroupStyle} 
+										class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+									/>
+									<div class="flex gap-2 mt-2">
+										<button onclick={() => { groupStyle.borderRadius = 0; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">None</button>
+										<button onclick={() => { groupStyle.borderRadius = 8; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">Small</button>
+										<button onclick={() => { groupStyle.borderRadius = 12; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">Medium</button>
+										<button onclick={() => { groupStyle.borderRadius = 20; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">Large</button>
+										<button onclick={() => { groupStyle.borderRadius = 24; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">Full</button>
+									</div>
+								</div>
+								
+								<!-- Padding -->
+								<div>
+									<label class="text-sm font-medium text-gray-700 mb-2 block">Padding: {groupStyle.padding}px</label>
+									<input 
+										type="range" 
+										min="8" 
+										max="24" 
+										bind:value={groupStyle.padding} 
+										onchange={applyGroupStyle} 
+										class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+									/>
+									<div class="flex gap-2 mt-2">
+										<button onclick={() => { groupStyle.padding = 8; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">Compact</button>
+										<button onclick={() => { groupStyle.padding = 16; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">Normal</button>
+										<button onclick={() => { groupStyle.padding = 24; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">Relaxed</button>
+									</div>
+								</div>
+								
+								<!-- Shadow -->
+								<div>
+									<label class="text-sm font-medium text-gray-700 mb-2 block">Shadow</label>
+									<div class="grid grid-cols-4 gap-2">
+										<button 
+											onclick={() => { groupStyle.shadow = 'none'; applyGroupStyle(); }} 
+											class="px-3 py-2 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors {groupStyle.shadow === 'none' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
+										>
+											None
+										</button>
+										<button 
+											onclick={() => { groupStyle.shadow = 'sm'; applyGroupStyle(); }} 
+											class="px-3 py-2 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors shadow-sm {groupStyle.shadow === 'sm' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
+										>
+											Soft
+										</button>
+										<button 
+											onclick={() => { groupStyle.shadow = 'md'; applyGroupStyle(); }} 
+											class="px-3 py-2 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors shadow-md {groupStyle.shadow === 'md' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
+										>
+											Medium
+										</button>
+										<button 
+											onclick={() => { groupStyle.shadow = 'lg'; applyGroupStyle(); }} 
+											class="px-3 py-2 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors shadow-lg {groupStyle.shadow === 'lg' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
+										>
+											Strong
+										</button>
+									</div>
+								</div>
+								
+								<!-- Border -->
+								<div class="space-y-3">
+									<div class="flex items-center justify-between">
+										<label class="text-sm font-medium text-gray-700">Enable Border</label>
+										<button
+											onclick={() => { groupStyle.hasBorder = !groupStyle.hasBorder; applyGroupStyle(); }}
+											class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {groupStyle.hasBorder ? 'bg-purple-600' : 'bg-gray-300'}"
+										>
+											<span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {groupStyle.hasBorder ? 'translate-x-6' : 'translate-x-1'}"></span>
+										</button>
+									</div>
+									
+								{#if groupStyle.hasBorder}
+									<div>
+										<label class="text-sm font-medium text-gray-700 mb-2 block">Border Color</label>
+										<div class="flex gap-3 items-center">
+											<input 
+												type="color" 
+												bind:value={groupStyle.borderColor} 
+												onchange={applyGroupStyle} 
+												class="w-10 h-10 rounded-full border-2 border-gray-200 cursor-pointer overflow-hidden" 
+											/>
+											<span class="text-sm text-gray-600 font-mono">{groupStyle.borderColor}</span>
+										</div>
+									</div>										<div>
+											<label class="text-sm font-medium text-gray-700 mb-2 block">Border Width: {groupStyle.borderWidth}px</label>
+											<div class="flex gap-2">
+												<button onclick={() => { groupStyle.borderWidth = 1; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors {groupStyle.borderWidth === 1 ? 'ring-2 ring-purple-500 bg-purple-50' : ''}">1px</button>
+												<button onclick={() => { groupStyle.borderWidth = 2; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border-2 rounded-lg hover:bg-gray-50 transition-colors {groupStyle.borderWidth === 2 ? 'ring-2 ring-purple-500 bg-purple-50' : ''}">2px</button>
+							<button onclick={() => { groupStyle.borderWidth = 3; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border-4 rounded-lg hover:bg-gray-50 transition-colors {groupStyle.borderWidth === 3 ? 'ring-2 ring-purple-500 bg-purple-50' : ''}">3px</button>
+										</div>
+									</div>
+								{/if}
+							</div>
+						{/if}
 					</div>
-				{/if}
-			</div>
+				</div>
+			{/if}
 		</div>
-	{/if}
+	</div>
+{/if}
 </div>
+
+<style>
+	/* Remove default browser styling from color input to make color fill the entire circle */
+	input[type="color"] {
+		padding: 0;
+		border: none;
+		background: none;
+	}
+	
+	input[type="color"]::-webkit-color-swatch-wrapper {
+		padding: 0;
+		border: none;
+	}
+	
+	input[type="color"]::-webkit-color-swatch {
+		border: none;
+		border-radius: 50%;
+	}
+	
+	input[type="color"]::-moz-color-swatch {
+		border: none;
+		border-radius: 50%;
+	}
+</style>

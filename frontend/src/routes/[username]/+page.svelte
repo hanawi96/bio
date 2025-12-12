@@ -190,6 +190,84 @@
 								{/if}
 							{/each}
 						</div>
+					{:else if item.type === 'block' && item.data.block_type === 'text' && item.data.is_group}
+						<!-- Text Group: Render all children with group style -->
+						{#if item.data.children && item.data.children.length > 0}
+							{@const sortedChildren = item.data.children
+								.filter(c => c.is_active)
+								.sort((a, b) => a.position - b.position)}
+							{@const groupStyle = (() => {
+								try {
+									if (!item.data.style) {
+										return { textAlign: 'left', fontSize: 'text-medium', textColor: '#000000', hasBackground: false };
+									}
+									const parsed = typeof item.data.style === 'string' ? JSON.parse(item.data.style) : item.data.style;
+									return {
+										textAlign: parsed.textAlign || 'left',
+										fontSize: parsed.fontSize || 'text-medium',
+										textColor: parsed.textColor || '#000000',
+										isBold: parsed.isBold || false,
+										isItalic: parsed.isItalic || false,
+										hasBackground: parsed.hasBackground || false,
+										backgroundColor: parsed.backgroundColor || '#ffffff',
+										backgroundOpacity: parsed.backgroundOpacity !== undefined ? parsed.backgroundOpacity : 90,
+										borderRadius: parsed.borderRadius !== undefined ? parsed.borderRadius : 12,
+										padding: parsed.padding || 16,
+										shadow: parsed.shadow || 'none',
+										hasBorder: parsed.hasBorder || false,
+										borderColor: parsed.borderColor || '#e5e7eb',
+										borderWidth: parsed.borderWidth || 1
+									};
+								} catch (e) {
+									console.error('Failed to parse groupStyle:', item.data.style, e);
+									return { textAlign: 'left', fontSize: 'text-medium', textColor: '#000000', hasBackground: false };
+								}
+							})()}
+							<div class="space-y-2">
+								{#each sortedChildren as child}
+									{#if groupStyle.hasBackground}
+										<div 
+											class="rounded-xl"
+											class:shadow-sm={groupStyle.shadow === 'sm'}
+											class:shadow-md={groupStyle.shadow === 'md'}
+											class:shadow-lg={groupStyle.shadow === 'lg'}
+											style="
+												background-color: rgba(${parseInt(groupStyle.backgroundColor?.slice(1,3) || 'ff', 16)}, ${parseInt(groupStyle.backgroundColor?.slice(3,5) || 'ff', 16)}, ${parseInt(groupStyle.backgroundColor?.slice(5,7) || 'ff', 16)}, ${(groupStyle.backgroundOpacity ?? 90) / 100});
+												border-radius: ${groupStyle.borderRadius ?? 12}px;
+												padding: ${groupStyle.padding ?? 16}px;
+												${groupStyle.hasBorder ? `border: ${groupStyle.borderWidth ?? 1}px solid ${groupStyle.borderColor || '#e5e7eb'};` : ''}
+											"
+										>
+											<p 
+												class="text-gray-900 break-words"
+												style="
+													font-size: {groupStyle.fontSize === 'headline-large' ? '1.5rem' : groupStyle.fontSize === 'headline-medium' ? '1.25rem' : groupStyle.fontSize === 'headline-small' ? '1.125rem' : groupStyle.fontSize === 'text-large' ? '1.125rem' : groupStyle.fontSize === 'text-small' ? '0.875rem' : '1rem'};
+													text-align: {groupStyle.textAlign || 'left'};
+													font-weight: {groupStyle.isBold ? 'bold' : 'normal'};
+													font-style: {groupStyle.isItalic ? 'italic' : 'normal'};
+													color: {groupStyle.textColor || '#000000'};
+												"
+											>
+												{child.content || 'Empty text'}
+											</p>
+										</div>
+									{:else}
+										<p 
+											class="text-gray-900 break-words"
+											style="
+												font-size: {groupStyle.fontSize === 'headline-large' ? '1.5rem' : groupStyle.fontSize === 'headline-medium' ? '1.25rem' : groupStyle.fontSize === 'headline-small' ? '1.125rem' : groupStyle.fontSize === 'text-large' ? '1.125rem' : groupStyle.fontSize === 'text-small' ? '0.875rem' : '1rem'};
+												text-align: {groupStyle.textAlign || 'left'};
+												font-weight: {groupStyle.isBold ? 'bold' : 'normal'};
+												font-style: {groupStyle.isItalic ? 'italic' : 'normal'};
+												color: {groupStyle.textColor || '#000000'};
+											"
+										>
+											{child.content || 'Empty text'}
+										</p>
+									{/if}
+								{/each}
+							</div>
+						{/if}
 					{:else if item.type === 'block' && item.data.block_type === 'divider'}
 						{#if item.data.divider_style === 'line'}
 							<div class="border-t border-gray-200"></div>

@@ -899,7 +899,7 @@
 		if (!group) return;
 		
 		// Show confirmation modal
-		deleteTarget = { type: 'link-group', id, title: group.group_title };
+		deleteTarget = { type: 'link-group', id, title: group.group_title || 'Group' };
 		showDeleteConfirmModal = true;
 	}
 	
@@ -1043,29 +1043,16 @@
 	async function handleUpdateGroupStyle(event: CustomEvent) {
 		const { groupId, style } = event.detail;
 		
-		console.log('handleUpdateGroupStyle called:', { groupId, style });
-		
 		try {
-			await blocksApi.updateBlock(groupId, { style: JSON.stringify(style) }, $auth.token!);
+			const styleString = JSON.stringify(style);
+			await blocksApi.updateBlock(groupId, { style: styleString }, $auth.token!);
 			
-			// Update local state - create completely new array to force reactivity
-			const updatedBlocks = blocks.map(b => {
-				if (b.id === groupId) {
-					console.log('Updating block style:', { oldStyle: b.style, newStyle: JSON.stringify(style) });
-					// Create new object with spread to ensure Svelte detects change
-					return { ...b, style: JSON.stringify(style) };
-				}
-				return b;
-			});
-			
-			// Force reactivity with new array reference
-			blocks = [...updatedBlocks];
-			
-			console.log('Blocks after update:', blocks.find(b => b.id === groupId));
-			
-			// No toast for better UX (updates happen frequently)
+			// Update local state - force reactivity by creating new array
+			blocks = blocks.map(b => 
+				b.id === groupId ? { ...b, style: styleString } : b
+			);
 		} catch (error: any) {
-			console.error('handleUpdateGroupStyle error:', error);
+			console.error('Failed to update style:', error);
 			toast.error(error.message || 'Failed to update style');
 		}
 	}

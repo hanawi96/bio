@@ -4,15 +4,97 @@
 	import type { Profile } from '$lib/api/profile';
 	import type { Link } from '$lib/api/links';
 	import type { Block } from '$lib/api/blocks';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 
 	export let profile: Partial<Profile> = {};
 	export let links: Link[] = [];
 	export let blocks: Block[] = [];
 	export let showInactive: boolean = true;
+	
+	// Default style object - reuse to avoid object creation
+	const DEFAULT_STYLE = {
+		textAlign: 'left',
+		fontSize: 'text-medium',
+		textColor: '#000000',
+		isBold: false,
+		isItalic: false,
+		hasBackground: false,
+		backgroundColor: '#ffffff',
+		backgroundOpacity: 90,
+		borderRadius: 12,
+		padding: 16,
+		shadow: 'none',
+		hasBorder: false,
+		borderColor: '#e5e7eb',
+		borderWidth: 1
+	};
+
+	// Memoize parsed styles to avoid re-parsing
+	const styleCache = new Map<string, any>();
+	
+	// Helper to parse group style with caching
+	function parseGroupStyle(styleData: any) {
+		if (!styleData) return DEFAULT_STYLE;
+		
+		// Use cache for string styles
+		if (typeof styleData === 'string') {
+			if (styleCache.has(styleData)) {
+				return styleCache.get(styleData);
+			}
+			
+			try {
+				const parsed = JSON.parse(styleData);
+				const result = {
+					textAlign: parsed.textAlign || 'left',
+					fontSize: parsed.fontSize || 'text-medium',
+					textColor: parsed.textColor || '#000000',
+					isBold: parsed.isBold || false,
+					isItalic: parsed.isItalic || false,
+					hasBackground: parsed.hasBackground || false,
+					backgroundColor: parsed.backgroundColor || '#ffffff',
+					backgroundOpacity: parsed.backgroundOpacity ?? 90,
+					borderRadius: parsed.borderRadius ?? 12,
+					padding: parsed.padding || 16,
+					shadow: parsed.shadow || 'none',
+					hasBorder: parsed.hasBorder || false,
+					borderColor: parsed.borderColor || '#e5e7eb',
+					borderWidth: parsed.borderWidth || 1
+				};
+				
+				// Cache the result
+				styleCache.set(styleData, result);
+				return result;
+			} catch (e) {
+				return DEFAULT_STYLE;
+			}
+		}
+		
+		// For object styles, return directly with defaults
+		return {
+			textAlign: styleData.textAlign || 'left',
+			fontSize: styleData.fontSize || 'text-medium',
+			textColor: styleData.textColor || '#000000',
+			isBold: styleData.isBold || false,
+			isItalic: styleData.isItalic || false,
+			hasBackground: styleData.hasBackground || false,
+			backgroundColor: styleData.backgroundColor || '#ffffff',
+			backgroundOpacity: styleData.backgroundOpacity ?? 90,
+			borderRadius: styleData.borderRadius ?? 12,
+			padding: styleData.padding || 16,
+			shadow: styleData.shadow || 'none',
+			hasBorder: styleData.hasBorder || false,
+			borderColor: styleData.borderColor || '#e5e7eb',
+			borderWidth: styleData.borderWidth || 1
+		};
+	}
 
 	onMount(() => {
 		// Carousel scroll functionality works natively with CSS
+	});
+
+	onDestroy(() => {
+		// Clear cache to prevent memory leaks
+		styleCache.clear();
 	});
 
 	// Get link_ids from inactive blocks - these links should be hidden
@@ -34,15 +116,12 @@
 	let items: Item[] = [];
 	
 	$: {
-		console.log('[ProfilePreview] Rebuilding items, blocks:', blocks?.map(b => ({ id: b.id, style: b.style?.substring(0, 50) })));
 		items = [
 			...visibleLinks.map(link => ({ type: 'link' as const, data: link, position: link.position, isPinned: link.is_pinned || false })),
 			...(blocks || []).map(block => ({ type: 'block' as const, data: block, position: block.position, isPinned: false }))
 		].sort((a, b) => {
-			// Pinned items first
 			if (a.isPinned && !b.isPinned) return -1;
 			if (!a.isPinned && b.isPinned) return 1;
-			// Then by position
 			return a.position - b.position;
 		});
 	}
@@ -102,7 +181,7 @@
 
 				<!-- Links & Blocks -->
 				<div class="space-y-3">
-					{#each items as item (item.type === 'block' ? item.data.id : item.data.id)}
+					{#each items as item (item.data.id)}
 						{#if item.type === 'block' && (showInactive || item.data.is_active)}
 							{#if item.data.block_type === 'text' && !item.data.is_group}
 								{@const styleConfig = item.data.style ? JSON.parse(item.data.style) : {}}
@@ -134,40 +213,50 @@
 									{@const sortedChildren = item.data.children
 										.filter(c => c.is_active)
 										.sort((a, b) => a.position - b.position)}
-									{@const groupStyle = (() => {
-										try {
-											if (!item.data.style) {
-												console.log('[ProfilePreview] No style for group:', item.data.id);
-												return { textAlign: 'left', fontSize: 'text-medium', textColor: '#000000' };
-											}
-											if (typeof item.data.style === 'string') {
-												const parsed = JSON.parse(item.data.style);
-												console.log('[ProfilePreview] Parsed group style:', { groupId: item.data.id, style: parsed });
-												return parsed;
-											}
-											console.log('[ProfilePreview] Using object style:', { groupId: item.data.id, style: item.data.style });
-											return item.data.style;
-										} catch (e) {
-											console.error('[ProfilePreview] Failed to parse groupStyle:', item.data.style, e);
-											return { textAlign: 'left', fontSize: 'text-medium', textColor: '#000000' };
-										}
-									})()}
-									<div class="space-y-2">
-										{#each sortedChildren as child}
-											<div class="bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-xl shadow-sm border border-gray-200/60 p-3.5">
+									{@const groupStyle = parseGroupStyle(item.data.style)}
+									
+									<!-- Pre-compute all style values once -->
+									{@const fontSize = groupStyle.fontSize === 'headline-large' ? '1.5rem' : 
+										groupStyle.fontSize === 'headline-medium' ? '1.25rem' : 
+										groupStyle.fontSize === 'headline-small' ? '1.125rem' : 
+										groupStyle.fontSize === 'text-large' ? '1.125rem' : 
+										groupStyle.fontSize === 'text-small' ? '0.875rem' : '1rem'}
+									{@const textAlign = groupStyle.textAlign || 'left'}
+									{@const fontWeight = groupStyle.isBold ? 'bold' : 'normal'}
+									{@const fontStyle = groupStyle.isItalic ? 'italic' : 'normal'}
+									{@const textColor = groupStyle.textColor || '#000000'}
+									
+								<!-- Pre-compute background styles if enabled -->
+								{@const bgStyles = groupStyle.hasBackground ? {
+									backgroundColor: `rgba(${parseInt(groupStyle.backgroundColor?.slice(1,3) || 'ff', 16)}, ${parseInt(groupStyle.backgroundColor?.slice(3,5) || 'ff', 16)}, ${parseInt(groupStyle.backgroundColor?.slice(5,7) || 'ff', 16)}, ${(groupStyle.backgroundOpacity ?? 90) / 100})`,
+									borderRadius: `${groupStyle.borderRadius ?? 12}px`,
+									padding: `${groupStyle.padding ?? 16}px`,
+									border: groupStyle.hasBorder ? `${groupStyle.borderWidth ?? 1}px solid ${groupStyle.borderColor || '#e5e7eb'}` : ''
+								} : null}									<div class="space-y-2">
+										{#each sortedChildren as child (child.id)}
+											{#if bgStyles}
+												<div 
+													class="rounded-xl"
+													class:shadow-sm={groupStyle.shadow === 'sm'}
+													class:shadow-md={groupStyle.shadow === 'md'}
+													class:shadow-lg={groupStyle.shadow === 'lg'}
+													style="background-color: {bgStyles.backgroundColor}; border-radius: {bgStyles.borderRadius}; padding: {bgStyles.padding}; {bgStyles.border ? `border: ${bgStyles.border};` : ''}"
+												>
+													<p 
+														class="text-gray-900 break-words"
+														style="font-size: {fontSize}; text-align: {textAlign}; font-weight: {fontWeight}; font-style: {fontStyle}; color: {textColor};"
+													>
+														{child.content || 'Empty text'}
+													</p>
+												</div>
+											{:else}
 												<p 
 													class="text-gray-900 break-words"
-													style="
-														font-size: {groupStyle.fontSize === 'headline-large' ? '1.5rem' : groupStyle.fontSize === 'headline-medium' ? '1.25rem' : groupStyle.fontSize === 'headline-small' ? '1.125rem' : groupStyle.fontSize === 'text-large' ? '1.125rem' : groupStyle.fontSize === 'text-small' ? '0.875rem' : '1rem'};
-														text-align: {groupStyle.textAlign || 'left'};
-														font-weight: {groupStyle.isBold ? 'bold' : 'normal'};
-														font-style: {groupStyle.isItalic ? 'italic' : 'normal'};
-														color: {groupStyle.textColor || '#000000'};
-													"
+													style="font-size: {fontSize}; text-align: {textAlign}; font-weight: {fontWeight}; font-style: {fontStyle}; color: {textColor};"
 												>
 													{child.content || 'Empty text'}
 												</p>
-											</div>
+											{/if}
 										{/each}
 									</div>
 								{/if}
