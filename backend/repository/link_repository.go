@@ -512,6 +512,9 @@ func (r *LinkRepository) CreateGroup(userID string, title string, layout string)
 	var profileID string
 	err := r.db.QueryRow(`SELECT id FROM profiles WHERE user_id = $1`, userID).Scan(&profileID)
 	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			return nil, fmt.Errorf("profile not found for user. Please create a profile first")
+		}
 		return nil, err
 	}
 
