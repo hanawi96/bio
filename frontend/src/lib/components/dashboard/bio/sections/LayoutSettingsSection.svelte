@@ -47,6 +47,65 @@
 			show_text: value
 		});
 	}
+
+	function getPadding(): { top: number; right: number; bottom: number; left: number } {
+		if (!group.style) {
+			console.log('📦 getPadding: no style, returning default');
+			return { top: 16, right: 16, bottom: 16, left: 16 };
+		}
+		try {
+			const style = JSON.parse(group.style);
+			console.log('📦 getPadding: parsed style', style);
+			if (typeof style.padding === 'number') {
+				return { top: style.padding, right: style.padding, bottom: style.padding, left: style.padding };
+			}
+			const result = {
+				top: style.padding?.top || 16,
+				right: style.padding?.right || 16,
+				bottom: style.padding?.bottom || 16,
+				left: style.padding?.left || 16
+			};
+			console.log('📦 getPadding: result', result);
+			return result;
+		} catch (e) {
+			console.log('📦 getPadding: parse error', e);
+			return { top: 16, right: 16, bottom: 16, left: 16 };
+		}
+	}
+
+	function updatePadding(value: number) {
+		let style: any = {};
+		if (group.style) {
+			try {
+				style = JSON.parse(group.style);
+			} catch {}
+		}
+		style.padding = { top: value, right: value, bottom: value, left: value };
+		const newStyle = JSON.stringify(style);
+		console.log('🔧 updatePadding:', { value, newStyle, groupId: group.id });
+		dispatch('update', {
+			groupId: group.id,
+			style: newStyle
+		});
+	}
+
+	function updatePaddingSide(side: 'top' | 'right' | 'bottom' | 'left', value: number) {
+		let style: any = {};
+		if (group.style) {
+			try {
+				style = JSON.parse(group.style);
+			} catch {}
+		}
+		if (typeof style.padding === 'number') {
+			style.padding = { top: style.padding, right: style.padding, bottom: style.padding, left: style.padding };
+		}
+		if (!style.padding) style.padding = { top: 16, right: 16, bottom: 16, left: 16 };
+		style.padding[side] = value;
+		dispatch('update', {
+			groupId: group.id,
+			style: JSON.stringify(style)
+		});
+	}
 </script>
 
 <div class="p-6 space-y-6">
@@ -393,6 +452,20 @@
 			<div class="flex gap-2">
 				<button
 					type="button"
+					onclick={() => dispatch('update', { groupId: group.id, image_shape: 'sharp' })}
+					class="flex-1 px-4 py-2.5 border-2 rounded-lg transition-all hover:shadow-md"
+					class:border-emerald-500={(group.image_shape || 'square') === 'sharp'}
+					class:bg-emerald-50={(group.image_shape || 'square') === 'sharp'}
+					class:border-gray-200={(group.image_shape || 'square') !== 'sharp'}
+					class:bg-white={(group.image_shape || 'square') !== 'sharp'}
+				>
+					<div class="flex items-center gap-3">
+						<div class="w-8 h-8 bg-gradient-to-br from-amber-200 to-amber-300 flex-shrink-0"></div>
+						<span class="text-sm font-medium text-gray-700">Sharp</span>
+					</div>
+				</button>
+				<button
+					type="button"
 					onclick={() => dispatch('update', { groupId: group.id, image_shape: 'square' })}
 					class="flex-1 px-4 py-2.5 border-2 rounded-lg transition-all hover:shadow-md"
 					class:border-emerald-500={(group.image_shape || 'square') === 'square'}
@@ -402,7 +475,7 @@
 				>
 					<div class="flex items-center gap-3">
 						<div class="w-8 h-8 bg-gradient-to-br from-amber-200 to-amber-300 rounded-lg flex-shrink-0"></div>
-						<span class="text-sm font-medium text-gray-700">Square</span>
+						<span class="text-sm font-medium text-gray-700">Rounded</span>
 					</div>
 				</button>
 				<button
@@ -645,6 +718,114 @@
 				</div>
 			</div>
 		{/if}
+	</div>
+
+	<!-- Divider -->
+	<div class="border-t border-gray-200 my-6"></div>
+
+	<!-- Link Card Padding Section -->
+	<div class="space-y-4">
+		<h3 class="text-base font-semibold text-gray-900">Link Card Padding</h3>
+		
+		<!-- Preset Buttons -->
+		{#key group.style}
+			{@const currentPadding = getPadding()}
+			{@const isUniform = currentPadding.top === currentPadding.right && currentPadding.right === currentPadding.bottom && currentPadding.bottom === currentPadding.left}
+			<div class="flex gap-2">
+				<button 
+					onclick={() => updatePadding(8)} 
+					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+					class:border-emerald-500={isUniform && currentPadding.top === 8}
+					class:bg-emerald-50={isUniform && currentPadding.top === 8}
+					class:border-gray-200={!(isUniform && currentPadding.top === 8)}
+					class:bg-white={!(isUniform && currentPadding.top === 8)}
+				>Small</button>
+				<button 
+					onclick={() => updatePadding(16)} 
+					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+					class:border-emerald-500={isUniform && currentPadding.top === 16}
+					class:bg-emerald-50={isUniform && currentPadding.top === 16}
+					class:border-gray-200={!(isUniform && currentPadding.top === 16)}
+					class:bg-white={!(isUniform && currentPadding.top === 16)}
+				>Medium</button>
+				<button 
+					onclick={() => updatePadding(24)} 
+					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+					class:border-emerald-500={isUniform && currentPadding.top === 24}
+					class:bg-emerald-50={isUniform && currentPadding.top === 24}
+					class:border-gray-200={!(isUniform && currentPadding.top === 24)}
+					class:bg-white={!(isUniform && currentPadding.top === 24)}
+				>Large</button>
+				<button 
+					onclick={() => updatePadding(32)} 
+					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+					class:border-emerald-500={isUniform && currentPadding.top === 32}
+					class:bg-emerald-50={isUniform && currentPadding.top === 32}
+					class:border-gray-200={!(isUniform && currentPadding.top === 32)}
+					class:bg-white={!(isUniform && currentPadding.top === 32)}
+				>XL</button>
+			</div>
+
+			<!-- Custom Padding Sliders -->
+			<div class="space-y-3 pl-4 border-l-2 border-gray-200">
+			<div>
+				<div class="flex items-center justify-between mb-1.5">
+					<span class="text-sm font-medium text-gray-700">Top</span>
+					<span class="text-xs font-mono text-gray-500">{currentPadding.top}px</span>
+				</div>
+				<input 
+					type="range" 
+					min="0" 
+					max="64" 
+					value={currentPadding.top}
+					oninput={(e) => updatePaddingSide('top', parseInt(e.currentTarget.value))}
+					class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+				/>
+			</div>
+			<div>
+				<div class="flex items-center justify-between mb-1.5">
+					<span class="text-sm font-medium text-gray-700">Right</span>
+					<span class="text-xs font-mono text-gray-500">{currentPadding.right}px</span>
+				</div>
+				<input 
+					type="range" 
+					min="0" 
+					max="64" 
+					value={currentPadding.right}
+					oninput={(e) => updatePaddingSide('right', parseInt(e.currentTarget.value))}
+					class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+				/>
+			</div>
+			<div>
+				<div class="flex items-center justify-between mb-1.5">
+					<span class="text-sm font-medium text-gray-700">Bottom</span>
+					<span class="text-xs font-mono text-gray-500">{currentPadding.bottom}px</span>
+				</div>
+				<input 
+					type="range" 
+					min="0" 
+					max="64" 
+					value={currentPadding.bottom}
+					oninput={(e) => updatePaddingSide('bottom', parseInt(e.currentTarget.value))}
+					class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+				/>
+			</div>
+			<div>
+				<div class="flex items-center justify-between mb-1.5">
+					<span class="text-sm font-medium text-gray-700">Left</span>
+					<span class="text-xs font-mono text-gray-500">{currentPadding.left}px</span>
+				</div>
+				<input 
+					type="range" 
+					min="0" 
+					max="64" 
+					value={currentPadding.left}
+					oninput={(e) => updatePaddingSide('left', parseInt(e.currentTarget.value))}
+					class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+				/>
+			</div>
+			</div>
+		{/key}
 	</div>
 </div>
 

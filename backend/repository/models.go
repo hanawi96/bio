@@ -44,6 +44,7 @@ type Link struct {
 	CardBackgroundOpacity int        `json:"card_background_opacity"`
 	CardBorderRadius      int        `json:"card_border_radius"`
 	CardTextColor         string     `json:"card_text_color"`
+	Style                 *string    `json:"style"`
 	Position              int        `json:"position"`
 	Clicks                int        `json:"clicks"`
 	IsActive              bool       `json:"is_active"`

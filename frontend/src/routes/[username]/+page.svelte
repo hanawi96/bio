@@ -10,6 +10,20 @@
 	let loading = true;
 	let error = '';
 
+	// Helper function to parse padding from style
+	function getPaddingStyle(style: string | null | undefined): string {
+		try {
+			if (!style) return '16px';
+			const parsed = JSON.parse(style);
+			const p = parsed.padding;
+			if (!p) return '16px';
+			if (typeof p === 'number') return `${p}px`;
+			return `${p.top || 16}px ${p.right || 16}px ${p.bottom || 16}px ${p.left || 16}px`;
+		} catch {
+			return '16px';
+		}
+	}
+
 	onMount(async () => {
 		try {
 			const data: any = await api.get(`/p/${$page.params.username}`);
@@ -344,11 +358,12 @@
 												href={child.url}
 												target="{child.open_in_new_tab ? '_blank' : '_self'}"
 												rel="noopener noreferrer"
-												class="block bg-white hover:bg-gray-50 rounded-xl p-3 transition-all"
+												class="block bg-white hover:bg-gray-50 rounded-xl transition-all"
 												class:shadow-sm={link.show_shadow}
 												class:hover:shadow-md={link.show_shadow}
 												class:border-2={link.show_outline}
 												class:border-gray-200={link.show_outline}
+												style="padding: {getPaddingStyle(link.style)}"
 											>
 												{#if child.thumbnail_url}
 													<img src={child.thumbnail_url} alt={child.title} class="w-full object-cover rounded-lg mb-2" style={getAspectStyle(aspectRatio)} />
@@ -397,12 +412,12 @@
 													{@const g = parseInt(bgColor.slice(3,5), 16)}
 													{@const b = parseInt(bgColor.slice(5,7), 16)}
 													{@const shadowStyle = link.show_shadow ? `box-shadow: ${shadowX}px ${shadowY}px ${shadowBlur}px rgba(0,0,0,0.2);` : ''}
-													{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px; ${shadowStyle}` : shadowStyle}
+													{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle}` : `padding: ${getPaddingStyle(link.style)}; ${shadowStyle}`}
 													<a
 														href={child.url}
 														target="{child.open_in_new_tab ? '_blank' : '_self'}"
 														rel="noopener noreferrer"
-														class="block hover:bg-gray-50 p-4 transition-all flex-shrink-0 snap-center w-[85%]"
+														class="block hover:bg-gray-50 transition-all flex-shrink-0 snap-center w-[85%]"
 														class:bg-white={!hasCustomBg}
 														class:rounded-xl={!hasCustomBg}
 														class:border-2={link.show_outline}
@@ -511,7 +526,7 @@
 															<img src={child.thumbnail_url} alt={child.title} class="w-full h-full object-cover"/>
 														</div>
 													{/if}
-													<div class="flex-1 p-4 flex flex-col justify-center">
+													<div class="flex-1 flex flex-col justify-center" style="padding: {getPaddingStyle(link.style)}">
 														<p class="font-bold mb-1"
 															class:text-sm={textSize === 'S'}
 															class:text-base={textSize === 'M'}
@@ -545,12 +560,12 @@
 											{@const g = parseInt(bgColor.slice(3,5), 16)}
 											{@const b = parseInt(bgColor.slice(5,7), 16)}
 											{@const shadowStyle = link.show_shadow ? `box-shadow: ${shadowX}px ${shadowY}px ${shadowBlur}px rgba(0,0,0,0.2);` : ''}
-											{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px; ${shadowStyle}` : shadowStyle}
+											{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle}` : `padding: ${getPaddingStyle(link.style)}; ${shadowStyle}`}
 											<a
 												href={child.url}
 												target="{child.open_in_new_tab ? '_blank' : '_self'}"
 												rel="noopener noreferrer"
-												class="block hover:bg-gray-50 p-3 transition-all"
+												class="block hover:bg-gray-50 transition-all"
 												class:bg-white={!hasCustomBg}
 												class:rounded-xl={!hasCustomBg}
 												class:border-2={link.show_outline}
