@@ -47,7 +47,8 @@
 		shadow: 'none',
 		hasBorder: false,
 		borderColor: '#e5e7eb',
-		borderWidth: 1
+		borderWidth: 1,
+		borderStyle: 'solid'
 	};
 	
 	// Parse and update groupStyle whenever group.style changes
@@ -92,7 +93,8 @@
 					shadow: parsed.shadow || 'none',
 					hasBorder: parsed.hasBorder || false,
 					borderColor: parsed.borderColor || '#e5e7eb',
-					borderWidth: parsed.borderWidth || 1
+					borderWidth: parsed.borderWidth || 1,
+					borderStyle: parsed.borderStyle || 'solid'
 				};
 			} else {
 				const style = group.style as any;
@@ -113,7 +115,8 @@
 					shadow: style.shadow || 'none',
 					hasBorder: style.hasBorder || false,
 					borderColor: style.borderColor || '#e5e7eb',
-					borderWidth: style.borderWidth || 1
+					borderWidth: style.borderWidth || 1,
+					borderStyle: style.borderStyle || 'solid'
 				};
 			}
 		} catch (e) {
@@ -235,7 +238,20 @@
 		editingTextContent = '';
 	}
 	
+	// Debounce timer for slider API calls
+	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+	
+	// For sliders - debounced to avoid too many API calls
+	function applyGroupStyleDebounced() {
+		if (debounceTimer) clearTimeout(debounceTimer);
+		debounceTimer = setTimeout(() => {
+			dispatch('updatestyle', { groupId: group.id, style: groupStyle });
+		}, 300);
+	}
+	
+	// For buttons/toggles - immediate, no debounce
 	function applyGroupStyle() {
+		if (debounceTimer) clearTimeout(debounceTimer);
 		dispatch('updatestyle', { groupId: group.id, style: groupStyle });
 	}
 	
@@ -243,7 +259,7 @@
 	const presets = {
 		default: { 
 			textAlign: 'left', fontSize: 'text-medium', textColor: '#000000', isBold: false, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
-			hasBackground: false, backgroundColor: '#ffffff', backgroundOpacity: 90, borderRadius: 12, padding: 16, shadow: 'none', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+			hasBackground: false, backgroundColor: '#ffffff', backgroundOpacity: 90, borderRadius: 12, padding: 16, shadow: 'none', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1, borderStyle: 'solid'
 		},
 		// Gradient-inspired with depth
 		'ocean-depth': { 
@@ -1103,7 +1119,7 @@
 										min="0" 
 										max="100" 
 										bind:value={groupStyle.backgroundOpacity} 
-										onchange={applyGroupStyle} 
+										oninput={applyGroupStyleDebounced} 
 										class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
 									/>
 								</div>
@@ -1116,7 +1132,7 @@
 										min="0" 
 										max="32" 
 										bind:value={groupStyle.borderRadius} 
-										onchange={applyGroupStyle} 
+										oninput={applyGroupStyleDebounced} 
 										class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
 									/>
 									<div class="flex gap-2 mt-2">
@@ -1136,7 +1152,7 @@
 										min="8" 
 										max="24" 
 										bind:value={groupStyle.padding} 
-										onchange={applyGroupStyle} 
+										oninput={applyGroupStyleDebounced} 
 										class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
 									/>
 									<div class="flex gap-2 mt-2">
@@ -1211,6 +1227,34 @@
 										</div>
 									</div>
 									
+									<!-- Border Style -->
+									<div>
+										<label class="text-sm font-medium text-gray-700 mb-2 block">Border Style</label>
+										<div class="flex gap-2">
+											<button 
+												onclick={() => { 
+													groupStyle = { ...groupStyle, borderStyle: 'solid' }; 
+													applyGroupStyle(); 
+												}} 
+												class="flex-1 px-3 py-2 text-xs bg-white border-2 rounded-lg hover:bg-gray-50 transition-colors {groupStyle.borderStyle === 'solid' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
+											>
+												<div class="w-full h-0.5 bg-gray-700"></div>
+												<span class="block mt-1">Solid</span>
+											</button>
+											<button 
+												onclick={() => { 
+													groupStyle = { ...groupStyle, borderStyle: 'dashed' }; 
+													applyGroupStyle(); 
+												}} 
+												class="flex-1 px-3 py-2 text-xs bg-white border-2 border-dashed rounded-lg hover:bg-gray-50 transition-colors {groupStyle.borderStyle === 'dashed' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
+											>
+												<div class="w-full h-0.5 border-t-2 border-dashed border-gray-700"></div>
+												<span class="block mt-1">Dashed</span>
+											</button>
+										</div>
+									</div>
+									
+									<!-- Border Width -->
 									<div>
 										<label class="text-sm font-medium text-gray-700 mb-2 block">Border Width: {groupStyle.borderWidth}px</label>
 										<div class="flex gap-2">

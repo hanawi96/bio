@@ -43,7 +43,8 @@
 		shadow: 'none',
 		hasBorder: false,
 		borderColor: '#e5e7eb',
-		borderWidth: 1
+		borderWidth: 1,
+		borderStyle: 'solid'
 	};
 
 	// Memoize parsed styles to avoid re-parsing
@@ -78,7 +79,8 @@
 					shadow: parsed.shadow || 'none',
 					hasBorder: parsed.hasBorder || false,
 					borderColor: parsed.borderColor || '#e5e7eb',
-					borderWidth: parsed.borderWidth || 1
+					borderWidth: parsed.borderWidth || 1,
+					borderStyle: parsed.borderStyle || 'solid'
 				};
 				
 				// Cache the result
@@ -107,7 +109,8 @@
 			shadow: styleData.shadow || 'none',
 			hasBorder: styleData.hasBorder || false,
 			borderColor: styleData.borderColor || '#e5e7eb',
-			borderWidth: styleData.borderWidth || 1
+			borderWidth: styleData.borderWidth || 1,
+			borderStyle: styleData.borderStyle || 'solid'
 		};
 	}
 
@@ -250,11 +253,12 @@
 					{@const textDecoration = groupStyle.isUnderline && groupStyle.isStrikethrough ? 'underline line-through' : groupStyle.isUnderline ? 'underline' : groupStyle.isStrikethrough ? 'line-through' : 'none'}
 					{@const textTransform = groupStyle.textTransform || 'none'}
 					{@const textColor = groupStyle.textColor || '#000000'}								<!-- Pre-compute background styles if enabled -->
-								{@const bgStyles = groupStyle.hasBackground ? {
-									backgroundColor: `rgba(${parseInt(groupStyle.backgroundColor?.slice(1,3) || 'ff', 16)}, ${parseInt(groupStyle.backgroundColor?.slice(3,5) || 'ff', 16)}, ${parseInt(groupStyle.backgroundColor?.slice(5,7) || 'ff', 16)}, ${(groupStyle.backgroundOpacity ?? 90) / 100})`,
+								{@const hasCustomStyle = groupStyle.hasBackground || groupStyle.hasBorder}
+								{@const bgStyles = hasCustomStyle ? {
+									backgroundColor: groupStyle.hasBackground ? `rgba(${parseInt(groupStyle.backgroundColor?.slice(1,3) || 'ff', 16)}, ${parseInt(groupStyle.backgroundColor?.slice(3,5) || 'ff', 16)}, ${parseInt(groupStyle.backgroundColor?.slice(5,7) || 'ff', 16)}, ${(groupStyle.backgroundOpacity ?? 90) / 100})` : 'transparent',
 									borderRadius: `${groupStyle.borderRadius ?? 12}px`,
 									padding: `${groupStyle.padding ?? 16}px`,
-									border: groupStyle.hasBorder ? `${groupStyle.borderWidth ?? 1}px solid ${groupStyle.borderColor || '#e5e7eb'}` : ''
+									border: groupStyle.hasBorder ? `${groupStyle.borderWidth ?? 1}px ${groupStyle.borderStyle || 'solid'} ${groupStyle.borderColor || '#e5e7eb'}` : ''
 								} : null}									<div class="space-y-2">
 										{#each sortedChildren as child (child.id)}
 											{#if bgStyles}
@@ -263,6 +267,7 @@
 													class:shadow-sm={groupStyle.shadow === 'sm'}
 													class:shadow-md={groupStyle.shadow === 'md'}
 													class:shadow-lg={groupStyle.shadow === 'lg'}
+													class:shadow-xl={groupStyle.shadow === 'xl'}
 													style="background-color: {bgStyles.backgroundColor}; border-radius: {bgStyles.borderRadius}; padding: {bgStyles.padding}; {bgStyles.border ? `border: ${bgStyles.border};` : ''}"
 												>
 													<p 

@@ -233,28 +233,15 @@
 										shadow: parsed.shadow || 'none',
 										hasBorder: parsed.hasBorder || false,
 										borderColor: parsed.borderColor || '#e5e7eb',
-										borderWidth: parsed.borderWidth || 1
+										borderWidth: parsed.borderWidth || 1,
+										borderStyle: parsed.borderStyle || 'solid'
 									};
 								} catch (e) {
 									console.error('Failed to parse groupStyle:', item.data.style, e);
 									return { textAlign: 'left', fontSize: 'text-medium', textColor: '#000000', isBold: false, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none', hasBackground: false };
 								}
 							})()}
-							{(() => {
-								console.log('🎨 [Public] Text Group Style:', {
-									rawStyle: item.data.style,
-									parsedStyle: groupStyle,
-									hasBackground: groupStyle.hasBackground,
-									backgroundColor: groupStyle.backgroundColor,
-									textColor: groupStyle.textColor,
-									fontSize: groupStyle.fontSize
-								});
-								return null;
-							})()}
-							{(() => {
-								console.log('🖼️ [Render] hasBackground:', groupStyle.hasBackground, 'Will render background wrapper:', groupStyle.hasBackground === true);
-								return null;
-							})()}
+
 							<div class="space-y-2">
 								{#each sortedChildren as child}
 									{#if groupStyle.hasBackground}
@@ -263,11 +250,7 @@
 										{@const b = parseInt(groupStyle.backgroundColor?.slice(5,7) || 'ff', 16)}
 										{@const opacity = (groupStyle.backgroundOpacity ?? 90) / 100}
 										{@const bgColor = `rgba(${r}, ${g}, ${b}, ${opacity})`}
-										{@const borderStyle = groupStyle.hasBorder ? `${groupStyle.borderWidth ?? 1}px solid ${groupStyle.borderColor || '#e5e7eb'}` : 'none'}
-										{(() => {
-											console.log('✅ [Render] Background vars:', { r, g, b, opacity, bgColor, borderStyle });
-											return null;
-										})()}
+										{@const borderStyle = groupStyle.hasBorder ? `${groupStyle.borderWidth ?? 1}px ${groupStyle.borderStyle || 'solid'} ${groupStyle.borderColor || '#e5e7eb'}` : 'none'}
 										<div 
 											class="rounded-xl"
 											class:shadow-sm={groupStyle.shadow === 'sm'}

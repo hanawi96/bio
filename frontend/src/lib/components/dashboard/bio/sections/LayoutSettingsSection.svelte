@@ -6,6 +6,16 @@
 	
 	const dispatch = createEventDispatcher();
 	
+	// Debounce timer for slider updates
+	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+	
+	function dispatchDebounced(data: any) {
+		if (debounceTimer) clearTimeout(debounceTimer);
+		debounceTimer = setTimeout(() => {
+			dispatch('update', data);
+		}, 300);
+	}
+	
 	// Use group properties directly - no local state needed
 	$: layout = group.group_layout || 'list';
 	$: textAlignment = group.text_alignment || 'center';
@@ -49,26 +59,19 @@
 	}
 
 	function getPadding(): { top: number; right: number; bottom: number; left: number } {
-		if (!group.style) {
-			console.log('📦 getPadding: no style, returning default');
-			return { top: 16, right: 16, bottom: 16, left: 16 };
-		}
+		if (!group.style) return { top: 16, right: 16, bottom: 16, left: 16 };
 		try {
 			const style = JSON.parse(group.style);
-			console.log('📦 getPadding: parsed style', style);
 			if (typeof style.padding === 'number') {
 				return { top: style.padding, right: style.padding, bottom: style.padding, left: style.padding };
 			}
-			const result = {
+			return {
 				top: style.padding?.top || 16,
 				right: style.padding?.right || 16,
 				bottom: style.padding?.bottom || 16,
 				left: style.padding?.left || 16
 			};
-			console.log('📦 getPadding: result', result);
-			return result;
-		} catch (e) {
-			console.log('📦 getPadding: parse error', e);
+		} catch {
 			return { top: 16, right: 16, bottom: 16, left: 16 };
 		}
 	}
@@ -81,11 +84,9 @@
 			} catch {}
 		}
 		style.padding = { top: value, right: value, bottom: value, left: value };
-		const newStyle = JSON.stringify(style);
-		console.log('🔧 updatePadding:', { value, newStyle, groupId: group.id });
 		dispatch('update', {
 			groupId: group.id,
-			style: newStyle
+			style: JSON.stringify(style)
 		});
 	}
 
@@ -101,7 +102,7 @@
 		}
 		if (!style.padding) style.padding = { top: 16, right: 16, bottom: 16, left: 16 };
 		style.padding[side] = value;
-		dispatch('update', {
+		dispatchDebounced({
 			groupId: group.id,
 			style: JSON.stringify(style)
 		});
@@ -551,7 +552,7 @@
 							min="-20" 
 							max="20" 
 							value={group.shadow_x || 0}
-							oninput={(e) => dispatch('update', { groupId: group.id, show_shadow: true, shadow_x: parseInt(e.currentTarget.value) })}
+							oninput={(e) => dispatchDebounced({ groupId: group.id, show_shadow: true, shadow_x: parseInt(e.currentTarget.value) })}
 							class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-900"
 						/>
 					</div>
@@ -572,7 +573,7 @@
 							min="0" 
 							max="20" 
 							value={group.shadow_y || 4}
-							oninput={(e) => dispatch('update', { groupId: group.id, show_shadow: true, shadow_y: parseInt(e.currentTarget.value) })}
+							oninput={(e) => dispatchDebounced({ groupId: group.id, show_shadow: true, shadow_y: parseInt(e.currentTarget.value) })}
 							class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-900"
 						/>
 					</div>
@@ -593,7 +594,7 @@
 							min="0" 
 							max="40" 
 							value={group.shadow_blur || 10}
-							oninput={(e) => dispatch('update', { groupId: group.id, show_shadow: true, shadow_blur: parseInt(e.currentTarget.value) })}
+							oninput={(e) => dispatchDebounced({ groupId: group.id, show_shadow: true, shadow_blur: parseInt(e.currentTarget.value) })}
 							class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-900"
 						/>
 					</div>
@@ -665,7 +666,7 @@
 					min="0" 
 					max="100" 
 					value={group.card_background_opacity || 100}
-					oninput={(e) => dispatch('update', { groupId: group.id, has_card_background: true, card_background_opacity: parseInt(e.currentTarget.value) })}
+					oninput={(e) => dispatchDebounced({ groupId: group.id, has_card_background: true, card_background_opacity: parseInt(e.currentTarget.value) })}
 					class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
 				/>
 			</div>
@@ -678,7 +679,7 @@
 					min="0" 
 					max="32" 
 					value={group.card_border_radius || 12}
-					oninput={(e) => dispatch('update', { groupId: group.id, has_card_background: true, card_border_radius: parseInt(e.currentTarget.value) })}
+					oninput={(e) => dispatchDebounced({ groupId: group.id, has_card_background: true, card_border_radius: parseInt(e.currentTarget.value) })}
 					class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
 				/>
 				<div class="flex gap-2 mt-2">
