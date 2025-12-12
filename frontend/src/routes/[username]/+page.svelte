@@ -574,7 +574,7 @@
 											>
 												<div class="flex items-center gap-3">
 													{#if child.thumbnail_url}
-														<img src={child.thumbnail_url} alt={child.title} class="w-10 h-10 object-cover flex-shrink-0" class:rounded-lg={imageShape === 'square'} class:rounded-full={imageShape === 'circle'}/>
+														<img src={child.thumbnail_url} alt={child.title} class="w-10 h-10 object-cover flex-shrink-0" class:rounded-lg={imageShape === 'square'} class:rounded-full={imageShape === 'circle'} class:rounded-none={imageShape === 'sharp'}/>
 													{/if}
 													<div class="flex-1">
 														<p class="font-medium"

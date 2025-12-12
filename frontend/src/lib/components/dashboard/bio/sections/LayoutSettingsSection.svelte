@@ -766,64 +766,71 @@
 				>XL</button>
 			</div>
 
-			<!-- Custom Padding Sliders -->
-			<div class="space-y-3 pl-4 border-l-2 border-gray-200">
-			<div>
-				<div class="flex items-center justify-between mb-1.5">
-					<span class="text-sm font-medium text-gray-700">Top</span>
-					<span class="text-xs font-mono text-gray-500">{currentPadding.top}px</span>
+			<!-- Custom Padding Sliders - 2x2 Grid -->
+			<div class="grid grid-cols-2 gap-4 pl-4 border-l-2 border-gray-200">
+				<!-- Top -->
+				<div>
+					<div class="flex items-center justify-between mb-1.5">
+						<span class="text-sm font-medium text-gray-700">Top</span>
+						<span class="text-xs font-mono text-gray-500">{currentPadding.top}px</span>
+					</div>
+					<input 
+						type="range" 
+						min="0" 
+						max="64" 
+						value={currentPadding.top}
+						oninput={(e) => updatePaddingSide('top', parseInt(e.currentTarget.value))}
+						class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+					/>
 				</div>
-				<input 
-					type="range" 
-					min="0" 
-					max="64" 
-					value={currentPadding.top}
-					oninput={(e) => updatePaddingSide('top', parseInt(e.currentTarget.value))}
-					class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
-				/>
-			</div>
-			<div>
-				<div class="flex items-center justify-between mb-1.5">
-					<span class="text-sm font-medium text-gray-700">Right</span>
-					<span class="text-xs font-mono text-gray-500">{currentPadding.right}px</span>
+				
+				<!-- Right -->
+				<div>
+					<div class="flex items-center justify-between mb-1.5">
+						<span class="text-sm font-medium text-gray-700">Right</span>
+						<span class="text-xs font-mono text-gray-500">{currentPadding.right}px</span>
+					</div>
+					<input 
+						type="range" 
+						min="0" 
+						max="64" 
+						value={currentPadding.right}
+						oninput={(e) => updatePaddingSide('right', parseInt(e.currentTarget.value))}
+						class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+					/>
 				</div>
-				<input 
-					type="range" 
-					min="0" 
-					max="64" 
-					value={currentPadding.right}
-					oninput={(e) => updatePaddingSide('right', parseInt(e.currentTarget.value))}
-					class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
-				/>
-			</div>
-			<div>
-				<div class="flex items-center justify-between mb-1.5">
-					<span class="text-sm font-medium text-gray-700">Bottom</span>
-					<span class="text-xs font-mono text-gray-500">{currentPadding.bottom}px</span>
+				
+				<!-- Bottom -->
+				<div>
+					<div class="flex items-center justify-between mb-1.5">
+						<span class="text-sm font-medium text-gray-700">Bottom</span>
+						<span class="text-xs font-mono text-gray-500">{currentPadding.bottom}px</span>
+					</div>
+					<input 
+						type="range" 
+						min="0" 
+						max="64" 
+						value={currentPadding.bottom}
+						oninput={(e) => updatePaddingSide('bottom', parseInt(e.currentTarget.value))}
+						class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+					/>
 				</div>
-				<input 
-					type="range" 
-					min="0" 
-					max="64" 
-					value={currentPadding.bottom}
-					oninput={(e) => updatePaddingSide('bottom', parseInt(e.currentTarget.value))}
-					class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
-				/>
-			</div>
-			<div>
-				<div class="flex items-center justify-between mb-1.5">
-					<span class="text-sm font-medium text-gray-700">Left</span>
-					<span class="text-xs font-mono text-gray-500">{currentPadding.left}px</span>
+				
+				<!-- Left -->
+				<div>
+					<div class="flex items-center justify-between mb-1.5">
+						<span class="text-sm font-medium text-gray-700">Left</span>
+						<span class="text-xs font-mono text-gray-500">{currentPadding.left}px</span>
+					</div>
+					<input 
+						type="range" 
+						min="0" 
+						max="64" 
+						value={currentPadding.left}
+						oninput={(e) => updatePaddingSide('left', parseInt(e.currentTarget.value))}
+						class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+					/>
 				</div>
-				<input 
-					type="range" 
-					min="0" 
-					max="64" 
-					value={currentPadding.left}
-					oninput={(e) => updatePaddingSide('left', parseInt(e.currentTarget.value))}
-					class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
-				/>
-			</div>
 			</div>
 		{/key}
 	</div>
