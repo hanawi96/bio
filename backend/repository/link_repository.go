@@ -22,7 +22,8 @@ func (r *LinkRepository) GetByUserIDWithFilters(userID, search, status, layoutTy
 		SELECT l.id, l.profile_id, l.parent_id, l.is_group, l.group_title, l.group_layout, l.grid_columns, l.grid_aspect_ratio,
 		       l.title, l.url, l.description, l.thumbnail_url, l.image_shape, l.layout_type, 
 		       l.image_placement, l.text_alignment, l.text_size, l.show_outline, l.show_shadow, l.shadow_x, l.shadow_y, l.shadow_blur, l.show_description, l.show_text,
-		       l.has_card_background, l.card_background_color, l.card_background_opacity, l.card_border_radius, l.card_text_color, l.style,
+		       l.has_card_background, l.card_background_color, l.card_background_opacity, l.card_border_radius, l.card_text_color,
+		       l.has_card_border, l.card_border_color, l.card_border_style, l.card_border_width, l.style,
 		       l.position, l.clicks, l.is_active, l.is_pinned, l.scheduled_at, l.expires_at, 
 		       l.created_at, l.updated_at
 		FROM links l
@@ -87,7 +88,8 @@ func (r *LinkRepository) GetByUserIDWithFilters(userID, search, status, layoutTy
 			&link.ID, &link.ProfileID, &link.ParentID, &link.IsGroup, &link.GroupTitle, &link.GroupLayout, &link.GridColumns, &link.GridAspectRatio,
 			&link.Title, &link.URL, &link.Description, &link.ThumbnailURL, &link.ImageShape, &link.LayoutType,
 			&link.ImagePlacement, &link.TextAlignment, &link.TextSize, &link.ShowOutline, &link.ShowShadow, &link.ShadowX, &link.ShadowY, &link.ShadowBlur, &link.ShowDescription, &link.ShowText,
-			&link.HasCardBackground, &link.CardBackgroundColor, &link.CardBackgroundOpacity, &link.CardBorderRadius, &link.CardTextColor, &link.Style,
+			&link.HasCardBackground, &link.CardBackgroundColor, &link.CardBackgroundOpacity, &link.CardBorderRadius, &link.CardTextColor,
+			&link.HasCardBorder, &link.CardBorderColor, &link.CardBorderStyle, &link.CardBorderWidth, &link.Style,
 			&link.Position, &link.Clicks, &link.IsActive, &link.IsPinned, &link.ScheduledAt, &link.ExpiresAt,
 			&link.CreatedAt, &link.UpdatedAt,
 		)
@@ -175,13 +177,18 @@ func (r *LinkRepository) Update(linkID string, data map[string]interface{}) (*Li
 		    card_background_opacity = COALESCE($24, card_background_opacity),
 		    card_border_radius = COALESCE($25, card_border_radius),
 		    card_text_color = COALESCE($26, card_text_color),
-		    style = COALESCE($27, style),
+		    has_card_border = COALESCE($27, has_card_border),
+		    card_border_color = COALESCE($28, card_border_color),
+		    card_border_style = COALESCE($29, card_border_style),
+		    card_border_width = COALESCE($30, card_border_width),
+		    style = COALESCE($31, style),
 		    updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1
 		RETURNING id, profile_id, parent_id, is_group, group_title, group_layout, grid_columns, grid_aspect_ratio,
 		          title, url, thumbnail_url, image_shape, layout_type, image_placement, text_alignment,
 		          text_size, show_outline, show_shadow, shadow_x, shadow_y, shadow_blur, show_description, show_text,
-		          has_card_background, card_background_color, card_background_opacity, card_border_radius, card_text_color, style,
+		          has_card_background, card_background_color, card_background_opacity, card_border_radius, card_text_color,
+		          has_card_border, card_border_color, card_border_style, card_border_width, style,
 		          position, clicks, is_active, is_pinned,
 		          scheduled_at, expires_at, created_at, updated_at, description
 	`
@@ -190,11 +197,13 @@ func (r *LinkRepository) Update(linkID string, data map[string]interface{}) (*Li
 		data["image_placement"], data["text_alignment"], data["text_size"], data["show_outline"], data["show_shadow"], 
 		data["shadow_x"], data["shadow_y"], data["shadow_blur"], data["show_description"],
 		data["show_text"], data["is_active"], data["scheduled_at"], data["expires_at"], data["group_title"], data["group_layout"],
-		data["has_card_background"], data["card_background_color"], data["card_background_opacity"], data["card_border_radius"], data["card_text_color"], data["style"]).Scan(
+		data["has_card_background"], data["card_background_color"], data["card_background_opacity"], data["card_border_radius"], data["card_text_color"],
+		data["has_card_border"], data["card_border_color"], data["card_border_style"], data["card_border_width"], data["style"]).Scan(
 		&link.ID, &link.ProfileID, &link.ParentID, &link.IsGroup, &link.GroupTitle, &link.GroupLayout, &link.GridColumns, &link.GridAspectRatio,
 		&link.Title, &link.URL, &link.ThumbnailURL, &link.ImageShape, &link.LayoutType,
 		&link.ImagePlacement, &link.TextAlignment, &link.TextSize, &link.ShowOutline, &link.ShowShadow, &link.ShadowX, &link.ShadowY, &link.ShadowBlur, &link.ShowDescription,
-		&link.ShowText, &link.HasCardBackground, &link.CardBackgroundColor, &link.CardBackgroundOpacity, &link.CardBorderRadius, &link.CardTextColor, &link.Style,
+		&link.ShowText, &link.HasCardBackground, &link.CardBackgroundColor, &link.CardBackgroundOpacity, &link.CardBorderRadius, &link.CardTextColor,
+		&link.HasCardBorder, &link.CardBorderColor, &link.CardBorderStyle, &link.CardBorderWidth, &link.Style,
 		&link.Position, &link.Clicks, &link.IsActive, &link.IsPinned, &link.ScheduledAt, &link.ExpiresAt,
 		&link.CreatedAt, &link.UpdatedAt, &link.Description,
 	)
@@ -492,7 +501,8 @@ func (r *LinkRepository) GetChildrenByParentID(parentID string) ([]Link, error) 
 		SELECT id, profile_id, parent_id, is_group, group_title, group_layout, grid_columns, grid_aspect_ratio,
 		       title, url, description, thumbnail_url, image_shape, layout_type, 
 		       image_placement, text_alignment, text_size, show_outline, show_shadow, shadow_x, shadow_y, shadow_blur, show_description, show_text,
-		       has_card_background, card_background_color, card_background_opacity, card_border_radius, card_text_color, style,
+		       has_card_background, card_background_color, card_background_opacity, card_border_radius, card_text_color,
+		       has_card_border, card_border_color, card_border_style, card_border_width, style,
 		       position, clicks, is_active, is_pinned, scheduled_at, expires_at, 
 		       created_at, updated_at
 		FROM links
@@ -513,7 +523,8 @@ func (r *LinkRepository) GetChildrenByParentID(parentID string) ([]Link, error) 
 			&child.ID, &child.ProfileID, &child.ParentID, &child.IsGroup, &child.GroupTitle, &child.GroupLayout, &child.GridColumns, &child.GridAspectRatio,
 			&child.Title, &child.URL, &child.Description, &child.ThumbnailURL, &child.ImageShape, &child.LayoutType,
 			&child.ImagePlacement, &child.TextAlignment, &child.TextSize, &child.ShowOutline, &child.ShowShadow, &child.ShadowX, &child.ShadowY, &child.ShadowBlur, &child.ShowDescription, &child.ShowText,
-			&child.HasCardBackground, &child.CardBackgroundColor, &child.CardBackgroundOpacity, &child.CardBorderRadius, &child.CardTextColor, &child.Style,
+			&child.HasCardBackground, &child.CardBackgroundColor, &child.CardBackgroundOpacity, &child.CardBorderRadius, &child.CardTextColor,
+			&child.HasCardBorder, &child.CardBorderColor, &child.CardBorderStyle, &child.CardBorderWidth, &child.Style,
 			&child.Position, &child.Clicks, &child.IsActive, &child.IsPinned, &child.ScheduledAt, &child.ExpiresAt,
 			&child.CreatedAt, &child.UpdatedAt,
 		)

@@ -378,7 +378,8 @@
 														{@const g = parseInt(bgColor.slice(3,5), 16)}
 														{@const b = parseInt(bgColor.slice(5,7), 16)}
 														{@const shadowStyle = link.show_shadow ? `box-shadow: ${shadowX}px ${shadowY}px ${shadowBlur}px rgba(0,0,0,0.2);` : ''}
-														{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle}` : `padding: ${getPaddingStyle(link.style)}; ${shadowStyle}`}
+														{@const borderStyle = link.has_card_border ? `border: ${link.card_border_width || 1}px ${link.card_border_style || 'solid'} ${link.card_border_color || '#e5e7eb'};` : ''}
+														{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}` : `padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}`}
 														<a
 															href={child.url}
 															target="_blank"
@@ -386,8 +387,8 @@
 															class="block hover:bg-gray-50 transition-all flex-shrink-0 snap-center w-[85%]"
 															class:bg-white={!hasCustomBg}
 															class:rounded-xl={!hasCustomBg}
-															class:border-2={link.show_outline}
-															class:border-gray-200={link.show_outline}
+															class:border-2={link.show_outline && !link.has_card_border}
+															class:border-gray-200={link.show_outline && !link.has_card_border}
 															style={bgStyle}
 														>
 															{#if child.thumbnail_url}
@@ -474,7 +475,8 @@
 												{@const g = parseInt(bgColor.slice(3,5), 16)}
 												{@const b = parseInt(bgColor.slice(5,7), 16)}
 												{@const shadowStyle = link.show_shadow ? `box-shadow: ${shadowX}px ${shadowY}px ${shadowBlur}px rgba(0,0,0,0.2);` : ''}
-												{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px; ${shadowStyle}` : shadowStyle}
+												{@const borderStyle = link.has_card_border ? `border: ${link.card_border_width || 1}px ${link.card_border_style || 'solid'} ${link.card_border_color || '#e5e7eb'};` : ''}
+												{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px; ${shadowStyle} ${borderStyle}` : `${shadowStyle} ${borderStyle}`}
 												<a
 													href={child.url}
 													target="_blank"
@@ -482,8 +484,8 @@
 													class="block hover:bg-gray-50 overflow-hidden transition-all"
 													class:bg-white={!hasCustomBg}
 													class:rounded-xl={!hasCustomBg}
-													class:border-2={link.show_outline}
-													class:border-gray-200={link.show_outline}
+													class:border-2={link.show_outline && !link.has_card_border}
+													class:border-gray-200={link.show_outline && !link.has_card_border}
 													style={bgStyle}
 												>
 													<div class="flex items-stretch" class:flex-row-reverse={shouldReverse}>
@@ -526,7 +528,8 @@
 												{@const g = parseInt(bgColor.slice(3,5), 16)}
 												{@const b = parseInt(bgColor.slice(5,7), 16)}
 												{@const shadowStyle = link.show_shadow ? `box-shadow: ${shadowX}px ${shadowY}px ${shadowBlur}px rgba(0,0,0,0.2);` : ''}
-												{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle}` : `padding: ${getPaddingStyle(link.style)}; ${shadowStyle}`}
+												{@const borderStyle = link.has_card_border ? `border: ${link.card_border_width || 1}px ${link.card_border_style || 'solid'} ${link.card_border_color || '#e5e7eb'};` : ''}
+												{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}` : `padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}`}
 
 												<a
 													href={child.url}
@@ -535,8 +538,8 @@
 													class="block hover:bg-gray-50 transition-all"
 													class:bg-white={!hasCustomBg}
 													class:rounded-xl={!hasCustomBg}
-													class:border-2={link.show_outline}
-													class:border-gray-200={link.show_outline}
+													class:border-2={link.show_outline && !link.has_card_border}
+													class:border-gray-200={link.show_outline && !link.has_card_border}
 													style={bgStyle}
 												>
 													<div class="flex items-center gap-3">

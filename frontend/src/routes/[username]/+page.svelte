@@ -337,6 +337,7 @@
 									}}
 									<div class="grid gap-3" class:grid-cols-1={gridCols === 1} class:grid-cols-2={gridCols === 2} class:grid-cols-3={gridCols === 3} class:grid-cols-4={gridCols === 4}>
 										{#each sortedChildren as child}
+											{@const borderStyle = link.has_card_border ? `border: ${link.card_border_width || 1}px ${link.card_border_style || 'solid'} ${link.card_border_color || '#e5e7eb'};` : ''}
 											<a
 												href={child.url}
 												target="{child.open_in_new_tab ? '_blank' : '_self'}"
@@ -344,9 +345,9 @@
 												class="block bg-white hover:bg-gray-50 rounded-xl transition-all"
 												class:shadow-sm={link.show_shadow}
 												class:hover:shadow-md={link.show_shadow}
-												class:border-2={link.show_outline}
-												class:border-gray-200={link.show_outline}
-												style="padding: {getPaddingStyle(link.style)}"
+												class:border-2={link.show_outline && !link.has_card_border}
+												class:border-gray-200={link.show_outline && !link.has_card_border}
+												style="padding: {getPaddingStyle(link.style)}; {borderStyle}"
 											>
 												{#if child.thumbnail_url}
 													<img src={child.thumbnail_url} alt={child.title} class="w-full object-cover rounded-lg mb-2" style={getAspectStyle(aspectRatio)} />
@@ -395,7 +396,8 @@
 													{@const g = parseInt(bgColor.slice(3,5), 16)}
 													{@const b = parseInt(bgColor.slice(5,7), 16)}
 													{@const shadowStyle = link.show_shadow ? `box-shadow: ${shadowX}px ${shadowY}px ${shadowBlur}px rgba(0,0,0,0.2);` : ''}
-													{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle}` : `padding: ${getPaddingStyle(link.style)}; ${shadowStyle}`}
+													{@const borderStyle = link.has_card_border ? `border: ${link.card_border_width || 1}px ${link.card_border_style || 'solid'} ${link.card_border_color || '#e5e7eb'};` : ''}
+													{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}` : `padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}`}
 													<a
 														href={child.url}
 														target="{child.open_in_new_tab ? '_blank' : '_self'}"
@@ -403,8 +405,8 @@
 														class="block hover:bg-gray-50 transition-all flex-shrink-0 snap-center w-[85%]"
 														class:bg-white={!hasCustomBg}
 														class:rounded-xl={!hasCustomBg}
-														class:border-2={link.show_outline}
-														class:border-gray-200={link.show_outline}
+														class:border-2={link.show_outline && !link.has_card_border}
+														class:border-gray-200={link.show_outline && !link.has_card_border}
 														style={bgStyle}
 													>
 														{#if child.thumbnail_url}
@@ -491,7 +493,8 @@
 											{@const g = parseInt(bgColor.slice(3,5), 16)}
 											{@const b = parseInt(bgColor.slice(5,7), 16)}
 											{@const shadowStyle = link.show_shadow ? `box-shadow: ${shadowX}px ${shadowY}px ${shadowBlur}px rgba(0,0,0,0.1);` : ''}
-											{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px; ${shadowStyle}` : shadowStyle}
+											{@const borderStyle = link.has_card_border ? `border: ${link.card_border_width || 1}px ${link.card_border_style || 'solid'} ${link.card_border_color || '#e5e7eb'};` : ''}
+											{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px; ${shadowStyle} ${borderStyle}` : `${shadowStyle} ${borderStyle}`}
 											<a
 												href={child.url}
 												target="{child.open_in_new_tab ? '_blank' : '_self'}"
@@ -499,8 +502,8 @@
 												class="block hover:bg-gray-50 overflow-hidden transition-all"
 												class:bg-white={!hasCustomBg}
 												class:rounded-xl={!hasCustomBg}
-												class:border-2={link.show_outline}
-												class:border-gray-200={link.show_outline}
+												class:border-2={link.show_outline && !link.has_card_border}
+												class:border-gray-200={link.show_outline && !link.has_card_border}
 												style={bgStyle}
 											>
 												<div class="flex items-stretch" class:flex-row-reverse={shouldReverse}>
@@ -543,7 +546,8 @@
 											{@const g = parseInt(bgColor.slice(3,5), 16)}
 											{@const b = parseInt(bgColor.slice(5,7), 16)}
 											{@const shadowStyle = link.show_shadow ? `box-shadow: ${shadowX}px ${shadowY}px ${shadowBlur}px rgba(0,0,0,0.2);` : ''}
-											{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle}` : `padding: ${getPaddingStyle(link.style)}; ${shadowStyle}`}
+											{@const borderStyle = link.has_card_border ? `border: ${link.card_border_width || 1}px ${link.card_border_style || 'solid'} ${link.card_border_color || '#e5e7eb'};` : ''}
+											{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}` : `padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}`}
 											<a
 												href={child.url}
 												target="{child.open_in_new_tab ? '_blank' : '_self'}"
@@ -551,8 +555,8 @@
 												class="block hover:bg-gray-50 transition-all"
 												class:bg-white={!hasCustomBg}
 												class:rounded-xl={!hasCustomBg}
-												class:border-2={link.show_outline}
-												class:border-gray-200={link.show_outline}
+												class:border-2={link.show_outline && !link.has_card_border}
+												class:border-gray-200={link.show_outline && !link.has_card_border}
 												style={bgStyle}
 											>
 												<div class="flex items-center gap-3">

@@ -724,6 +724,134 @@
 	<!-- Divider -->
 	<div class="border-t border-gray-200 my-6"></div>
 
+	<!-- Link Card Border Section -->
+	<div class="space-y-4">
+		<h3 class="text-base font-semibold text-gray-900">Link Card Border</h3>
+		
+		<!-- Enable Border -->
+		<div class="flex items-center justify-between">
+			<label class="text-sm font-medium text-gray-700">Enable Border</label>
+			<button
+				type="button"
+				onclick={() => dispatch('update', { groupId: group.id, has_card_border: !(group.has_card_border || false) })}
+				class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+				class:bg-emerald-600={group.has_card_border}
+				class:bg-gray-300={!group.has_card_border}
+			>
+				<span
+					class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
+					class:translate-x-6={group.has_card_border}
+					class:translate-x-1={!group.has_card_border}
+				></span>
+			</button>
+		</div>
+
+		{#if group.has_card_border}
+			<!-- Border Color -->
+			<div>
+				<label class="text-sm font-medium text-gray-700 mb-2 block">Border Color</label>
+				<div class="space-y-3">
+					<div class="flex gap-3 items-center">
+						<input 
+							type="color" 
+							value={group.card_border_color || '#e5e7eb'}
+							onchange={(e) => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: e.currentTarget.value })}
+							class="w-10 h-10 rounded-full border-2 border-gray-200 cursor-pointer overflow-hidden" 
+						/>
+						<span class="text-sm text-gray-600 font-mono">{group.card_border_color || '#e5e7eb'}</span>
+					</div>
+					
+					<!-- Border Color Presets -->
+					<div class="flex gap-2 flex-wrap">
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: '#e5e7eb' })} class="w-7 h-7 rounded-full border-2 bg-gray-200 hover:scale-110 transition-transform" title="Light Gray"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: '#9ca3af' })} class="w-7 h-7 rounded-full border-2 bg-gray-400 hover:scale-110 transition-transform" title="Gray"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: '#000000' })} class="w-7 h-7 rounded-full border-2 bg-black hover:scale-110 transition-transform" title="Black"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: '#3b82f6' })} class="w-7 h-7 rounded-full border-2 bg-blue-500 hover:scale-110 transition-transform" title="Blue"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: '#8b5cf6' })} class="w-7 h-7 rounded-full border-2 bg-purple-500 hover:scale-110 transition-transform" title="Purple"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: '#10b981' })} class="w-7 h-7 rounded-full border-2 bg-green-500 hover:scale-110 transition-transform" title="Green"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: '#ef4444' })} class="w-7 h-7 rounded-full border-2 bg-red-500 hover:scale-110 transition-transform" title="Red"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: '#f59e0b' })} class="w-7 h-7 rounded-full border-2 bg-amber-500 hover:scale-110 transition-transform" title="Amber"></button>
+					</div>
+				</div>
+			</div>
+
+			<!-- Border Style -->
+			<div>
+				<label class="text-sm font-medium text-gray-700 mb-2 block">Border Style</label>
+				<div class="flex gap-2">
+					<button 
+						onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_style: 'solid' })} 
+						class="flex-1 px-3 py-2 text-xs bg-white border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class:border-emerald-500={(group.card_border_style || 'solid') === 'solid'}
+						class:bg-emerald-50={(group.card_border_style || 'solid') === 'solid'}
+						class:border-gray-200={(group.card_border_style || 'solid') !== 'solid'}
+					>
+						<div class="w-full h-0.5 bg-gray-700"></div>
+						<span class="block mt-1">Solid</span>
+					</button>
+					<button 
+						onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_style: 'dashed' })} 
+						class="flex-1 px-3 py-2 text-xs bg-white border-2 border-dashed rounded-lg hover:bg-gray-50 transition-colors"
+						class:border-emerald-500={(group.card_border_style || 'solid') === 'dashed'}
+						class:bg-emerald-50={(group.card_border_style || 'solid') === 'dashed'}
+						class:border-gray-200={(group.card_border_style || 'solid') !== 'dashed'}
+					>
+						<div class="w-full h-0.5 border-t-2 border-dashed border-gray-700"></div>
+						<span class="block mt-1">Dashed</span>
+					</button>
+					<button 
+						onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_style: 'dotted' })} 
+						class="flex-1 px-3 py-2 text-xs bg-white border-2 border-dotted rounded-lg hover:bg-gray-50 transition-colors"
+						class:border-emerald-500={(group.card_border_style || 'solid') === 'dotted'}
+						class:bg-emerald-50={(group.card_border_style || 'solid') === 'dotted'}
+						class:border-gray-200={(group.card_border_style || 'solid') !== 'dotted'}
+					>
+						<div class="w-full h-0.5 border-t-2 border-dotted border-gray-700"></div>
+						<span class="block mt-1">Dotted</span>
+					</button>
+				</div>
+			</div>
+
+			<!-- Border Width -->
+			<div>
+				<label class="text-sm font-medium text-gray-700 mb-2 block">Border Width</label>
+				<div class="flex gap-2">
+					<button 
+						onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_width: 1 })} 
+						class="flex-1 px-3 py-2 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors"
+						class:border-emerald-500={(group.card_border_width || 1) === 1}
+						class:bg-emerald-50={(group.card_border_width || 1) === 1}
+						class:border-gray-200={(group.card_border_width || 1) !== 1}
+					>1px</button>
+					<button 
+						onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_width: 2 })} 
+						class="flex-1 px-3 py-2 text-xs bg-white border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class:border-emerald-500={(group.card_border_width || 1) === 2}
+						class:bg-emerald-50={(group.card_border_width || 1) === 2}
+						class:border-gray-200={(group.card_border_width || 1) !== 2}
+					>2px</button>
+					<button 
+						onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_width: 3 })} 
+						class="flex-1 px-3 py-2 text-xs bg-white border-4 rounded-lg hover:bg-gray-50 transition-colors"
+						class:border-emerald-500={(group.card_border_width || 1) === 3}
+						class:bg-emerald-50={(group.card_border_width || 1) === 3}
+						class:border-gray-200={(group.card_border_width || 1) !== 3}
+					>3px</button>
+					<button 
+						onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_width: 4 })} 
+						class="flex-1 px-3 py-2 text-xs bg-white border-4 rounded-lg hover:bg-gray-50 transition-colors"
+						class:border-emerald-500={(group.card_border_width || 1) === 4}
+						class:bg-emerald-50={(group.card_border_width || 1) === 4}
+						class:border-gray-200={(group.card_border_width || 1) !== 4}
+					>4px</button>
+				</div>
+			</div>
+		{/if}
+	</div>
+
+	<!-- Divider -->
+	<div class="border-t border-gray-200 my-6"></div>
+
 	<!-- Link Card Padding Section -->
 	<div class="space-y-4">
 		<h3 class="text-base font-semibold text-gray-900">Link Card Padding</h3>
