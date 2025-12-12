@@ -384,9 +384,8 @@
 															href={child.url}
 															target="_blank"
 															rel="noopener noreferrer"
-															class="block hover:bg-gray-50 transition-all flex-shrink-0 snap-center w-[85%]"
-															class:bg-white={!hasCustomBg}
-															class:rounded-xl={!hasCustomBg}
+															class="block transition-all flex-shrink-0 snap-center w-[85%]"
+															class:hover:bg-gray-50={hasCustomBg}
 															class:border-2={link.show_outline && !link.has_card_border}
 															class:border-gray-200={link.show_outline && !link.has_card_border}
 															style={bgStyle}
@@ -481,9 +480,8 @@
 													href={child.url}
 													target="_blank"
 													rel="noopener noreferrer"
-													class="block hover:bg-gray-50 overflow-hidden transition-all"
-													class:bg-white={!hasCustomBg}
-													class:rounded-xl={!hasCustomBg}
+													class="block overflow-hidden transition-all"
+													class:hover:bg-gray-50={hasCustomBg}
 													class:border-2={link.show_outline && !link.has_card_border}
 													class:border-gray-200={link.show_outline && !link.has_card_border}
 													style={bgStyle}
@@ -535,9 +533,8 @@
 													href={child.url}
 													target="_blank"
 													rel="noopener noreferrer"
-													class="block hover:bg-gray-50 transition-all"
-													class:bg-white={!hasCustomBg}
-													class:rounded-xl={!hasCustomBg}
+													class="block transition-all"
+													class:hover:bg-gray-50={hasCustomBg}
 													class:border-2={link.show_outline && !link.has_card_border}
 													class:border-gray-200={link.show_outline && !link.has_card_border}
 													style={bgStyle}
