@@ -245,6 +245,8 @@
 													text-align: {groupStyle.textAlign || 'left'};
 													font-weight: {groupStyle.isBold ? 'bold' : 'normal'};
 													font-style: {groupStyle.isItalic ? 'italic' : 'normal'};
+													text-decoration: {groupStyle.isUnderline && groupStyle.isStrikethrough ? 'underline line-through' : groupStyle.isUnderline ? 'underline' : groupStyle.isStrikethrough ? 'line-through' : 'none'};
+													text-transform: {groupStyle.textTransform || 'none'};
 													color: {groupStyle.textColor || '#000000'};
 												"
 											>
@@ -259,6 +261,8 @@
 												text-align: {groupStyle.textAlign || 'left'};
 												font-weight: {groupStyle.isBold ? 'bold' : 'normal'};
 												font-style: {groupStyle.isItalic ? 'italic' : 'normal'};
+												text-decoration: {groupStyle.isUnderline && groupStyle.isStrikethrough ? 'underline line-through' : groupStyle.isUnderline ? 'underline' : groupStyle.isStrikethrough ? 'line-through' : 'none'};
+												text-transform: {groupStyle.textTransform || 'none'};
 												color: {groupStyle.textColor || '#000000'};
 											"
 										>

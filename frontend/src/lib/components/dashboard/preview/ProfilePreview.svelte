@@ -18,6 +18,9 @@
 		textColor: '#000000',
 		isBold: false,
 		isItalic: false,
+		isUnderline: false,
+		isStrikethrough: false,
+		textTransform: 'none',
 		hasBackground: false,
 		backgroundColor: '#ffffff',
 		backgroundOpacity: 90,
@@ -50,6 +53,9 @@
 					textColor: parsed.textColor || '#000000',
 					isBold: parsed.isBold || false,
 					isItalic: parsed.isItalic || false,
+					isUnderline: parsed.isUnderline || false,
+					isStrikethrough: parsed.isStrikethrough || false,
+					textTransform: parsed.textTransform || 'none',
 					hasBackground: parsed.hasBackground || false,
 					backgroundColor: parsed.backgroundColor || '#ffffff',
 					backgroundOpacity: parsed.backgroundOpacity ?? 90,
@@ -76,6 +82,9 @@
 			textColor: styleData.textColor || '#000000',
 			isBold: styleData.isBold || false,
 			isItalic: styleData.isItalic || false,
+			isUnderline: styleData.isUnderline || false,
+			isStrikethrough: styleData.isStrikethrough || false,
+			textTransform: styleData.textTransform || 'none',
 			hasBackground: styleData.hasBackground || false,
 			backgroundColor: styleData.backgroundColor || '#ffffff',
 			backgroundOpacity: styleData.backgroundOpacity ?? 90,
@@ -221,12 +230,12 @@
 										groupStyle.fontSize === 'headline-small' ? '1.125rem' : 
 										groupStyle.fontSize === 'text-large' ? '1.125rem' : 
 										groupStyle.fontSize === 'text-small' ? '0.875rem' : '1rem'}
-									{@const textAlign = groupStyle.textAlign || 'left'}
-									{@const fontWeight = groupStyle.isBold ? 'bold' : 'normal'}
-									{@const fontStyle = groupStyle.isItalic ? 'italic' : 'normal'}
-									{@const textColor = groupStyle.textColor || '#000000'}
-									
-								<!-- Pre-compute background styles if enabled -->
+					{@const textAlign = groupStyle.textAlign || 'left'}
+					{@const fontWeight = groupStyle.isBold ? 'bold' : 'normal'}
+					{@const fontStyle = groupStyle.isItalic ? 'italic' : 'normal'}
+					{@const textDecoration = groupStyle.isUnderline && groupStyle.isStrikethrough ? 'underline line-through' : groupStyle.isUnderline ? 'underline' : groupStyle.isStrikethrough ? 'line-through' : 'none'}
+					{@const textTransform = groupStyle.textTransform || 'none'}
+					{@const textColor = groupStyle.textColor || '#000000'}								<!-- Pre-compute background styles if enabled -->
 								{@const bgStyles = groupStyle.hasBackground ? {
 									backgroundColor: `rgba(${parseInt(groupStyle.backgroundColor?.slice(1,3) || 'ff', 16)}, ${parseInt(groupStyle.backgroundColor?.slice(3,5) || 'ff', 16)}, ${parseInt(groupStyle.backgroundColor?.slice(5,7) || 'ff', 16)}, ${(groupStyle.backgroundOpacity ?? 90) / 100})`,
 									borderRadius: `${groupStyle.borderRadius ?? 12}px`,
@@ -244,7 +253,7 @@
 												>
 													<p 
 														class="text-gray-900 break-words"
-														style="font-size: {fontSize}; text-align: {textAlign}; font-weight: {fontWeight}; font-style: {fontStyle}; color: {textColor};"
+														style="font-size: {fontSize}; text-align: {textAlign}; font-weight: {fontWeight}; font-style: {fontStyle}; text-decoration: {textDecoration}; text-transform: {textTransform}; color: {textColor};"
 													>
 														{child.content || 'Empty text'}
 													</p>
@@ -252,7 +261,7 @@
 											{:else}
 												<p 
 													class="text-gray-900 break-words"
-													style="font-size: {fontSize}; text-align: {textAlign}; font-weight: {fontWeight}; font-style: {fontStyle}; color: {textColor};"
+													style="font-size: {fontSize}; text-align: {textAlign}; font-weight: {fontWeight}; font-style: {fontStyle}; text-decoration: {textDecoration}; text-transform: {textTransform}; color: {textColor};"
 												>
 													{child.content || 'Empty text'}
 												</p>

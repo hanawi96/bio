@@ -36,6 +36,9 @@
 		textColor: '#000000',
 		isBold: false,
 		isItalic: false,
+		isUnderline: false,
+		isStrikethrough: false,
+		textTransform: 'none',
 		hasBackground: false,
 		backgroundColor: '#ffffff',
 		backgroundOpacity: 90,
@@ -57,6 +60,9 @@
 					textColor: '#000000',
 					isBold: false,
 					isItalic: false,
+					isUnderline: false,
+					isStrikethrough: false,
+					textTransform: 'none',
 					hasBackground: false,
 					backgroundColor: '#ffffff',
 					backgroundOpacity: 90,
@@ -75,6 +81,9 @@
 					textColor: parsed.textColor || '#000000',
 					isBold: parsed.isBold || false,
 					isItalic: parsed.isItalic || false,
+					isUnderline: parsed.isUnderline || false,
+					isStrikethrough: parsed.isStrikethrough || false,
+					textTransform: parsed.textTransform || 'none',
 					hasBackground: parsed.hasBackground || false,
 					backgroundColor: parsed.backgroundColor || '#ffffff',
 					backgroundOpacity: parsed.backgroundOpacity !== undefined ? parsed.backgroundOpacity : 90,
@@ -93,6 +102,9 @@
 					textColor: style.textColor || '#000000',
 					isBold: style.isBold || false,
 					isItalic: style.isItalic || false,
+					isUnderline: style.isUnderline || false,
+					isStrikethrough: style.isStrikethrough || false,
+					textTransform: style.textTransform || 'none',
 					hasBackground: style.hasBackground || false,
 					backgroundColor: style.backgroundColor || '#ffffff',
 					backgroundOpacity: style.backgroundOpacity !== undefined ? style.backgroundOpacity : 90,
@@ -112,6 +124,9 @@
 				textColor: '#000000',
 				isBold: false,
 				isItalic: false,
+				isUnderline: false,
+				isStrikethrough: false,
+				textTransform: 'none',
 				hasBackground: false,
 				backgroundColor: '#ffffff',
 				backgroundOpacity: 90,
@@ -227,19 +242,23 @@
 	// Presets
 	const presets = {
 		default: { 
-			textAlign: 'left', fontSize: 'text-medium', textColor: '#000000', isBold: false, isItalic: false,
+			textAlign: 'left', fontSize: 'text-medium', textColor: '#000000', isBold: false, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
+			hasBackground: false, backgroundColor: '#ffffff', backgroundOpacity: 90, borderRadius: 12, padding: 16, shadow: 'none', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+		},
+		normal: { 
+			textAlign: 'left', fontSize: 'text-medium', textColor: '#000000', isBold: false, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
 			hasBackground: false, backgroundColor: '#ffffff', backgroundOpacity: 90, borderRadius: 12, padding: 16, shadow: 'none', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
 		},
 		faq: { 
-			textAlign: 'left', fontSize: 'text-medium', textColor: '#1f2937', isBold: true, isItalic: false,
+			textAlign: 'left', fontSize: 'text-medium', textColor: '#1f2937', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
 			hasBackground: false, backgroundColor: '#ffffff', backgroundOpacity: 90, borderRadius: 12, padding: 16, shadow: 'none', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
 		},
 		quote: { 
-			textAlign: 'center', fontSize: 'text-large', textColor: '#4b5563', isBold: false, isItalic: true,
+			textAlign: 'center', fontSize: 'text-large', textColor: '#4b5563', isBold: false, isItalic: true, isUnderline: false, isStrikethrough: false, textTransform: 'none',
 			hasBackground: false, backgroundColor: '#ffffff', backgroundOpacity: 90, borderRadius: 12, padding: 16, shadow: 'none', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
 		},
 		feature: { 
-			textAlign: 'left', fontSize: 'text-medium', textColor: '#1f2937', isBold: true, isItalic: false,
+			textAlign: 'left', fontSize: 'text-medium', textColor: '#1f2937', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
 			hasBackground: false, backgroundColor: '#ffffff', backgroundOpacity: 90, borderRadius: 12, padding: 16, shadow: 'none', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
 		}
 	};
@@ -745,6 +764,9 @@
 								<button onclick={() => applyPreset('default')} class="px-4 py-2 text-sm bg-white border rounded-lg hover:bg-gray-50 transition-colors">
 									Default
 								</button>
+								<button onclick={() => applyPreset('normal')} class="px-4 py-2 text-sm bg-white border rounded-lg hover:bg-gray-50 transition-colors">
+									Normal
+								</button>
 								<button onclick={() => applyPreset('faq')} class="px-4 py-2 text-sm bg-white border rounded-lg hover:bg-gray-50 transition-colors">
 									FAQ
 								</button>
@@ -840,19 +862,75 @@
 						</div>
 					</div>						<!-- Text Style -->
 						<div>
-							<label class="text-sm font-medium text-gray-700 mb-3 block">Text Style</label>
-							<div class="flex gap-2">
+							<div class="flex items-center justify-between mb-3">
+								<label class="text-sm font-medium text-gray-700">Text Style</label>
+								<button
+									onclick={() => { 
+										groupStyle.isBold = false;
+										groupStyle.isItalic = false;
+										groupStyle.isUnderline = false;
+										groupStyle.isStrikethrough = false;
+										groupStyle.textTransform = 'none';
+										applyGroupStyle();
+									}}
+									class="px-2 py-1 text-xs text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
+									title="Reset to default"
+								>
+									Reset
+								</button>
+							</div>
+							<div class="flex gap-2 flex-wrap">
+								<button
+									onclick={() => { 
+										groupStyle.isBold = false;
+										groupStyle.isItalic = false;
+										groupStyle.isUnderline = false;
+										groupStyle.isStrikethrough = false;
+										groupStyle.textTransform = 'none';
+										applyGroupStyle();
+									}}
+									class="px-4 py-2 text-sm bg-white border rounded-lg hover:bg-gray-50 transition-colors {!groupStyle.isBold && !groupStyle.isItalic && !groupStyle.isUnderline && !groupStyle.isStrikethrough && groupStyle.textTransform === 'none' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
+									title="Normal text"
+								>
+									Normal
+								</button>
 								<button 
 									onclick={() => { groupStyle.isBold = !groupStyle.isBold; applyGroupStyle(); }} 
 									class="px-4 py-2 font-bold text-sm bg-white border rounded-lg hover:bg-gray-50 transition-colors {groupStyle.isBold ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
+									title="Bold"
 								>
 									B
 								</button>
 								<button 
 									onclick={() => { groupStyle.isItalic = !groupStyle.isItalic; applyGroupStyle(); }} 
 									class="px-4 py-2 italic text-sm bg-white border rounded-lg hover:bg-gray-50 transition-colors {groupStyle.isItalic ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
+									title="Italic"
 								>
 									I
+								</button>
+								<button 
+									onclick={() => { groupStyle.isUnderline = !groupStyle.isUnderline; applyGroupStyle(); }} 
+									class="px-4 py-2 underline text-sm bg-white border rounded-lg hover:bg-gray-50 transition-colors {groupStyle.isUnderline ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
+									title="Underline"
+								>
+									U
+								</button>
+								<button 
+									onclick={() => { groupStyle.isStrikethrough = !groupStyle.isStrikethrough; applyGroupStyle(); }} 
+									class="px-4 py-2 line-through text-sm bg-white border rounded-lg hover:bg-gray-50 transition-colors {groupStyle.isStrikethrough ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
+									title="Strikethrough"
+								>
+									S
+								</button>
+								<button 
+									onclick={() => { 
+										groupStyle.textTransform = groupStyle.textTransform === 'uppercase' ? 'none' : 'uppercase'; 
+										applyGroupStyle(); 
+									}} 
+									class="px-3 py-2 uppercase text-xs font-bold bg-white border rounded-lg hover:bg-gray-50 transition-colors {groupStyle.textTransform === 'uppercase' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
+									title="Uppercase"
+								>
+									ABC
 								</button>
 							</div>
 						</div>
@@ -874,12 +952,7 @@
 						
 						<!-- Text Card Appearance -->
 						<div class="space-y-4">
-							<h3 class="text-sm font-semibold text-gray-800 flex items-center gap-2">
-								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
-								</svg>
-								Text Card Appearance
-							</h3>
+							
 							
 							<!-- Enable Background -->
 							<div class="flex items-center justify-between">
@@ -1000,18 +1073,20 @@
 									</div>
 								</div>
 								
-								<!-- Border -->
-								<div class="space-y-3">
-									<div class="flex items-center justify-between">
-										<label class="text-sm font-medium text-gray-700">Enable Border</label>
-										<button
-											onclick={() => { groupStyle.hasBorder = !groupStyle.hasBorder; applyGroupStyle(); }}
-											class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {groupStyle.hasBorder ? 'bg-purple-600' : 'bg-gray-300'}"
-										>
-											<span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {groupStyle.hasBorder ? 'translate-x-6' : 'translate-x-1'}"></span>
-										</button>
-									</div>
-									
+							{/if}
+							
+							<!-- Border -->
+							<div class="space-y-3">
+								<div class="flex items-center justify-between">
+									<label class="text-sm font-medium text-gray-700">Enable Border</label>
+									<button
+										onclick={() => { groupStyle.hasBorder = !groupStyle.hasBorder; applyGroupStyle(); }}
+										class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {groupStyle.hasBorder ? 'bg-purple-600' : 'bg-gray-300'}"
+									>
+										<span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {groupStyle.hasBorder ? 'translate-x-6' : 'translate-x-1'}"></span>
+									</button>
+								</div>
+								
 								{#if groupStyle.hasBorder}
 									<div>
 										<label class="text-sm font-medium text-gray-700 mb-2 block">Border Color</label>
@@ -1024,18 +1099,19 @@
 											/>
 											<span class="text-sm text-gray-600 font-mono">{groupStyle.borderColor}</span>
 										</div>
-									</div>										<div>
-											<label class="text-sm font-medium text-gray-700 mb-2 block">Border Width: {groupStyle.borderWidth}px</label>
-											<div class="flex gap-2">
-												<button onclick={() => { groupStyle.borderWidth = 1; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors {groupStyle.borderWidth === 1 ? 'ring-2 ring-purple-500 bg-purple-50' : ''}">1px</button>
-												<button onclick={() => { groupStyle.borderWidth = 2; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border-2 rounded-lg hover:bg-gray-50 transition-colors {groupStyle.borderWidth === 2 ? 'ring-2 ring-purple-500 bg-purple-50' : ''}">2px</button>
-							<button onclick={() => { groupStyle.borderWidth = 3; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border-4 rounded-lg hover:bg-gray-50 transition-colors {groupStyle.borderWidth === 3 ? 'ring-2 ring-purple-500 bg-purple-50' : ''}">3px</button>
+									</div>
+									
+									<div>
+										<label class="text-sm font-medium text-gray-700 mb-2 block">Border Width: {groupStyle.borderWidth}px</label>
+										<div class="flex gap-2">
+											<button onclick={() => { groupStyle.borderWidth = 1; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors {groupStyle.borderWidth === 1 ? 'ring-2 ring-purple-500 bg-purple-50' : ''}">1px</button>
+											<button onclick={() => { groupStyle.borderWidth = 2; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border-2 rounded-lg hover:bg-gray-50 transition-colors {groupStyle.borderWidth === 2 ? 'ring-2 ring-purple-500 bg-purple-50' : ''}">2px</button>
+											<button onclick={() => { groupStyle.borderWidth = 3; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border-4 rounded-lg hover:bg-gray-50 transition-colors {groupStyle.borderWidth === 3 ? 'ring-2 ring-purple-500 bg-purple-50' : ''}">3px</button>
 										</div>
 									</div>
 								{/if}
 							</div>
-						{/if}
-					</div>
+						</div>
 				</div>
 			{/if}
 		</div>
@@ -1047,7 +1123,6 @@
 	/* Remove default browser styling from color input to make color fill the entire circle */
 	input[type="color"] {
 		padding: 0;
-		border: none;
 		background: none;
 	}
 	
