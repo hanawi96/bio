@@ -239,28 +239,112 @@
 		dispatch('updatestyle', { groupId: group.id, style: groupStyle });
 	}
 	
-	// Presets
+	// Modern Creative Presets - Professional Color Combinations
 	const presets = {
 		default: { 
 			textAlign: 'left', fontSize: 'text-medium', textColor: '#000000', isBold: false, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
 			hasBackground: false, backgroundColor: '#ffffff', backgroundOpacity: 90, borderRadius: 12, padding: 16, shadow: 'none', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
 		},
-		normal: { 
-			textAlign: 'left', fontSize: 'text-medium', textColor: '#000000', isBold: false, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
-			hasBackground: false, backgroundColor: '#ffffff', backgroundOpacity: 90, borderRadius: 12, padding: 16, shadow: 'none', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+		// Gradient-inspired with depth
+		'ocean-depth': { 
+			textAlign: 'center', fontSize: 'text-medium', textColor: '#ffffff', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
+			hasBackground: true, backgroundColor: '#06B6D4', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
 		},
-		faq: { 
-			textAlign: 'left', fontSize: 'text-medium', textColor: '#1f2937', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
-			hasBackground: false, backgroundColor: '#ffffff', backgroundOpacity: 90, borderRadius: 12, padding: 16, shadow: 'none', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+		// Warm sunset with complementary
+		'sunset-blaze': { 
+			textAlign: 'center', fontSize: 'text-medium', textColor: '#ffffff', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
+			hasBackground: true, backgroundColor: '#F97316', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
 		},
-		quote: { 
-			textAlign: 'center', fontSize: 'text-large', textColor: '#4b5563', isBold: false, isItalic: true, isUnderline: false, isStrikethrough: false, textTransform: 'none',
-			hasBackground: false, backgroundColor: '#ffffff', backgroundOpacity: 90, borderRadius: 12, padding: 16, shadow: 'none', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+		// Purple luxury with gold accent
+		'royal-purple': { 
+			textAlign: 'center', fontSize: 'text-medium', textColor: '#FDE047', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
+			hasBackground: true, backgroundColor: '#7C3AED', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
 		},
-		feature: { 
-			textAlign: 'left', fontSize: 'text-medium', textColor: '#1f2937', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
-			hasBackground: false, backgroundColor: '#ffffff', backgroundOpacity: 90, borderRadius: 12, padding: 16, shadow: 'none', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+		// Mint with deep teal
+		'mint-teal': { 
+			textAlign: 'center', fontSize: 'text-medium', textColor: '#ffffff', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
+			hasBackground: true, backgroundColor: '#34D399', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+		},
+		// Hot pink with purple
+		'pink-passion': { 
+			textAlign: 'center', fontSize: 'text-medium', textColor: '#ffffff', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
+			hasBackground: true, backgroundColor: '#EC4899', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+		},
+		// Navy with cyan accent
+		'navy-cyan': { 
+			textAlign: 'center', fontSize: 'text-medium', textColor: '#67E8F9', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
+			hasBackground: true, backgroundColor: '#1E3A8A', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+		},
+		// Coral with deep orange
+		'coral-dream': { 
+			textAlign: 'center', fontSize: 'text-medium', textColor: '#ffffff', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
+			hasBackground: true, backgroundColor: '#FB923C', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+		},
+		// Electric blue with pink
+		'electric-pop': { 
+			textAlign: 'center', fontSize: 'text-medium', textColor: '#ffffff', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
+			hasBackground: true, backgroundColor: '#3B82F6', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+		},
+		// Lime with emerald
+		'lime-fresh': { 
+			textAlign: 'center', fontSize: 'text-medium', textColor: '#14532D', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
+			hasBackground: true, backgroundColor: '#BEF264', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+		},
+		// Deep red with dark border
+		'crimson-bold': { 
+			textAlign: 'center', fontSize: 'text-medium', textColor: '#ffffff', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
+			hasBackground: true, backgroundColor: '#DC2626', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+		},
+		// Indigo with violet
+		'indigo-wave': { 
+			textAlign: 'center', fontSize: 'text-medium', textColor: '#E0E7FF', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
+			hasBackground: true, backgroundColor: '#6366F1', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+		},
+		// Teal with sky blue
+		'teal-sky': { 
+			textAlign: 'center', fontSize: 'text-medium', textColor: '#ffffff', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
+			hasBackground: true, backgroundColor: '#14B8A6', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+		},
+		// Frosted glass premium
+		'glass-elite': { 
+			textAlign: 'center', fontSize: 'text-medium', textColor: '#1E293B', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
+			hasBackground: true, backgroundColor: '#F8FAFC', backgroundOpacity: 60, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+		},
+		// Neon cyberpunk
+		'neon-cyber': { 
+			textAlign: 'center', fontSize: 'text-medium', textColor: '#00FFF0', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'uppercase',
+			hasBackground: true, backgroundColor: '#0F172A', backgroundOpacity: 100, borderRadius: 20, padding: 22, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+		},
+		// Elegant quote
+		'quote-elegant': { 
+			textAlign: 'center', fontSize: 'text-large', textColor: '#475569', isBold: false, isItalic: true, isUnderline: false, isStrikethrough: false, textTransform: 'none',
+			hasBackground: true, backgroundColor: '#F1F5F9', backgroundOpacity: 100, borderRadius: 20, padding: 24, shadow: 'md', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
 		}
+	};
+	
+	const presetCategories = [
+		{ name: 'Gradient', presets: ['ocean-depth', 'sunset-blaze', 'mint-teal', 'coral-dream', 'indigo-wave'] },
+		{ name: 'Luxury', presets: ['royal-purple', 'navy-cyan', 'glass-elite', 'teal-sky', 'quote-elegant'] },
+		{ name: 'Bold', presets: ['pink-passion', 'electric-pop', 'lime-fresh', 'crimson-bold', 'neon-cyber'] }
+	];
+	
+	const presetLabels: Record<string, string> = {
+		'default': 'Default',
+		'ocean-depth': 'Ocean',
+		'sunset-blaze': 'Sunset',
+		'royal-purple': 'Royal',
+		'mint-teal': 'Mint',
+		'pink-passion': 'Pink',
+		'navy-cyan': 'Navy',
+		'coral-dream': 'Coral',
+		'electric-pop': 'Electric',
+		'lime-fresh': 'Lime',
+		'crimson-bold': 'Crimson',
+		'indigo-wave': 'Indigo',
+		'teal-sky': 'Teal',
+		'glass-elite': 'Glass',
+		'neon-cyber': 'Neon',
+		'quote-elegant': 'Quote'
 	};
 	
 	function applyPreset(preset: keyof typeof presets) {
@@ -756,29 +840,49 @@
 
 				{:else if activeTab === 'layout'}
 					<!-- Layout Tab -->
-					<div class="space-y-4">
-						<!-- Presets -->
+					<div class="space-y-5">
+						<!-- Presets Section -->
 						<div>
-							<label class="text-sm font-medium text-gray-700 mb-3 block">Quick Presets</label>
-							<div class="flex gap-2 flex-wrap">
-								<button onclick={() => applyPreset('default')} class="px-4 py-2 text-sm bg-white border rounded-lg hover:bg-gray-50 transition-colors">
-									Default
-								</button>
-								<button onclick={() => applyPreset('normal')} class="px-4 py-2 text-sm bg-white border rounded-lg hover:bg-gray-50 transition-colors">
-									Normal
-								</button>
-								<button onclick={() => applyPreset('faq')} class="px-4 py-2 text-sm bg-white border rounded-lg hover:bg-gray-50 transition-colors">
-									FAQ
-								</button>
-								<button onclick={() => applyPreset('quote')} class="px-4 py-2 text-sm bg-white border rounded-lg hover:bg-gray-50 transition-colors">
-									Quote
-								</button>
-								<button onclick={() => applyPreset('feature')} class="px-4 py-2 text-sm bg-white border rounded-lg hover:bg-gray-50 transition-colors">
-									Feature
-								</button>
+							<div class="text-sm font-medium text-gray-700 mb-4">Quick Style Presets</div>
+							<div class="space-y-4">
+								{#each presetCategories as category}
+									<div>
+										<h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{category.name}</h4>
+										<div class="grid grid-cols-5 gap-2">
+											{#each category.presets as presetKey}
+												{@const preset = presets[presetKey as keyof typeof presets]}
+												<button
+													onclick={() => applyPreset(presetKey as keyof typeof presets)}
+													class="p-3 text-center rounded-xl transition-colors"
+													style="
+														background-color: {preset.hasBackground ? hexToRgba(preset.backgroundColor, preset.backgroundOpacity) : 'transparent'};
+													"
+													class:shadow-sm={preset.shadow === 'sm'}
+													class:shadow-md={preset.shadow === 'md'}
+													class:shadow-lg={preset.shadow === 'lg'}
+													class:shadow-xl={preset.shadow === 'xl'}
+													title="Apply {presetLabels[presetKey]} style"
+												>
+													<div 
+														class="text-xs font-medium truncate"
+														class:font-bold={preset.isBold}
+														class:italic={preset.isItalic}
+														class:underline={preset.isUnderline}
+														class:uppercase={preset.textTransform === 'uppercase'}
+														style="color: {preset.textColor}; text-align: {preset.textAlign};"
+													>
+														{presetLabels[presetKey]}
+													</div>
+												</button>
+											{/each}
+										</div>
+									</div>
+								{/each}
 							</div>
 						</div>
 						
+						<!-- Divider -->
+						<div class="border-t border-gray-200"></div>
 						<!-- Text Alignment -->
 						<div>
 							<label class="text-sm font-medium text-gray-700 mb-3 block">Text Alignment</label>
@@ -1010,17 +1114,17 @@
 									<input 
 										type="range" 
 										min="0" 
-										max="24" 
+										max="32" 
 										bind:value={groupStyle.borderRadius} 
 										onchange={applyGroupStyle} 
 										class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
 									/>
 									<div class="flex gap-2 mt-2">
-										<button onclick={() => { groupStyle.borderRadius = 0; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">None</button>
+										<button onclick={() => { groupStyle.borderRadius = 0; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">Sharp</button>
 										<button onclick={() => { groupStyle.borderRadius = 8; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">Small</button>
-										<button onclick={() => { groupStyle.borderRadius = 12; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">Medium</button>
-										<button onclick={() => { groupStyle.borderRadius = 20; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">Large</button>
-										<button onclick={() => { groupStyle.borderRadius = 24; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">Full</button>
+										<button onclick={() => { groupStyle.borderRadius = 16; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">Medium</button>
+										<button onclick={() => { groupStyle.borderRadius = 24; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">Large</button>
+										<button onclick={() => { groupStyle.borderRadius = 32; applyGroupStyle(); }} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">XL</button>
 									</div>
 								</div>
 								
@@ -1045,7 +1149,7 @@
 								<!-- Shadow -->
 								<div>
 									<label class="text-sm font-medium text-gray-700 mb-2 block">Shadow</label>
-									<div class="grid grid-cols-4 gap-2">
+									<div class="grid grid-cols-5 gap-2">
 										<button 
 											onclick={() => { groupStyle.shadow = 'none'; applyGroupStyle(); }} 
 											class="px-3 py-2 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors {groupStyle.shadow === 'none' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
@@ -1069,6 +1173,12 @@
 											class="px-3 py-2 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors shadow-lg {groupStyle.shadow === 'lg' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
 										>
 											Strong
+										</button>
+										<button 
+											onclick={() => { groupStyle.shadow = 'xl'; applyGroupStyle(); }} 
+											class="px-3 py-2 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors shadow-xl {groupStyle.shadow === 'xl' ? 'ring-2 ring-purple-500 bg-purple-50' : ''}"
+										>
+											XL
 										</button>
 									</div>
 								</div>
