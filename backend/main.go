@@ -82,11 +82,29 @@ func main() {
 		ALTER TABLE links ADD COLUMN IF NOT EXISTS card_background_opacity INT DEFAULT 100;
 		ALTER TABLE links ADD COLUMN IF NOT EXISTS card_border_radius INT DEFAULT 12;
 		ALTER TABLE links ADD COLUMN IF NOT EXISTS card_text_color VARCHAR(7) DEFAULT '#000000';
+		ALTER TABLE links ADD COLUMN IF NOT EXISTS shadow_x INT DEFAULT 0;
+		ALTER TABLE links ADD COLUMN IF NOT EXISTS shadow_y INT DEFAULT 4;
+		ALTER TABLE links ADD COLUMN IF NOT EXISTS shadow_blur INT DEFAULT 10;
 	`)
 	if err != nil {
 		log.Println("⚠️ Card background migration warning:", err)
 	} else {
 		log.Println("✅ Migration: card background columns ready")
+	}
+	
+	// Add shadow constraints
+	_, err = db.Exec(`
+		ALTER TABLE links DROP CONSTRAINT IF EXISTS chk_links_shadow_x;
+		ALTER TABLE links DROP CONSTRAINT IF EXISTS chk_links_shadow_y;
+		ALTER TABLE links DROP CONSTRAINT IF EXISTS chk_links_shadow_blur;
+		ALTER TABLE links ADD CONSTRAINT chk_links_shadow_x CHECK (shadow_x >= -20 AND shadow_x <= 20);
+		ALTER TABLE links ADD CONSTRAINT chk_links_shadow_y CHECK (shadow_y >= 0 AND shadow_y <= 20);
+		ALTER TABLE links ADD CONSTRAINT chk_links_shadow_blur CHECK (shadow_blur >= 0 AND shadow_blur <= 40);
+	`)
+	if err != nil {
+		log.Println("⚠️ Shadow constraints warning:", err)
+	} else {
+		log.Println("✅ Migration: shadow constraints ready")
 	}
 
 	// Add constraints for card background columns

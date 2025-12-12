@@ -34,6 +34,9 @@ type Link struct {
 	TextSize              string     `json:"text_size"`
 	ShowOutline           bool       `json:"show_outline"`
 	ShowShadow            bool       `json:"show_shadow"`
+	ShadowX               int        `json:"shadow_x"`
+	ShadowY               int        `json:"shadow_y"`
+	ShadowBlur            int        `json:"shadow_blur"`
 	ShowDescription       bool       `json:"show_description"`
 	ShowText              bool       `json:"show_text"`
 	HasCardBackground     bool       `json:"has_card_background"`

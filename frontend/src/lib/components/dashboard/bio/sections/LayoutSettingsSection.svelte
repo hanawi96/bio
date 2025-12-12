@@ -394,28 +394,28 @@
 				<button
 					type="button"
 					onclick={() => dispatch('update', { groupId: group.id, image_shape: 'square' })}
-					class="flex-1 px-4 py-3 border-2 rounded-lg transition-all hover:shadow-md"
+					class="flex-1 px-4 py-2.5 border-2 rounded-lg transition-all hover:shadow-md"
 					class:border-emerald-500={(group.image_shape || 'square') === 'square'}
 					class:bg-emerald-50={(group.image_shape || 'square') === 'square'}
 					class:border-gray-200={(group.image_shape || 'square') !== 'square'}
 					class:bg-white={(group.image_shape || 'square') !== 'square'}
 				>
-					<div class="flex flex-col items-center gap-2">
-						<div class="w-10 h-10 bg-gradient-to-br from-amber-200 to-amber-300 rounded-lg"></div>
+					<div class="flex items-center gap-3">
+						<div class="w-8 h-8 bg-gradient-to-br from-amber-200 to-amber-300 rounded-lg flex-shrink-0"></div>
 						<span class="text-sm font-medium text-gray-700">Square</span>
 					</div>
 				</button>
 				<button
 					type="button"
 					onclick={() => dispatch('update', { groupId: group.id, image_shape: 'circle' })}
-					class="flex-1 px-4 py-3 border-2 rounded-lg transition-all hover:shadow-md"
+					class="flex-1 px-4 py-2.5 border-2 rounded-lg transition-all hover:shadow-md"
 					class:border-emerald-500={(group.image_shape || 'square') === 'circle'}
 					class:bg-emerald-50={(group.image_shape || 'square') === 'circle'}
 					class:border-gray-200={(group.image_shape || 'square') !== 'circle'}
 					class:bg-white={(group.image_shape || 'square') !== 'circle'}
 				>
-					<div class="flex flex-col items-center gap-2">
-						<div class="w-10 h-10 bg-gradient-to-br from-amber-200 to-amber-300 rounded-full"></div>
+					<div class="flex items-center gap-3">
+						<div class="w-8 h-8 bg-gradient-to-br from-amber-200 to-amber-300 rounded-full flex-shrink-0"></div>
 						<span class="text-sm font-medium text-gray-700">Circle</span>
 					</div>
 				</button>
@@ -424,7 +424,7 @@
 	{/if}
 
 	<!-- Toggles Section -->
-	<div class="space-y-3">
+	<div class="space-y-4">
 		<label class="flex items-center justify-between cursor-pointer">
 			<span class="text-base font-medium text-gray-900">Link outline</span>
 			<button
@@ -442,22 +442,91 @@
 			</button>
 		</label>
 		
-		<label class="flex items-center justify-between cursor-pointer">
-			<span class="text-base font-medium text-gray-900">Link shadow</span>
-			<button
-				type="button"
-				onclick={updateShowShadow}
-				class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-				class:bg-gray-900={showShadow}
-				class:bg-gray-300={!showShadow}
-			>
-				<span
-					class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
-					class:translate-x-6={showShadow}
-					class:translate-x-1={!showShadow}
-				></span>
-			</button>
-		</label>
+		<div>
+			<label class="flex items-center justify-between cursor-pointer mb-3">
+				<span class="text-base font-medium text-gray-900">Link shadow</span>
+				<button
+					type="button"
+					onclick={updateShowShadow}
+					class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+					class:bg-gray-900={showShadow}
+					class:bg-gray-300={!showShadow}
+				>
+					<span
+						class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
+						class:translate-x-6={showShadow}
+						class:translate-x-1={!showShadow}
+					></span>
+				</button>
+			</label>
+			
+			{#if showShadow}
+				<div class="space-y-3 pl-4 border-l-2 border-gray-200">
+					<!-- Shadow X -->
+					<div>
+						<div class="flex items-center justify-between mb-1.5">
+							<div class="flex items-center gap-2">
+								<svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"/>
+								</svg>
+								<span class="text-sm font-medium text-gray-700">Horizontal</span>
+							</div>
+							<span class="text-xs font-mono text-gray-500">{group.shadow_x || 0}px</span>
+						</div>
+						<input 
+							type="range" 
+							min="-20" 
+							max="20" 
+							value={group.shadow_x || 0}
+							oninput={(e) => dispatch('update', { groupId: group.id, show_shadow: true, shadow_x: parseInt(e.currentTarget.value) })}
+							class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-900"
+						/>
+					</div>
+					
+					<!-- Shadow Y -->
+					<div>
+						<div class="flex items-center justify-between mb-1.5">
+							<div class="flex items-center gap-2">
+								<svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 17l4-4m0 0l-4-4m4 4H4"/>
+								</svg>
+								<span class="text-sm font-medium text-gray-700">Vertical</span>
+							</div>
+							<span class="text-xs font-mono text-gray-500">{group.shadow_y || 4}px</span>
+						</div>
+						<input 
+							type="range" 
+							min="0" 
+							max="20" 
+							value={group.shadow_y || 4}
+							oninput={(e) => dispatch('update', { groupId: group.id, show_shadow: true, shadow_y: parseInt(e.currentTarget.value) })}
+							class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-900"
+						/>
+					</div>
+					
+					<!-- Shadow Blur -->
+					<div>
+						<div class="flex items-center justify-between mb-1.5">
+							<div class="flex items-center gap-2">
+								<svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+								</svg>
+								<span class="text-sm font-medium text-gray-700">Blur</span>
+							</div>
+							<span class="text-xs font-mono text-gray-500">{group.shadow_blur || 10}px</span>
+						</div>
+						<input 
+							type="range" 
+							min="0" 
+							max="40" 
+							value={group.shadow_blur || 10}
+							oninput={(e) => dispatch('update', { groupId: group.id, show_shadow: true, shadow_blur: parseInt(e.currentTarget.value) })}
+							class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-900"
+						/>
+					</div>
+				</div>
+			{/if}
+		</div>
 	</div>
 
 	<!-- Divider -->

@@ -351,10 +351,14 @@
 														{@const bgOpacity = link.card_background_opacity !== undefined ? link.card_background_opacity : 100}
 														{@const borderRadius = link.card_border_radius !== undefined ? link.card_border_radius : 12}
 														{@const textColor = link.card_text_color || '#000000'}
+														{@const shadowX = link.shadow_x || 0}
+														{@const shadowY = link.shadow_y || 4}
+														{@const shadowBlur = link.shadow_blur || 10}
 														{@const r = parseInt(bgColor.slice(1,3), 16)}
 														{@const g = parseInt(bgColor.slice(3,5), 16)}
 														{@const b = parseInt(bgColor.slice(5,7), 16)}
-														{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px;` : ''}
+														{@const shadowStyle = link.show_shadow ? `box-shadow: ${shadowX}px ${shadowY}px ${shadowBlur}px rgba(0,0,0,0.2);` : ''}
+														{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px; ${shadowStyle}` : shadowStyle}
 														<a
 															href={child.url}
 															target="_blank"
@@ -362,8 +366,6 @@
 															class="block hover:bg-gray-50 p-4 transition-all flex-shrink-0 snap-center w-[85%]"
 															class:bg-white={!hasCustomBg}
 															class:rounded-xl={!hasCustomBg}
-															class:shadow-sm={link.show_shadow}
-															class:hover:shadow-md={link.show_shadow}
 															class:border-2={link.show_outline}
 															class:border-gray-200={link.show_outline}
 															style={bgStyle}
@@ -445,10 +447,14 @@
 												{@const bgOpacity = link.card_background_opacity !== undefined ? link.card_background_opacity : 100}
 												{@const borderRadius = link.card_border_radius !== undefined ? link.card_border_radius : 12}
 												{@const textColor = link.card_text_color || '#000000'}
+												{@const shadowX = link.shadow_x || 0}
+												{@const shadowY = link.shadow_y || 4}
+												{@const shadowBlur = link.shadow_blur || 10}
 												{@const r = parseInt(bgColor.slice(1,3), 16)}
 												{@const g = parseInt(bgColor.slice(3,5), 16)}
 												{@const b = parseInt(bgColor.slice(5,7), 16)}
-												{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px;` : ''}
+												{@const shadowStyle = link.show_shadow ? `box-shadow: ${shadowX}px ${shadowY}px ${shadowBlur}px rgba(0,0,0,0.2);` : ''}
+												{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px; ${shadowStyle}` : shadowStyle}
 												<a
 													href={child.url}
 													target="_blank"
@@ -456,8 +462,6 @@
 													class="block hover:bg-gray-50 overflow-hidden transition-all"
 													class:bg-white={!hasCustomBg}
 													class:rounded-xl={!hasCustomBg}
-													class:shadow-sm={link.show_shadow}
-													class:hover:shadow-md={link.show_shadow}
 													class:border-2={link.show_outline}
 													class:border-gray-200={link.show_outline}
 													style={bgStyle}
@@ -495,10 +499,15 @@
 												{@const bgOpacity = link.card_background_opacity !== undefined ? link.card_background_opacity : 100}
 												{@const borderRadius = link.card_border_radius !== undefined ? link.card_border_radius : 12}
 												{@const textColor = link.card_text_color || '#000000'}
+												{@const shadowX = link.shadow_x || 0}
+												{@const shadowY = link.shadow_y || 4}
+												{@const shadowBlur = link.shadow_blur || 10}
 												{@const r = parseInt(bgColor.slice(1,3), 16)}
 												{@const g = parseInt(bgColor.slice(3,5), 16)}
 												{@const b = parseInt(bgColor.slice(5,7), 16)}
-												{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px;` : ''}
+												{@const shadowStyle = link.show_shadow ? `box-shadow: ${shadowX}px ${shadowY}px ${shadowBlur}px rgba(0,0,0,0.2);` : ''}
+												{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px; ${shadowStyle}` : shadowStyle}
+
 												<a
 													href={child.url}
 													target="_blank"
@@ -506,8 +515,6 @@
 													class="block hover:bg-gray-50 p-3 transition-all"
 													class:bg-white={!hasCustomBg}
 													class:rounded-xl={!hasCustomBg}
-													class:shadow-sm={link.show_shadow}
-													class:hover:shadow-md={link.show_shadow}
 													class:border-2={link.show_outline}
 													class:border-gray-200={link.show_outline}
 													style={bgStyle}

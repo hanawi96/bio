@@ -861,18 +861,25 @@
 		}
 	}
 
+	let updateLayoutDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+	
 	async function handleUpdateGroupLayout(event: CustomEvent) {
 		const { groupId, ...settings } = event.detail;
 		
-		// Update group only - children will inherit settings when rendering
+		// Optimistic update immediately for smooth UI
 		links = links.map(l => l.id === groupId ? { ...l, ...settings } : l);
 		allLinks = allLinks.map(l => l.id === groupId ? { ...l, ...settings } : l);
 		
-		try {
-			await linksApi.updateLink(groupId, settings, $auth.token!);
-		} catch (error: any) {
-			await loadData();
-		}
+		// Debounce API call - only call after user stops dragging
+		if (updateLayoutDebounceTimer) clearTimeout(updateLayoutDebounceTimer);
+		
+		updateLayoutDebounceTimer = setTimeout(async () => {
+			try {
+				await linksApi.updateLink(groupId, settings, $auth.token!);
+			} catch (error: any) {
+				await loadData();
+			}
+		}, 300);
 	}
 
 	function handleExpandGroup(event: CustomEvent) {
