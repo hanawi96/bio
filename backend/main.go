@@ -81,6 +81,7 @@ func main() {
 		ALTER TABLE links ADD COLUMN IF NOT EXISTS card_background_color VARCHAR(7) DEFAULT '#ffffff';
 		ALTER TABLE links ADD COLUMN IF NOT EXISTS card_background_opacity INT DEFAULT 100;
 		ALTER TABLE links ADD COLUMN IF NOT EXISTS card_border_radius INT DEFAULT 12;
+		ALTER TABLE links ADD COLUMN IF NOT EXISTS card_text_color VARCHAR(7) DEFAULT '#000000';
 	`)
 	if err != nil {
 		log.Println("⚠️ Card background migration warning:", err)

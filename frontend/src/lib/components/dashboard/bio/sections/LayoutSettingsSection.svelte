@@ -547,6 +547,34 @@
 					<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_border_radius: 24 })} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">XL</button>
 				</div>
 			</div>
+
+			<!-- Text Color -->
+			<div>
+				<label class="text-sm font-medium text-gray-700 mb-2 block">Text Color</label>
+				<div class="space-y-3">
+					<div class="flex gap-3 items-center">
+						<input 
+							type="color" 
+							value={group.card_text_color || '#000000'}
+							onchange={(e) => dispatch('update', { groupId: group.id, has_card_background: true, card_text_color: e.currentTarget.value })}
+							class="w-10 h-10 rounded-full border-2 border-gray-200 cursor-pointer overflow-hidden" 
+						/>
+						<span class="text-sm text-gray-600 font-mono">{group.card_text_color || '#000000'}</span>
+					</div>
+					
+					<!-- Text Color Presets -->
+					<div class="flex gap-2 flex-wrap">
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_text_color: '#000000' })} class="w-7 h-7 rounded-full border-2 bg-black hover:scale-110 transition-transform" title="Black"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_text_color: '#ffffff' })} class="w-7 h-7 rounded-full border-2 bg-white hover:scale-110 transition-transform" title="White"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_text_color: '#6b7280' })} class="w-7 h-7 rounded-full border-2 bg-gray-500 hover:scale-110 transition-transform" title="Gray"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_text_color: '#3b82f6' })} class="w-7 h-7 rounded-full border-2 bg-blue-500 hover:scale-110 transition-transform" title="Blue"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_text_color: '#10b981' })} class="w-7 h-7 rounded-full border-2 bg-green-500 hover:scale-110 transition-transform" title="Green"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_text_color: '#ef4444' })} class="w-7 h-7 rounded-full border-2 bg-red-500 hover:scale-110 transition-transform" title="Red"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_text_color: '#f59e0b' })} class="w-7 h-7 rounded-full border-2 bg-amber-500 hover:scale-110 transition-transform" title="Amber"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_text_color: '#8b5cf6' })} class="w-7 h-7 rounded-full border-2 bg-purple-500 hover:scale-110 transition-transform" title="Purple"></button>
+					</div>
+				</div>
+			</div>
 		{/if}
 	</div>
 </div>

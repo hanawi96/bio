@@ -389,6 +389,7 @@
 													{@const bgColor = link.card_background_color || '#ffffff'}
 													{@const bgOpacity = link.card_background_opacity !== undefined ? link.card_background_opacity : 100}
 													{@const borderRadius = link.card_border_radius !== undefined ? link.card_border_radius : 12}
+													{@const textColor = link.card_text_color || '#000000'}
 													{@const r = parseInt(bgColor.slice(1,3), 16)}
 													{@const g = parseInt(bgColor.slice(3,5), 16)}
 													{@const b = parseInt(bgColor.slice(5,7), 16)}
@@ -410,15 +411,15 @@
 															<img src={child.thumbnail_url} alt={child.title} class="w-full object-cover rounded-lg mb-3" style={getAspectStyle(aspectRatio)}/>
 														{/if}
 														{#if link.show_text !== false}
-															<p class="font-medium text-gray-900 mb-1"
+															<p class="font-medium mb-1"
 																class:text-xs={textSize === 'S'}
 																class:text-sm={textSize === 'M'}
 																class:text-base={textSize === 'L'}
 																class:text-lg={textSize === 'XL'}
-																style="text-align: {link.text_alignment || 'center'}"
+																style="text-align: {link.text_alignment || 'center'}; color: {textColor};"
 															>{child.title}</p>
 															{#if child.description}
-																<p class="text-xs text-gray-500 line-clamp-2" style="text-align: {link.text_alignment || 'center'}">{child.description}</p>
+																<p class="text-xs line-clamp-2" style="text-align: {link.text_alignment || 'center'}; color: {textColor}; opacity: 0.7;">{child.description}</p>
 															{/if}
 														{/if}
 													</a>
@@ -482,6 +483,7 @@
 											{@const bgColor = link.card_background_color || '#ffffff'}
 											{@const bgOpacity = link.card_background_opacity !== undefined ? link.card_background_opacity : 100}
 											{@const borderRadius = link.card_border_radius !== undefined ? link.card_border_radius : 12}
+											{@const textColor = link.card_text_color || '#000000'}
 											{@const r = parseInt(bgColor.slice(1,3), 16)}
 											{@const g = parseInt(bgColor.slice(3,5), 16)}
 											{@const b = parseInt(bgColor.slice(5,7), 16)}
@@ -506,15 +508,15 @@
 														</div>
 													{/if}
 													<div class="flex-1 p-4 flex flex-col justify-center">
-														<p class="font-bold text-gray-900 mb-1"
+														<p class="font-bold mb-1"
 															class:text-sm={textSize === 'S'}
 															class:text-base={textSize === 'M'}
 															class:text-lg={textSize === 'L'}
 															class:text-xl={textSize === 'XL'}
-															style="text-align: {link.text_alignment || 'left'}"
+															style="text-align: {link.text_alignment || 'left'}; color: {textColor};"
 														>{child.title}</p>
 														{#if link.show_description !== false && child.description}
-															<p class="text-xs text-gray-500" style="text-align: {link.text_alignment || 'left'}">{child.description}</p>
+															<p class="text-xs" style="text-align: {link.text_alignment || 'left'}; color: {textColor}; opacity: 0.7;">{child.description}</p>
 														{/if}
 													</div>
 												</div>
@@ -531,6 +533,7 @@
 											{@const bgColor = link.card_background_color || '#ffffff'}
 											{@const bgOpacity = link.card_background_opacity !== undefined ? link.card_background_opacity : 100}
 											{@const borderRadius = link.card_border_radius !== undefined ? link.card_border_radius : 12}
+											{@const textColor = link.card_text_color || '#000000'}
 											{@const r = parseInt(bgColor.slice(1,3), 16)}
 											{@const g = parseInt(bgColor.slice(3,5), 16)}
 											{@const b = parseInt(bgColor.slice(5,7), 16)}
@@ -553,15 +556,15 @@
 														<img src={child.thumbnail_url} alt={child.title} class="w-10 h-10 object-cover flex-shrink-0" class:rounded-lg={imageShape === 'square'} class:rounded-full={imageShape === 'circle'}/>
 													{/if}
 													<div class="flex-1">
-														<p class="font-medium text-gray-900"
+														<p class="font-medium"
 															class:text-xs={textSize === 'S'}
 															class:text-sm={textSize === 'M'}
 															class:text-base={textSize === 'L'}
 															class:text-lg={textSize === 'XL'}
-															style="text-align: {link.text_alignment || 'left'}"
+															style="text-align: {link.text_alignment || 'left'}; color: {textColor};"
 														>{child.title}</p>
 														{#if link.show_description !== false && child.description}
-															<p class="text-xs text-gray-500 mt-0.5" style="text-align: {link.text_alignment || 'left'}">{child.description}</p>
+															<p class="text-xs mt-0.5" style="text-align: {link.text_alignment || 'left'}; color: {textColor}; opacity: 0.7;">{child.description}</p>
 														{/if}
 													</div>
 												</div>
