@@ -24,6 +24,20 @@
 		}
 	}
 
+	// Helper function to parse margin from style (only bottom to avoid CSS collapse)
+	// Returns margin value in pixels (number) for use in gap or margin-bottom
+	function getMarginValue(style: string | null | undefined): number {
+		try {
+			if (!style) return 0;
+			const parsed = JSON.parse(style);
+			const m = parsed.margin;
+			if (!m) return 0;
+			return m.bottom ?? 0;
+		} catch {
+			return 0;
+		}
+	}
+
 	onMount(async () => {
 		try {
 			const data: any = await api.get(`/p/${$page.params.username}`);
@@ -331,36 +345,49 @@
 									{@const gridCols = link.grid_columns || 2}
 									{@const aspectRatio = link.grid_aspect_ratio || '3:2'}
 									{@const textSize = link.text_size || 'M'}
+									{@const hasCustomBg = link.has_card_background !== undefined ? link.has_card_background : true}
+									{@const bgColor = link.card_background_color || '#ffffff'}
+									{@const bgOpacity = link.card_background_opacity !== undefined ? link.card_background_opacity : 100}
+									{@const borderRadius = link.card_border_radius !== undefined ? link.card_border_radius : 12}
+									{@const textColor = link.card_text_color || '#000000'}
+									{@const shadowX = link.shadow_x ?? 0}
+									{@const shadowY = link.shadow_y ?? 4}
+									{@const shadowBlur = link.shadow_blur ?? 10}
+									{@const r = parseInt(bgColor.slice(1,3), 16)}
+									{@const g = parseInt(bgColor.slice(3,5), 16)}
+									{@const b = parseInt(bgColor.slice(5,7), 16)}
+									{@const shadowStyle = link.show_shadow ? `box-shadow: ${shadowX}px ${shadowY}px ${shadowBlur}px rgba(0,0,0,0.2);` : ''}
+									{@const borderStyle = link.has_card_border ? `border: ${link.card_border_width || 1}px ${link.card_border_style || 'solid'} ${link.card_border_color || '#e5e7eb'};` : ''}
+									{@const cardSpacing = getMarginValue(link.style)}
+									{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}` : `padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}`}
 									{@const getAspectStyle = (ratio) => {
 										const map = { '1:1': '1/1', '3:2': '3/2', '16:9': '16/9', '3:1': '3/1', '2:3': '2/3' };
 										return `aspect-ratio: ${map[ratio] || '3/2'}`;
 									}}
-									<div class="grid gap-3" class:grid-cols-1={gridCols === 1} class:grid-cols-2={gridCols === 2} class:grid-cols-3={gridCols === 3} class:grid-cols-4={gridCols === 4}>
+									<div class="grid" class:grid-cols-1={gridCols === 1} class:grid-cols-2={gridCols === 2} class:grid-cols-3={gridCols === 3} class:grid-cols-4={gridCols === 4} style="gap: {cardSpacing ?? 12}px;">
 										{#each sortedChildren as child}
-											{@const borderStyle = link.has_card_border ? `border: ${link.card_border_width || 1}px ${link.card_border_style || 'solid'} ${link.card_border_color || '#e5e7eb'};` : ''}
 											<a
 												href={child.url}
 												target="{child.open_in_new_tab ? '_blank' : '_self'}"
 												rel="noopener noreferrer"
-												class="block bg-white hover:bg-gray-50 rounded-xl transition-all"
-												class:shadow-sm={link.show_shadow}
-												class:hover:shadow-md={link.show_shadow}
+												class="block transition-all"
+												class:hover:bg-gray-50={hasCustomBg}
 												class:border-2={link.show_outline && !link.has_card_border}
 												class:border-gray-200={link.show_outline && !link.has_card_border}
-												style="padding: {getPaddingStyle(link.style)}; {borderStyle}"
+												style={bgStyle}
 											>
 												{#if child.thumbnail_url}
 													<img src={child.thumbnail_url} alt={child.title} class="w-full object-cover rounded-lg mb-2" style={getAspectStyle(aspectRatio)} />
 												{/if}
-												<p class="font-medium text-gray-900 truncate"
+												<p class="font-medium truncate"
 													class:text-xs={textSize === 'S'}
 													class:text-sm={textSize === 'M'}
 													class:text-base={textSize === 'L'}
 													class:text-lg={textSize === 'XL'}
-													style="text-align: {link.text_alignment || 'center'}"
+													style="text-align: {link.text_alignment || 'center'}; color: {textColor};"
 												>{child.title}</p>
 												{#if link.show_description !== false && child.description}
-													<p class="text-xs text-gray-500 mt-1 line-clamp-2" style="text-align: {link.text_alignment || 'center'}">{child.description}</p>
+													<p class="text-xs mt-1 line-clamp-2" style="text-align: {link.text_alignment || 'center'}; color: {textColor}; opacity: 0.7;">{child.description}</p>
 												{/if}
 											</a>
 										{/each}
@@ -368,30 +395,25 @@
 								{:else if link.group_layout === 'carousel'}
 									{@const textSize = link.text_size || 'M'}
 									{@const aspectRatio = link.grid_aspect_ratio || '3:2'}
+									{@const cardSpacing = getMarginValue(link.style)}
 									{@const carouselId = `public-carousel-${link.id}`}
 									{@const getAspectStyle = (ratio) => {
 										const map = { '1:1': '1/1', '3:2': '3/2', '16:9': '16/9', '3:1': '3/1', '2:3': '2/3' };
 										return `aspect-ratio: ${map[ratio] || '3/2'}`;
 									}}
-									{console.log('🎠 [Public Carousel] Rendering:', {
-										sortedChildren: sortedChildren.length,
-										textSize,
-										aspectRatio,
-										children: sortedChildren.map(c => ({ id: c.id, title: c.title, url: c.url, thumbnail: c.thumbnail_url }))
-									})}
 									<div class="relative group">
 										<!-- Carousel Container -->
 										<div id={carouselId} class="overflow-x-scroll snap-x snap-mandatory scrollbar-hide" style="scroll-behavior: smooth;">
-											<div class="flex gap-3 px-4">
+											<div class="flex px-4" style="gap: {cardSpacing ?? 12}px;">
 												{#each sortedChildren as child, idx}
 													{@const hasCustomBg = link.has_card_background !== undefined ? link.has_card_background : true}
 													{@const bgColor = link.card_background_color || '#ffffff'}
 													{@const bgOpacity = link.card_background_opacity !== undefined ? link.card_background_opacity : 100}
 													{@const borderRadius = link.card_border_radius !== undefined ? link.card_border_radius : 12}
 													{@const textColor = link.card_text_color || '#000000'}
-													{@const shadowX = link.shadow_x || 0}
-													{@const shadowY = link.shadow_y || 4}
-													{@const shadowBlur = link.shadow_blur || 10}
+													{@const shadowX = link.shadow_x ?? 0}
+													{@const shadowY = link.shadow_y ?? 4}
+													{@const shadowBlur = link.shadow_blur ?? 10}
 													{@const r = parseInt(bgColor.slice(1,3), 16)}
 													{@const g = parseInt(bgColor.slice(3,5), 16)}
 													{@const b = parseInt(bgColor.slice(5,7), 16)}
@@ -404,8 +426,6 @@
 														rel="noopener noreferrer"
 														class="block transition-all flex-shrink-0 snap-center w-[85%]"
 														class:hover:bg-gray-50={hasCustomBg}
-														class:border-2={link.show_outline && !link.has_card_border}
-														class:border-gray-200={link.show_outline && !link.has_card_border}
 														style={bgStyle}
 													>
 														{#if child.thumbnail_url}
@@ -477,7 +497,8 @@
 									<!-- Card layout -->
 									{@const textSize = link.text_size || 'M'}
 									{@const imagePlacement = link.image_placement || 'alternating'}
-									<div class="space-y-3">
+									{@const cardSpacing = getMarginValue(link.style)}
+									<div style="display: flex; flex-direction: column; gap: {cardSpacing ?? 12}px;">
 										{#each sortedChildren as child, index}
 											{@const shouldReverse = imagePlacement === 'right' || (imagePlacement === 'alternating' && index % 2 === 0)}
 											{@const hasCustomBg = link.has_card_background !== undefined ? link.has_card_background : true}
@@ -485,9 +506,9 @@
 											{@const bgOpacity = link.card_background_opacity !== undefined ? link.card_background_opacity : 100}
 											{@const borderRadius = link.card_border_radius !== undefined ? link.card_border_radius : 12}
 											{@const textColor = link.card_text_color || '#000000'}
-											{@const shadowX = link.shadow_x || 0}
-											{@const shadowY = link.shadow_y || 4}
-											{@const shadowBlur = link.shadow_blur || 10}
+											{@const shadowX = link.shadow_x ?? 0}
+											{@const shadowY = link.shadow_y ?? 4}
+											{@const shadowBlur = link.shadow_blur ?? 10}
 											{@const r = parseInt(bgColor.slice(1,3), 16)}
 											{@const g = parseInt(bgColor.slice(3,5), 16)}
 											{@const b = parseInt(bgColor.slice(5,7), 16)}
@@ -530,16 +551,17 @@
 									<!-- List layout (default) -->
 									{@const textSize = link.text_size || 'M'}
 									{@const imageShape = link.image_shape || 'square'}
-									<div class="space-y-2">
+									{@const cardSpacing = getMarginValue(link.style)}
+									<div style="display: flex; flex-direction: column; gap: {cardSpacing ?? 12}px;">
 										{#each sortedChildren as child}
 											{@const hasCustomBg = link.has_card_background !== undefined ? link.has_card_background : true}
 											{@const bgColor = link.card_background_color || '#ffffff'}
 											{@const bgOpacity = link.card_background_opacity !== undefined ? link.card_background_opacity : 100}
 											{@const borderRadius = link.card_border_radius !== undefined ? link.card_border_radius : 12}
 											{@const textColor = link.card_text_color || '#000000'}
-											{@const shadowX = link.shadow_x || 0}
-											{@const shadowY = link.shadow_y || 4}
-											{@const shadowBlur = link.shadow_blur || 10}
+											{@const shadowX = link.shadow_x ?? 0}
+											{@const shadowY = link.shadow_y ?? 4}
+											{@const shadowBlur = link.shadow_blur ?? 10}
 											{@const r = parseInt(bgColor.slice(1,3), 16)}
 											{@const g = parseInt(bgColor.slice(3,5), 16)}
 											{@const b = parseInt(bgColor.slice(5,7), 16)}

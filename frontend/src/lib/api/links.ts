@@ -18,7 +18,6 @@ export interface Link {
 	image_placement: 'left' | 'right' | 'top' | 'bottom' | 'alternating';
 	text_alignment: 'left' | 'center' | 'right';
 	text_size: 'S' | 'M' | 'L' | 'XL';
-	show_outline: boolean;
 	show_shadow: boolean;
 	shadow_x?: number;
 	shadow_y?: number;

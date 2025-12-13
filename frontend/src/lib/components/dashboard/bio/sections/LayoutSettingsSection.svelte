@@ -16,12 +16,51 @@
 		}, 300);
 	}
 	
+	// Local state for real-time display
+	let localMarginValue: number | null = null;
+	let localPaddingValue: number | null = null;
+	let lastGroupId: string = '';
+	
+	// Reset local state when switching to different group
+	$: if (group.id !== lastGroupId) {
+		console.log('🔄 Group changed, resetting local state');
+		localPaddingValue = null;
+		localMarginValue = null;
+		lastGroupId = group.id;
+	}
+	
 	// Use group properties directly - no local state needed
 	$: layout = group.group_layout || 'list';
 	$: textAlignment = group.text_alignment || 'center';
-	$: showOutline = group.show_outline || false;
 	$: showShadow = group.show_shadow || false;
 	$: showText = group.show_text !== undefined ? group.show_text : true;
+	
+	// Reactive padding and margin values
+	$: currentPadding = getPadding();
+	$: isUniformPadding = currentPadding.top === currentPadding.right && currentPadding.right === currentPadding.bottom && currentPadding.bottom === currentPadding.left;
+	$: currentMargin = getMargin();
+	$: displayPadding = localPaddingValue !== null ? localPaddingValue : currentPadding.top;
+	$: displayMargin = localMarginValue !== null ? localMarginValue : currentMargin.bottom;
+	
+	// When local padding is set, assume uniform (since we set all 4 sides equal)
+	$: isDisplayUniform = localPaddingValue !== null ? true : isUniformPadding;
+	
+	// Debug logging
+	$: console.log('🔍 Padding Debug:', {
+		localPaddingValue,
+		currentPaddingTop: currentPadding.top,
+		displayPadding,
+		isUniformPadding,
+		isDisplayUniform,
+		allPadding: currentPadding,
+		condition_8: displayPadding === 8 && isDisplayUniform,
+		condition_16: displayPadding === 16 && isDisplayUniform,
+		condition_24: displayPadding === 24 && isDisplayUniform,
+		condition_32: displayPadding === 32 && isDisplayUniform
+	});
+	
+	// Don't auto-reset localPaddingValue - keep it until user changes to different value
+	// This ensures button stays active after click
 	
 	function updateLayout(value: string) {
 		dispatch('update', {
@@ -34,13 +73,6 @@
 		dispatch('update', {
 			groupId: group.id,
 			text_alignment: value
-		});
-	}
-	
-	function updateShowOutline() {
-		dispatch('update', {
-			groupId: group.id,
-			show_outline: !showOutline
 		});
 	}
 	
@@ -77,6 +109,12 @@
 	}
 
 	function updatePadding(value: number) {
+		console.log('🎯 updatePadding called with value:', value);
+		// Always update local value to ensure button stays active
+		localPaddingValue = value;
+		console.log('📝 localPaddingValue set to:', localPaddingValue);
+		console.log('✅ Button should be active:', { displayPadding: value, isUniformPadding: true });
+		
 		let style: any = {};
 		if (group.style) {
 			try {
@@ -84,6 +122,7 @@
 			} catch {}
 		}
 		style.padding = { top: value, right: value, bottom: value, left: value };
+		console.log('📤 Dispatching update with padding:', style.padding);
 		dispatch('update', {
 			groupId: group.id,
 			style: JSON.stringify(style)
@@ -91,6 +130,7 @@
 	}
 
 	function updatePaddingSide(side: 'top' | 'right' | 'bottom' | 'left', value: number) {
+		localPaddingValue = null; // Reset uniform padding state when adjusting individual sides
 		let style: any = {};
 		if (group.style) {
 			try {
@@ -107,6 +147,58 @@
 			style: JSON.stringify(style)
 		});
 	}
+
+	function getMargin(): { top: number; bottom: number } {
+		if (!group.style) return { top: 0, bottom: 0 };
+		try {
+			const style = JSON.parse(group.style);
+			return {
+				top: style.margin?.top ?? 0,
+				bottom: style.margin?.bottom ?? 0
+			};
+		} catch {
+			return { top: 0, bottom: 0 };
+		}
+	}
+
+	// Preset buttons - instant update (no debounce)
+	function updateMargin(value: number) {
+		console.log('🎯 updateMargin called with value:', value);
+		// Set local state immediately to show active button
+		localMarginValue = value;
+		console.log('📝 localMarginValue set to:', localMarginValue);
+		
+		let style: any = {};
+		if (group.style) {
+			try {
+				style = JSON.parse(group.style);
+			} catch {}
+		}
+		// Only use margin-bottom to avoid CSS margin collapse
+		style.margin = { top: 0, bottom: value };
+		console.log('📤 Dispatching margin update:', style.margin);
+		dispatch('update', {
+			groupId: group.id,
+			style: JSON.stringify(style)
+		});
+	}
+	
+	// Slider - debounced update with local state
+	function updateMarginDebounced(value: number) {
+		localMarginValue = value; // Update local state immediately for display
+		let style: any = {};
+		if (group.style) {
+			try {
+				style = JSON.parse(group.style);
+			} catch {}
+		}
+		style.margin = { top: 0, bottom: value };
+		dispatchDebounced({
+			groupId: group.id,
+			style: JSON.stringify(style)
+		});
+	}
+
 </script>
 
 <div class="p-6 space-y-6">
@@ -446,6 +538,35 @@
 		</div>
 	</div>
 
+	<!-- Text Color Section -->
+	<div>
+		<h3 class="text-base font-semibold text-gray-900 mb-3">Text color</h3>
+		<div class="flex gap-3 items-center">
+			<!-- Color Picker (Large) -->
+			<div class="flex items-center gap-2">
+				<input 
+					type="color" 
+					value={group.card_text_color || '#000000'}
+					onchange={(e) => dispatch('update', { groupId: group.id, card_text_color: e.currentTarget.value })}
+					class="w-12 h-12 rounded-lg border-2 border-gray-200 cursor-pointer overflow-hidden" 
+				/>
+				<span class="text-xs text-gray-600 font-mono">{group.card_text_color || '#000000'}</span>
+			</div>
+			
+			<!-- Color Presets (Small) -->
+			<div class="flex gap-1.5 flex-wrap flex-1">
+				<button onclick={() => dispatch('update', { groupId: group.id, card_text_color: '#000000' })} class="w-6 h-6 rounded-full border-2 bg-black hover:scale-110 transition-transform" title="Black"></button>
+				<button onclick={() => dispatch('update', { groupId: group.id, card_text_color: '#ffffff' })} class="w-6 h-6 rounded-full border-2 bg-white hover:scale-110 transition-transform" title="White"></button>
+				<button onclick={() => dispatch('update', { groupId: group.id, card_text_color: '#6b7280' })} class="w-6 h-6 rounded-full border-2 bg-gray-500 hover:scale-110 transition-transform" title="Gray"></button>
+				<button onclick={() => dispatch('update', { groupId: group.id, card_text_color: '#3b82f6' })} class="w-6 h-6 rounded-full border-2 bg-blue-500 hover:scale-110 transition-transform" title="Blue"></button>
+				<button onclick={() => dispatch('update', { groupId: group.id, card_text_color: '#10b981' })} class="w-6 h-6 rounded-full border-2 bg-green-500 hover:scale-110 transition-transform" title="Green"></button>
+				<button onclick={() => dispatch('update', { groupId: group.id, card_text_color: '#ef4444' })} class="w-6 h-6 rounded-full border-2 bg-red-500 hover:scale-110 transition-transform" title="Red"></button>
+				<button onclick={() => dispatch('update', { groupId: group.id, card_text_color: '#f59e0b' })} class="w-6 h-6 rounded-full border-2 bg-amber-500 hover:scale-110 transition-transform" title="Amber"></button>
+				<button onclick={() => dispatch('update', { groupId: group.id, card_text_color: '#8b5cf6' })} class="w-6 h-6 rounded-full border-2 bg-purple-500 hover:scale-110 transition-transform" title="Purple"></button>
+			</div>
+		</div>
+	</div>
+
 	<!-- Image Shape Section (for Classic layout only) -->
 	{#if layout === 'list'}
 		<div>
@@ -499,23 +620,6 @@
 
 	<!-- Toggles Section -->
 	<div class="space-y-4">
-		<label class="flex items-center justify-between cursor-pointer">
-			<span class="text-base font-medium text-gray-900">Link outline</span>
-			<button
-				type="button"
-				onclick={updateShowOutline}
-				class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-				class:bg-gray-900={showOutline}
-				class:bg-gray-300={!showOutline}
-			>
-				<span
-					class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
-					class:translate-x-6={showOutline}
-					class:translate-x-1={!showOutline}
-				></span>
-			</button>
-		</label>
-		
 		<div>
 			<label class="flex items-center justify-between cursor-pointer mb-3">
 				<span class="text-base font-medium text-gray-900">Link shadow</span>
@@ -535,44 +639,34 @@
 			</label>
 			
 			{#if showShadow}
-				<div class="space-y-3 pl-4 border-l-2 border-gray-200">
-					<!-- Shadow X -->
+				<div class="grid grid-cols-3 gap-4 pl-4 border-l-2 border-gray-200">
+					<!-- Shadow X (Horizontal) -->
 					<div>
 						<div class="flex items-center justify-between mb-1.5">
-							<div class="flex items-center gap-2">
-								<svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"/>
-								</svg>
-								<span class="text-sm font-medium text-gray-700">Horizontal</span>
-							</div>
-							<span class="text-xs font-mono text-gray-500">{group.shadow_x || 0}px</span>
+							<span class="text-xs font-medium text-gray-700">Horizontal</span>
+							<span class="text-xs font-mono text-gray-500">{group.shadow_x ?? 0}px</span>
 						</div>
 						<input 
 							type="range" 
 							min="-20" 
 							max="20" 
-							value={group.shadow_x || 0}
+							value={group.shadow_x ?? 0}
 							oninput={(e) => dispatchDebounced({ groupId: group.id, show_shadow: true, shadow_x: parseInt(e.currentTarget.value) })}
 							class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-900"
 						/>
 					</div>
 					
-					<!-- Shadow Y -->
+					<!-- Shadow Y (Vertical) -->
 					<div>
 						<div class="flex items-center justify-between mb-1.5">
-							<div class="flex items-center gap-2">
-								<svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 17l4-4m0 0l-4-4m4 4H4"/>
-								</svg>
-								<span class="text-sm font-medium text-gray-700">Vertical</span>
-							</div>
-							<span class="text-xs font-mono text-gray-500">{group.shadow_y || 4}px</span>
+							<span class="text-xs font-medium text-gray-700">Vertical</span>
+							<span class="text-xs font-mono text-gray-500">{group.shadow_y ?? 4}px</span>
 						</div>
 						<input 
 							type="range" 
 							min="0" 
 							max="20" 
-							value={group.shadow_y || 4}
+							value={group.shadow_y ?? 4}
 							oninput={(e) => dispatchDebounced({ groupId: group.id, show_shadow: true, shadow_y: parseInt(e.currentTarget.value) })}
 							class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-900"
 						/>
@@ -581,19 +675,14 @@
 					<!-- Shadow Blur -->
 					<div>
 						<div class="flex items-center justify-between mb-1.5">
-							<div class="flex items-center gap-2">
-								<svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-								</svg>
-								<span class="text-sm font-medium text-gray-700">Blur</span>
-							</div>
-							<span class="text-xs font-mono text-gray-500">{group.shadow_blur || 10}px</span>
+							<span class="text-xs font-medium text-gray-700">Blur</span>
+							<span class="text-xs font-mono text-gray-500">{group.shadow_blur ?? 10}px</span>
 						</div>
 						<input 
 							type="range" 
 							min="0" 
 							max="40" 
-							value={group.shadow_blur || 10}
+							value={group.shadow_blur ?? 10}
 							oninput={(e) => dispatchDebounced({ groupId: group.id, show_shadow: true, shadow_blur: parseInt(e.currentTarget.value) })}
 							class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-900"
 						/>
@@ -608,117 +697,91 @@
 
 	<!-- Link Card Background Section -->
 	<div class="space-y-4">
-		<h3 class="text-base font-semibold text-gray-900">Link Card Background</h3>
-		
-		<!-- Enable Background -->
-		<div class="flex items-center justify-between">
-			<label class="text-sm font-medium text-gray-700">Enable Custom Background</label>
-			<button
-				type="button"
-				onclick={() => dispatch('update', { groupId: group.id, has_card_background: !(group.has_card_background || false) })}
-				class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-				class:bg-emerald-600={group.has_card_background}
-				class:bg-gray-300={!group.has_card_background}
-			>
-				<span
-					class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
-					class:translate-x-6={group.has_card_background}
-					class:translate-x-1={!group.has_card_background}
-				></span>
-			</button>
-		</div>
+		<div>
+			<label class="flex items-center justify-between cursor-pointer mb-3">
+				<span class="text-base font-medium text-gray-900">Link card background</span>
+				<button
+					type="button"
+					onclick={() => dispatch('update', { groupId: group.id, has_card_background: !(group.has_card_background || false) })}
+					class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+					class:bg-gray-900={group.has_card_background}
+					class:bg-gray-300={!group.has_card_background}
+				>
+					<span
+						class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
+						class:translate-x-6={group.has_card_background}
+						class:translate-x-1={!group.has_card_background}
+					></span>
+				</button>
+			</label>
 
 		{#if group.has_card_background}
 			<!-- Background Color -->
 			<div>
 				<label class="text-sm font-medium text-gray-700 mb-2 block">Background Color</label>
-				<div class="space-y-3">
-					<div class="flex gap-3 items-center">
+				<div class="flex gap-3 items-center">
+					<!-- Color Picker (Large) -->
+					<div class="flex items-center gap-2">
 						<input 
 							type="color" 
 							value={group.card_background_color || '#ffffff'}
 							onchange={(e) => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: e.currentTarget.value })}
-							class="w-10 h-10 rounded-full border-2 border-gray-200 cursor-pointer overflow-hidden" 
+							class="w-12 h-12 rounded-lg border-2 border-gray-200 cursor-pointer overflow-hidden" 
 						/>
-						<span class="text-sm text-gray-600 font-mono">{group.card_background_color || '#ffffff'}</span>
+						<span class="text-xs text-gray-600 font-mono">{group.card_background_color || '#ffffff'}</span>
 					</div>
 					
-					<!-- Color Presets -->
-					<div class="flex gap-2 flex-wrap">
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#ffffff' })} class="w-7 h-7 rounded-full border-2 bg-white hover:scale-110 transition-transform" title="White"></button>
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#f3f4f6' })} class="w-7 h-7 rounded-full border-2 bg-gray-100 hover:scale-110 transition-transform" title="Light Gray"></button>
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#000000' })} class="w-7 h-7 rounded-full border-2 bg-black hover:scale-110 transition-transform" title="Black"></button>
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#3b82f6' })} class="w-7 h-7 rounded-full border-2 bg-blue-500 hover:scale-110 transition-transform" title="Blue"></button>
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#8b5cf6' })} class="w-7 h-7 rounded-full border-2 bg-purple-500 hover:scale-110 transition-transform" title="Purple"></button>
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#10b981' })} class="w-7 h-7 rounded-full border-2 bg-green-500 hover:scale-110 transition-transform" title="Green"></button>
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#ef4444' })} class="w-7 h-7 rounded-full border-2 bg-red-500 hover:scale-110 transition-transform" title="Red"></button>
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#f59e0b' })} class="w-7 h-7 rounded-full border-2 bg-amber-500 hover:scale-110 transition-transform" title="Amber"></button>
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#ec4899' })} class="w-7 h-7 rounded-full border-2 bg-pink-500 hover:scale-110 transition-transform" title="Pink"></button>
+					<!-- Color Presets (Small) -->
+					<div class="flex gap-1.5 flex-wrap flex-1">
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#ffffff' })} class="w-6 h-6 rounded-full border-2 bg-white hover:scale-110 transition-transform" title="White"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#f3f4f6' })} class="w-6 h-6 rounded-full border-2 bg-gray-100 hover:scale-110 transition-transform" title="Light Gray"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#000000' })} class="w-6 h-6 rounded-full border-2 bg-black hover:scale-110 transition-transform" title="Black"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#3b82f6' })} class="w-6 h-6 rounded-full border-2 bg-blue-500 hover:scale-110 transition-transform" title="Blue"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#8b5cf6' })} class="w-6 h-6 rounded-full border-2 bg-purple-500 hover:scale-110 transition-transform" title="Purple"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#10b981' })} class="w-6 h-6 rounded-full border-2 bg-green-500 hover:scale-110 transition-transform" title="Green"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#ef4444' })} class="w-6 h-6 rounded-full border-2 bg-red-500 hover:scale-110 transition-transform" title="Red"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#f59e0b' })} class="w-6 h-6 rounded-full border-2 bg-amber-500 hover:scale-110 transition-transform" title="Amber"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_background_color: '#ec4899' })} class="w-6 h-6 rounded-full border-2 bg-pink-500 hover:scale-110 transition-transform" title="Pink"></button>
 					</div>
 				</div>
 			</div>
 
-			<!-- Opacity -->
-			<div>
-				<label class="text-sm font-medium text-gray-700 mb-2 block">Opacity: {group.card_background_opacity || 100}%</label>
-				<input 
-					type="range" 
-					min="0" 
-					max="100" 
-					value={group.card_background_opacity || 100}
-					oninput={(e) => dispatchDebounced({ groupId: group.id, has_card_background: true, card_background_opacity: parseInt(e.currentTarget.value) })}
-					class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
-				/>
-			</div>
-
-			<!-- Border Radius -->
-			<div>
-				<label class="text-sm font-medium text-gray-700 mb-2 block">Border Radius: {group.card_border_radius || 12}px</label>
-				<input 
-					type="range" 
-					min="0" 
-					max="32" 
-					value={group.card_border_radius || 12}
-					oninput={(e) => dispatchDebounced({ groupId: group.id, has_card_background: true, card_border_radius: parseInt(e.currentTarget.value) })}
-					class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
-				/>
-				<div class="flex gap-2 mt-2">
-					<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_border_radius: 0 })} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">Sharp</button>
-					<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_border_radius: 8 })} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">Small</button>
-					<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_border_radius: 12 })} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">Medium</button>
-					<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_border_radius: 16 })} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">Large</button>
-					<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_border_radius: 24 })} class="px-3 py-1 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors">XL</button>
+			<!-- Opacity & Border Radius - 2 Columns -->
+			<div class="grid grid-cols-2 gap-4">
+				<!-- Opacity -->
+				<div>
+					<div class="flex items-center justify-between mb-2">
+						<label class="text-xs font-medium text-gray-700">Opacity</label>
+						<span class="text-xs font-mono text-gray-500">{group.card_background_opacity || 100}%</span>
+					</div>
+					<input 
+						type="range" 
+						min="0" 
+						max="100" 
+						value={group.card_background_opacity || 100}
+						oninput={(e) => dispatchDebounced({ groupId: group.id, has_card_background: true, card_background_opacity: parseInt(e.currentTarget.value) })}
+						class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+					/>
 				</div>
-			</div>
 
-			<!-- Text Color -->
-			<div>
-				<label class="text-sm font-medium text-gray-700 mb-2 block">Text Color</label>
-				<div class="space-y-3">
-					<div class="flex gap-3 items-center">
-						<input 
-							type="color" 
-							value={group.card_text_color || '#000000'}
-							onchange={(e) => dispatch('update', { groupId: group.id, has_card_background: true, card_text_color: e.currentTarget.value })}
-							class="w-10 h-10 rounded-full border-2 border-gray-200 cursor-pointer overflow-hidden" 
-						/>
-						<span class="text-sm text-gray-600 font-mono">{group.card_text_color || '#000000'}</span>
+				<!-- Border Radius -->
+				<div>
+					<div class="flex items-center justify-between mb-2">
+						<label class="text-xs font-medium text-gray-700">Border Radius</label>
+						<span class="text-xs font-mono text-gray-500">{group.card_border_radius || 12}px</span>
 					</div>
-					
-					<!-- Text Color Presets -->
-					<div class="flex gap-2 flex-wrap">
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_text_color: '#000000' })} class="w-7 h-7 rounded-full border-2 bg-black hover:scale-110 transition-transform" title="Black"></button>
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_text_color: '#ffffff' })} class="w-7 h-7 rounded-full border-2 bg-white hover:scale-110 transition-transform" title="White"></button>
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_text_color: '#6b7280' })} class="w-7 h-7 rounded-full border-2 bg-gray-500 hover:scale-110 transition-transform" title="Gray"></button>
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_text_color: '#3b82f6' })} class="w-7 h-7 rounded-full border-2 bg-blue-500 hover:scale-110 transition-transform" title="Blue"></button>
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_text_color: '#10b981' })} class="w-7 h-7 rounded-full border-2 bg-green-500 hover:scale-110 transition-transform" title="Green"></button>
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_text_color: '#ef4444' })} class="w-7 h-7 rounded-full border-2 bg-red-500 hover:scale-110 transition-transform" title="Red"></button>
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_text_color: '#f59e0b' })} class="w-7 h-7 rounded-full border-2 bg-amber-500 hover:scale-110 transition-transform" title="Amber"></button>
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_background: true, card_text_color: '#8b5cf6' })} class="w-7 h-7 rounded-full border-2 bg-purple-500 hover:scale-110 transition-transform" title="Purple"></button>
-					</div>
+					<input 
+						type="range" 
+						min="0" 
+						max="32" 
+						value={group.card_border_radius || 12}
+						oninput={(e) => dispatchDebounced({ groupId: group.id, has_card_background: true, card_border_radius: parseInt(e.currentTarget.value) })}
+						class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+					/>
 				</div>
 			</div>
 		{/if}
+		</div>
 	</div>
 
 	<!-- Divider -->
@@ -726,58 +789,57 @@
 
 	<!-- Link Card Border Section -->
 	<div class="space-y-4">
-		<h3 class="text-base font-semibold text-gray-900">Link Card Border</h3>
-		
-		<!-- Enable Border -->
-		<div class="flex items-center justify-between">
-			<label class="text-sm font-medium text-gray-700">Enable Border</label>
-			<button
-				type="button"
-				onclick={() => dispatch('update', { groupId: group.id, has_card_border: !(group.has_card_border || false) })}
-				class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-				class:bg-emerald-600={group.has_card_border}
-				class:bg-gray-300={!group.has_card_border}
-			>
-				<span
-					class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
-					class:translate-x-6={group.has_card_border}
-					class:translate-x-1={!group.has_card_border}
-				></span>
-			</button>
-		</div>
+		<div>
+			<label class="flex items-center justify-between cursor-pointer mb-3">
+				<span class="text-base font-medium text-gray-900">Link card border</span>
+				<button
+					type="button"
+					onclick={() => dispatch('update', { groupId: group.id, has_card_border: !(group.has_card_border || false) })}
+					class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+					class:bg-gray-900={group.has_card_border}
+					class:bg-gray-300={!group.has_card_border}
+				>
+					<span
+						class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
+						class:translate-x-6={group.has_card_border}
+						class:translate-x-1={!group.has_card_border}
+					></span>
+				</button>
+			</label>
 
 		{#if group.has_card_border}
 			<!-- Border Color -->
 			<div>
 				<label class="text-sm font-medium text-gray-700 mb-2 block">Border Color</label>
-				<div class="space-y-3">
-					<div class="flex gap-3 items-center">
+				<div class="flex gap-3 items-center">
+					<!-- Color Picker (Large) -->
+					<div class="flex items-center gap-2">
 						<input 
 							type="color" 
 							value={group.card_border_color || '#e5e7eb'}
 							onchange={(e) => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: e.currentTarget.value })}
-							class="w-10 h-10 rounded-full border-2 border-gray-200 cursor-pointer overflow-hidden" 
+							class="w-12 h-12 rounded-lg border-2 border-gray-200 cursor-pointer overflow-hidden" 
 						/>
-						<span class="text-sm text-gray-600 font-mono">{group.card_border_color || '#e5e7eb'}</span>
+						<span class="text-xs text-gray-600 font-mono">{group.card_border_color || '#e5e7eb'}</span>
 					</div>
 					
-					<!-- Border Color Presets -->
-					<div class="flex gap-2 flex-wrap">
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: '#e5e7eb' })} class="w-7 h-7 rounded-full border-2 bg-gray-200 hover:scale-110 transition-transform" title="Light Gray"></button>
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: '#9ca3af' })} class="w-7 h-7 rounded-full border-2 bg-gray-400 hover:scale-110 transition-transform" title="Gray"></button>
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: '#000000' })} class="w-7 h-7 rounded-full border-2 bg-black hover:scale-110 transition-transform" title="Black"></button>
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: '#3b82f6' })} class="w-7 h-7 rounded-full border-2 bg-blue-500 hover:scale-110 transition-transform" title="Blue"></button>
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: '#8b5cf6' })} class="w-7 h-7 rounded-full border-2 bg-purple-500 hover:scale-110 transition-transform" title="Purple"></button>
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: '#10b981' })} class="w-7 h-7 rounded-full border-2 bg-green-500 hover:scale-110 transition-transform" title="Green"></button>
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: '#ef4444' })} class="w-7 h-7 rounded-full border-2 bg-red-500 hover:scale-110 transition-transform" title="Red"></button>
-						<button onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: '#f59e0b' })} class="w-7 h-7 rounded-full border-2 bg-amber-500 hover:scale-110 transition-transform" title="Amber"></button>
+					<!-- Color Presets (Small) -->
+					<div class="flex gap-1.5 flex-wrap flex-1">
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: '#e5e7eb' })} class="w-6 h-6 rounded-full border-2 bg-gray-200 hover:scale-110 transition-transform" title="Light Gray"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: '#9ca3af' })} class="w-6 h-6 rounded-full border-2 bg-gray-400 hover:scale-110 transition-transform" title="Gray"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: '#000000' })} class="w-6 h-6 rounded-full border-2 bg-black hover:scale-110 transition-transform" title="Black"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: '#3b82f6' })} class="w-6 h-6 rounded-full border-2 bg-blue-500 hover:scale-110 transition-transform" title="Blue"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: '#8b5cf6' })} class="w-6 h-6 rounded-full border-2 bg-purple-500 hover:scale-110 transition-transform" title="Purple"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: '#10b981' })} class="w-6 h-6 rounded-full border-2 bg-green-500 hover:scale-110 transition-transform" title="Green"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: '#ef4444' })} class="w-6 h-6 rounded-full border-2 bg-red-500 hover:scale-110 transition-transform" title="Red"></button>
+						<button onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_color: '#f59e0b' })} class="w-6 h-6 rounded-full border-2 bg-amber-500 hover:scale-110 transition-transform" title="Amber"></button>
 					</div>
 				</div>
 			</div>
 
 			<!-- Border Style -->
 			<div>
-				<label class="text-sm font-medium text-gray-700 mb-2 block">Border Style</label>
+				<label class="text-sm font-medium text-gray-700 mt-2 mb-2 block">Border Style</label>
 				<div class="flex gap-2">
 					<button 
 						onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_style: 'solid' })} 
@@ -814,7 +876,7 @@
 
 			<!-- Border Width -->
 			<div>
-				<label class="text-sm font-medium text-gray-700 mb-2 block">Border Width</label>
+				<label class="text-sm font-medium text-gray-700 mb-2 mt-2 block">Border Width</label>
 				<div class="flex gap-2">
 					<button 
 						onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_width: 1 })} 
@@ -847,6 +909,7 @@
 				</div>
 			</div>
 		{/if}
+		</div>
 	</div>
 
 	<!-- Divider -->
@@ -857,43 +920,72 @@
 		<h3 class="text-base font-semibold text-gray-900">Link Card Padding</h3>
 		
 		<!-- Preset Buttons -->
-		{#key group.style}
-			{@const currentPadding = getPadding()}
-			{@const isUniform = currentPadding.top === currentPadding.right && currentPadding.right === currentPadding.bottom && currentPadding.bottom === currentPadding.left}
-			<div class="flex gap-2">
+		<div class="flex gap-2">
 				<button 
-					onclick={() => updatePadding(8)} 
+					onclick={() => {
+						console.log('🔘 Small button clicked');
+						updatePadding(8);
+					}} 
 					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
-					class:border-emerald-500={isUniform && currentPadding.top === 8}
-					class:bg-emerald-50={isUniform && currentPadding.top === 8}
-					class:border-gray-200={!(isUniform && currentPadding.top === 8)}
-					class:bg-white={!(isUniform && currentPadding.top === 8)}
-				>Small</button>
+					class:border-emerald-500={displayPadding === 8 && isDisplayUniform}
+					class:bg-emerald-50={displayPadding === 8 && isDisplayUniform}
+					class:border-gray-200={!(displayPadding === 8 && isDisplayUniform)}
+					class:bg-white={!(displayPadding === 8 && isDisplayUniform)}
+				>
+					Small
+					{#if displayPadding === 8 && isDisplayUniform}
+						<span class="text-[8px]">✓</span>
+					{/if}
+				</button>
 				<button 
-					onclick={() => updatePadding(16)} 
+					onclick={() => {
+						console.log('🔘 Medium button clicked');
+						updatePadding(16);
+					}} 
 					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
-					class:border-emerald-500={isUniform && currentPadding.top === 16}
-					class:bg-emerald-50={isUniform && currentPadding.top === 16}
-					class:border-gray-200={!(isUniform && currentPadding.top === 16)}
-					class:bg-white={!(isUniform && currentPadding.top === 16)}
-				>Medium</button>
+					class:border-emerald-500={displayPadding === 16 && isDisplayUniform}
+					class:bg-emerald-50={displayPadding === 16 && isDisplayUniform}
+					class:border-gray-200={!(displayPadding === 16 && isDisplayUniform)}
+					class:bg-white={!(displayPadding === 16 && isDisplayUniform)}
+				>
+					Medium
+					{#if displayPadding === 16 && isDisplayUniform}
+						<span class="text-[8px]">✓</span>
+					{/if}
+				</button>
 				<button 
-					onclick={() => updatePadding(24)} 
+					onclick={() => {
+						console.log('🔘 Large button clicked');
+						updatePadding(24);
+					}} 
 					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
-					class:border-emerald-500={isUniform && currentPadding.top === 24}
-					class:bg-emerald-50={isUniform && currentPadding.top === 24}
-					class:border-gray-200={!(isUniform && currentPadding.top === 24)}
-					class:bg-white={!(isUniform && currentPadding.top === 24)}
-				>Large</button>
+					class:border-emerald-500={displayPadding === 24 && isDisplayUniform}
+					class:bg-emerald-50={displayPadding === 24 && isDisplayUniform}
+					class:border-gray-200={!(displayPadding === 24 && isDisplayUniform)}
+					class:bg-white={!(displayPadding === 24 && isDisplayUniform)}
+				>
+					Large
+					{#if displayPadding === 24 && isDisplayUniform}
+						<span class="text-[8px]">✓</span>
+					{/if}
+				</button>
 				<button 
-					onclick={() => updatePadding(32)} 
+					onclick={() => {
+						console.log('🔘 XL button clicked');
+						updatePadding(32);
+					}} 
 					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
-					class:border-emerald-500={isUniform && currentPadding.top === 32}
-					class:bg-emerald-50={isUniform && currentPadding.top === 32}
-					class:border-gray-200={!(isUniform && currentPadding.top === 32)}
-					class:bg-white={!(isUniform && currentPadding.top === 32)}
-				>XL</button>
-			</div>
+					class:border-emerald-500={displayPadding === 32 && isDisplayUniform}
+					class:bg-emerald-50={displayPadding === 32 && isDisplayUniform}
+					class:border-gray-200={!(displayPadding === 32 && isDisplayUniform)}
+					class:bg-white={!(displayPadding === 32 && isDisplayUniform)}
+				>
+					XL
+					{#if displayPadding === 32 && isDisplayUniform}
+						<span class="text-[8px]">✓</span>
+					{/if}
+				</button>
+		</div>
 
 			<!-- Custom Padding Sliders - 2x2 Grid -->
 			<div class="grid grid-cols-2 gap-4 pl-4 border-l-2 border-gray-200">
@@ -961,12 +1053,88 @@
 					/>
 				</div>
 			</div>
-		{/key}
+	</div>
+
+	<!-- Divider -->
+	<div class="border-t border-gray-200 my-6"></div>
+
+	<!-- Link Card Spacing Section -->
+	<div class="space-y-4">
+		<h3 class="text-base font-semibold text-gray-900">Link card spacing</h3>
+		<p class="text-xs text-gray-500">Space between cards (uses margin-bottom)</p>
+		
+		<!-- Preset Buttons -->
+		<div class="flex gap-2">
+				<button 
+					onclick={() => {
+						console.log('🔘 Small spacing clicked');
+						updateMargin(4);
+					}} 
+					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+					class:border-emerald-500={displayMargin === 4}
+					class:bg-emerald-50={displayMargin === 4}
+					class:border-gray-200={displayMargin !== 4}
+					class:bg-white={displayMargin !== 4}
+				>
+					Small
+					{#if displayMargin === 4}
+						<span class="text-[8px]">✓</span>
+					{/if}
+				</button>
+				<button 
+					onclick={() => {
+						console.log('🔘 Medium spacing clicked');
+						updateMargin(8);
+					}} 
+					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+					class:border-emerald-500={displayMargin === 8}
+					class:bg-emerald-50={displayMargin === 8}
+					class:border-gray-200={displayMargin !== 8}
+					class:bg-white={displayMargin !== 8}
+				>
+					Medium
+					{#if displayMargin === 8}
+						<span class="text-[8px]">✓</span>
+					{/if}
+				</button>
+				<button 
+					onclick={() => {
+						console.log('🔘 Large spacing clicked');
+						updateMargin(16);
+					}} 
+					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+					class:border-emerald-500={displayMargin === 16}
+					class:bg-emerald-50={displayMargin === 16}
+					class:border-gray-200={displayMargin !== 16}
+					class:bg-white={displayMargin !== 16}
+				>
+					Large
+					{#if displayMargin === 16}
+						<span class="text-[8px]">✓</span>
+					{/if}
+				</button>
+			</div>
+
+			<!-- Custom Spacing Slider -->
+			<div class="pl-4 border-l-2 border-gray-200">
+				<div class="flex items-center justify-between mb-2">
+					<span class="text-sm font-medium text-gray-700">Custom spacing</span>
+					<span class="text-xs font-mono text-gray-500">{localMarginValue !== null ? localMarginValue : currentMargin.bottom}px</span>
+				</div>
+				<input 
+					type="range" 
+					min="0" 
+					max="32" 
+					value={localMarginValue !== null ? localMarginValue : currentMargin.bottom}
+					oninput={(e) => updateMarginDebounced(parseInt(e.currentTarget.value))}
+					class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+				/>
+			</div>
 	</div>
 </div>
 
 <style>
-	/* Remove default browser styling from color input to make color fill the entire circle */
+	/* Remove default browser styling from color input to make color fill the entire container */
 	input[type="color"] {
 		padding: 0;
 		background: none;
@@ -979,11 +1147,11 @@
 	
 	input[type="color"]::-webkit-color-swatch {
 		border: none;
-		border-radius: 50%;
+		border-radius: 8px;
 	}
 	
 	input[type="color"]::-moz-color-swatch {
 		border: none;
-		border-radius: 50%;
+		border-radius: 8px;
 	}
 </style>
