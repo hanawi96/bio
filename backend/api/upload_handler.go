@@ -135,3 +135,63 @@ func (h *UploadHandler) UploadAvatar(c *fiber.Ctx) error {
 
 	return c.JSON(profile)
 }
+
+func (h *UploadHandler) UploadFile(c *fiber.Ctx) error {
+	// Get uploaded file
+	file, err := c.FormFile("file")
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "No file uploaded")
+	}
+
+	// Validate file size (max 10MB for videos, 5MB for images)
+	contentType := file.Header.Get("Content-Type")
+	isVideo := contentType == "video/mp4" || contentType == "video/webm"
+	maxSize := int64(5 * 1024 * 1024) // 5MB default
+	if isVideo {
+		maxSize = 10 * 1024 * 1024 // 10MB for videos
+	}
+	
+	fmt.Printf("📁 File upload: name=%s, type=%s, size=%d bytes\n", file.Filename, contentType, file.Size)
+	
+	if file.Size > maxSize {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("File size must be less than %dMB", maxSize/(1024*1024)))
+	}
+
+	// Validate file type
+	validTypes := map[string]bool{
+		"image/jpeg": true,
+		"image/png":  true,
+		"image/webp": true,
+		"image/gif":  true,
+		"video/mp4":  true,
+		"video/webm": true,
+	}
+	
+	if !validTypes[contentType] {
+		return fiber.NewError(fiber.StatusBadRequest, "Only JPEG, PNG, WebP, GIF images and MP4, WebM videos are allowed")
+	}
+
+	// Open file
+	src, err := file.Open()
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to open file")
+	}
+	defer src.Close()
+
+	// Upload to Cloudinary (use appropriate function based on file type)
+	var fileURL string
+	if isVideo {
+		fileURL, err = utils.UploadVideoToCloudinary(src, file.Filename)
+	} else {
+		fileURL, err = utils.UploadToCloudinary(src, file.Filename)
+	}
+	
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to upload file: "+err.Error())
+	}
+
+	fmt.Printf("✅ Upload successful: %s\n", fileURL)
+	return c.JSON(fiber.Map{
+		"url": fileURL,
+	})
+}

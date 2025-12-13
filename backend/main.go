@@ -133,6 +133,32 @@ func main() {
 		log.Println("✅ Migration: theme_config column ready")
 	}
 
+	// Add header_config column to profiles (safe - uses IF NOT EXISTS)
+	_, err = db.Exec(`
+		ALTER TABLE profiles 
+		ADD COLUMN IF NOT EXISTS header_config JSONB DEFAULT '{"layout":"centered","coverType":"gradient","coverColor":"#6366f1","coverGradientFrom":"#8b5cf6","coverGradientTo":"#ec4899","coverHeight":140,"avatarSize":110,"avatarBorder":4,"avatarBorderColor":"#ffffff","showCover":true,"bioAlign":"center","bioSize":"md"}'::jsonb
+	`)
+	if err != nil {
+		log.Println("⚠️ Header config migration warning:", err)
+	} else {
+		log.Println("✅ Migration: header_config column ready")
+	}
+	
+	// Update existing header_config with old avatar sizes
+	_, err = db.Exec(`
+		UPDATE profiles 
+		SET header_config = jsonb_set(
+			jsonb_set(header_config, '{avatarSize}', '110'),
+			'{coverHeight}', '140'
+		)
+		WHERE (header_config->>'avatarSize')::int < 100
+	`)
+	if err != nil {
+		log.Println("⚠️ Header config update warning:", err)
+	} else {
+		log.Println("✅ Updated old header configs with larger avatar sizes")
+	}
+
 	// Add index for theme_config (safe - uses IF NOT EXISTS)
 	_, err = db.Exec(`
 		CREATE INDEX IF NOT EXISTS idx_profiles_theme_config 

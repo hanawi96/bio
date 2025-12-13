@@ -9,6 +9,7 @@ export interface Profile {
 	avatar_url?: string;
 	bio?: string;
 	theme_config?: string | object;
+	header_config?: string | object;
 	custom_css?: string;
 }
 
@@ -16,6 +17,7 @@ export interface ApplyThemeRequest {
 	theme_config: object;
 	card_styles: object;
 	text_styles: string;
+	header_config?: object;
 }
 
 export interface ApplyThemeResponse {

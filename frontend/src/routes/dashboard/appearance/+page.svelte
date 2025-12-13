@@ -6,6 +6,7 @@
 		globalTheme, 
 		themePresets, 
 		themeStyles,
+		currentHeaderStyle,
 		cardStylesToLinkFields,
 		textStylesToBlockStyle,
 		applyCardStylesToGroup,
@@ -20,6 +21,8 @@
 	import type { Block } from '$lib/api/blocks';
 	import { toast } from 'svelte-sonner';
 	import ProfilePreview from '$lib/components/dashboard/preview/ProfilePreview.svelte';
+	import HeaderStyleEditor from '$lib/components/dashboard/appearance/HeaderStyleEditor.svelte';
+	import BackgroundSelector from '$lib/components/dashboard/appearance/BackgroundSelector.svelte';
 
 	let profile = $state<Profile | null>(null);
 	let links = $state<Link[]>([]);
@@ -35,6 +38,10 @@
 	let avatarPreview = $state<string>('');
 	let uploadingAvatar = $state(false);
 	let savingProfile = $state(false);
+	let showProfileModal = $state(false);
+
+	// Memoize preset colors for performance
+	const presetColorsCache = new Map<string, ReturnType<typeof getPresetColors>>();
 
 	const categories = [
 		{ id: 'classic', label: 'Classic' },
@@ -85,9 +92,44 @@
 					
 					if (themeStr && themeStr !== '{}' && themeStr !== 'null') {
 						globalTheme.loadFromJSON(themeStr);
+						
+						// Detect which theme preset is active
+						const loadedTheme = JSON.parse(themeStr);
+						for (const [presetName, preset] of Object.entries(themePresets)) {
+							const match = 
+								preset.page.pageBackground === loadedTheme.pageBackground &&
+								preset.page.textColor === loadedTheme.textColor;
+							if (match) {
+								// Find theme ID from themes object
+								for (const [categoryId, categoryThemes] of Object.entries(themes)) {
+									const found = categoryThemes.find(t => t.preset === presetName);
+									if (found) {
+										currentTheme = found.id;
+										selectedCategory = categoryId;
+										break;
+									}
+								}
+								break;
+							}
+						}
 					}
 				} catch (themeError) {
 					console.warn('Failed to load theme:', themeError);
+				}
+			}
+			
+			// Load header config from profile
+			if (profileData?.header_config) {
+				try {
+					const headerConfig = typeof profileData.header_config === 'string' 
+						? JSON.parse(profileData.header_config) 
+						: profileData.header_config;
+					
+					if (headerConfig && Object.keys(headerConfig).length > 0) {
+						currentHeaderStyle.set(headerConfig);
+					}
+				} catch (headerError) {
+					console.warn('Failed to load header config:', headerError);
 				}
 			}
 		} catch (e: any) {
@@ -97,65 +139,59 @@
 
 	/**
 	 * Apply theme preset - Optimistic update + API call
+	 * Reset all settings including custom background to theme defaults
 	 */
 	async function selectTheme(themeId: string, presetName: string) {
+		if (applying) return;
+		
 		const preset = themePresets[presetName];
 		if (!preset) return;
 
-		// Save old state for rollback
+		// Optimistic update - reset everything to theme preset
 		const oldTheme = currentTheme;
-		const oldLinks = links ? links.slice() : [];
-		const oldBlocks = blocks ? blocks.slice() : [];
-		const oldThemeConfig = globalTheme.getCurrent();
-
-		// Optimistic update
 		currentTheme = themeId;
-		
-		// 1. Update global theme store (page + card styles)
 		globalTheme.setPreset(presetName);
 		
-		// 2. Update all link groups locally
-		if (links) {
-			links = links.map(link => {
-				if (link.is_group) {
-					return applyCardStylesToGroup(link, preset.card);
-				}
-				return link;
-			});
+		// Update header style
+		if (preset.header) {
+			currentHeaderStyle.set(preset.header);
 		}
 		
-		// 3. Update all text groups locally
-		if (blocks) {
-			blocks = blocks.map(block => {
-				if (block.is_group) {
-					return applyTextStylesToGroup(block, preset.text);
-				}
-				return block;
-			});
+		// Update groups only if they exist
+		const hasLinkGroups = links?.some(l => l.is_group);
+		const hasBlockGroups = blocks?.some(b => b.is_group);
+		
+		if (hasLinkGroups) {
+			links = links.map(link => link.is_group ? applyCardStylesToGroup(link, preset.card) : link);
+		}
+		if (hasBlockGroups) {
+			blocks = blocks.map(block => block.is_group ? applyTextStylesToGroup(block, preset.text) : block);
 		}
 
-		// API call in background
+		// API call
 		applying = true;
 		try {
-			const token = get(auth).token;
 			const result = await profileApi.applyTheme({
 				theme_config: { ...preset.page, ...preset.card },
 				card_styles: cardStylesToLinkFields(preset.card),
-				text_styles: textStylesToBlockStyle(preset.text)
-			}, token!);
+				text_styles: textStylesToBlockStyle(preset.text),
+				header_config: preset.header
+			}, get(auth).token!);
 
-			// Update with server response
+			// Only update profile, not links/blocks (already updated optimistically)
 			profile = result.profile;
-			links = result.links || [];
-			blocks = result.blocks || [];
-			
 			toast.success('Theme applied!');
 		} catch (e: any) {
-			// Rollback on error
+			// Rollback on error - reload from server
 			currentTheme = oldTheme;
-			links = oldLinks;
-			blocks = oldBlocks;
-			globalTheme.loadFromJSON(JSON.stringify(oldThemeConfig));
+			globalTheme.setPreset(oldTheme);
+			
+			// Reload data from server
+			const token = get(auth).token;
+			Promise.all([
+				linksApi.getLinks(token!).then(data => links = data || []),
+				blocksApi.getBlocks(token!).then(data => blocks = data || [])
+			]).catch(() => {});
 			
 			toast.error(e.message || 'Failed to apply theme');
 		} finally {
@@ -204,19 +240,25 @@
 		}
 	}
 
-	// Get preview colors from preset
+	// Get preview colors from preset (memoized)
 	function getPresetColors(presetName: string) {
-		const preset = themePresets[presetName];
-		if (!preset?.page || !preset?.card) {
-			return { bg: '#ffffff', accent: '#000000', cardBg: '#ffffff', cardText: '#000000', textColor: '#000000' };
+		if (presetColorsCache.has(presetName)) {
+			return presetColorsCache.get(presetName)!;
 		}
-		return {
-			bg: preset.page.pageBackground,
-			accent: preset.page.accentColor,
-			cardBg: preset.card.cardBackground,
-			cardText: preset.card.cardTextColor,
-			textColor: preset.page.textColor
-		};
+		
+		const preset = themePresets[presetName];
+		const colors = !preset?.page || !preset?.card
+			? { bg: '#ffffff', accent: '#000000', cardBg: '#ffffff', cardText: '#000000', textColor: '#000000' }
+			: {
+				bg: preset.page.pageBackground,
+				accent: preset.page.accentColor,
+				cardBg: preset.card.cardBackground,
+				cardText: preset.card.cardTextColor,
+				textColor: preset.page.textColor
+			};
+		
+		presetColorsCache.set(presetName, colors);
+		return colors;
 	}
 </script>
 
@@ -246,66 +288,41 @@
 		<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 			<!-- Settings Section (2/3) -->
 			<div class="lg:col-span-2 space-y-6">
-				<!-- Profile Settings -->
-				<div class="bg-white rounded-2xl border border-gray-200 p-6">
-					<h2 class="text-xl font-bold text-gray-900 mb-6">Profile</h2>
-					
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-						<!-- Avatar -->
-						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-3">Avatar</label>
-							<div class="flex items-center gap-4">
-								<div class="relative">
-									{#if avatarPreview}
-										<img src={avatarPreview} alt="Avatar" class="w-20 h-20 rounded-full object-cover" />
-									{:else}
-										<div class="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500"></div>
-									{/if}
-								</div>
-								<div class="flex-1">
-									<input
-										type="file"
-										accept="image/*"
-										onchange={handleAvatarChange}
-										class="hidden"
-										id="avatar-upload"
-									/>
-									<label
-										for="avatar-upload"
-										class="inline-block px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 cursor-pointer transition-colors"
-									>
-										Choose Image
-									</label>
-									{#if avatarFile}
-										<button
-											onclick={uploadAvatar}
-											disabled={uploadingAvatar}
-											class="ml-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-										>
-											{uploadingAvatar ? 'Uploading...' : 'Upload'}
-										</button>
-									{/if}
-								</div>
+				<!-- Profile Settings Card -->
+				<div class="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+					<div class="flex items-start justify-between">
+						<div class="flex items-start gap-4 flex-1">
+							<!-- Avatar -->
+							<div class="relative">
+								{#if avatarPreview}
+									<img src={avatarPreview} alt="Avatar" class="w-16 h-16 rounded-xl object-cover ring-2 ring-gray-100" />
+								{:else}
+									<div class="w-16 h-16 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 ring-2 ring-gray-100"></div>
+								{/if}
+							</div>
+							
+							<!-- Info -->
+							<div class="flex-1 min-w-0">
+								<h3 class="text-base font-semibold text-gray-900">Profile Information</h3>
+								<p class="text-sm text-gray-500 mt-0.5">@{profile?.username || 'username'}</p>
+								{#if bio}
+									<p class="text-sm text-gray-600 mt-2 line-clamp-2">{bio}</p>
+								{:else}
+									<p class="text-sm text-gray-400 mt-2 italic">No bio yet</p>
+								{/if}
 							</div>
 						</div>
-
-						<!-- Bio -->
-						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-3">Bio</label>
-							<textarea
-								bind:value={bio}
-								placeholder="Tell people about yourself..."
-								rows="3"
-								class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
-							></textarea>
-							<button
-								onclick={saveProfile}
-								disabled={savingProfile}
-								class="mt-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-							>
-								{savingProfile ? 'Saving...' : 'Save Bio'}
-							</button>
-						</div>
+						
+						<!-- Edit Button -->
+						<button
+							onclick={() => showProfileModal = true}
+							class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+						>
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+							</svg>
+							Edit
+						</button>
 					</div>
 				</div>
 
@@ -313,15 +330,13 @@
 				<div class="bg-white rounded-2xl border border-gray-200 p-6">
 					<div class="flex items-center justify-between mb-6">
 						<h2 class="text-xl font-bold text-gray-900">Theme</h2>
-						{#if applying}
-							<span class="text-sm text-indigo-600 flex items-center gap-2">
-								<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-									<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-									<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-								</svg>
-								Applying...
-							</span>
-						{/if}
+						<span class="text-sm text-indigo-600 flex items-center gap-2 transition-opacity duration-200" style="opacity: {applying ? 1 : 0}; pointer-events: {applying ? 'auto' : 'none'};">
+							<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+							</svg>
+							Applying...
+						</span>
 					</div>
 					
 					<div class="flex gap-3 mb-6">
@@ -339,16 +354,16 @@
 
 					<!-- Theme Grid -->
 					<div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-						{#each themes[selectedCategory] || [] as themeItem}
+						{#each themes[selectedCategory] || [] as themeItem (themeItem.id)}
 							{@const colors = getPresetColors(themeItem.preset)}
+							{@const isSelected = currentTheme === themeItem.id}
 							<button
 								onclick={() => selectTheme(themeItem.id, themeItem.preset)}
-								disabled={applying}
-								class="relative group cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+								class="relative group cursor-pointer"
 							>
 								<!-- Theme Preview Card -->
 								<div
-									class="aspect-[3/4] rounded-2xl overflow-hidden border-2 transition-all {currentTheme === themeItem.id
+									class="aspect-[3/4] rounded-2xl overflow-hidden border-2 transition-all {isSelected
 										? 'border-indigo-600 shadow-xl'
 										: 'border-gray-200 hover:border-gray-300 hover:shadow-lg'}"
 									style="background: {colors.bg};"
@@ -390,7 +405,7 @@
 								</div>
 
 								<!-- Selected Indicator -->
-								{#if currentTheme === themeItem.id}
+								{#if isSelected}
 									<div class="absolute top-2 right-2 w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center">
 										<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -408,6 +423,16 @@
 						Selecting a theme will apply styles to your page background and all link/text groups. You can customize individual groups in the Bio page.
 					</p>
 				</div>
+
+				<!-- Background Section -->
+				<div class="bg-white rounded-2xl border border-gray-200 p-6">
+					<BackgroundSelector />
+				</div>
+
+				<!-- Header Section -->
+				<div class="bg-white rounded-2xl border border-gray-200 p-6">
+					<HeaderStyleEditor />
+				</div>
 			</div>
 
 			<!-- Preview Panel (1/3) -->
@@ -419,3 +444,175 @@
 		</div>
 	</div>
 </div>
+
+
+<!-- Profile Edit Modal -->
+{#if showProfileModal}
+	<div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick={(e) => e.target === e.currentTarget && (showProfileModal = false)}>
+		<div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+			<!-- Modal Header -->
+			<div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+				<h2 class="text-lg font-bold text-gray-900">Edit Profile</h2>
+				<button
+					onclick={() => showProfileModal = false}
+					class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+				>
+					<svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+					</svg>
+				</button>
+			</div>
+			
+			<!-- Modal Content -->
+			<div class="p-6 space-y-8">
+				<!-- Avatar Section -->
+				<div>
+					<label class="block text-sm font-semibold text-gray-900 mb-4">Profile Picture</label>
+					
+					<!-- Modern Avatar Upload Area -->
+					<div class="relative group">
+						<!-- Avatar Display with Hover Effect -->
+						<div class="flex items-center justify-center mb-4">
+							<div class="relative">
+								{#if avatarPreview}
+									<img 
+										src={avatarPreview} 
+										alt="Avatar" 
+										class="w-32 h-32 rounded-2xl object-cover ring-4 ring-indigo-100 shadow-lg transition-all group-hover:ring-indigo-200 group-hover:shadow-xl" 
+									/>
+								{:else}
+									<div class="w-32 h-32 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 ring-4 ring-indigo-100 shadow-lg transition-all group-hover:ring-indigo-200 group-hover:shadow-xl"></div>
+								{/if}
+								
+								<!-- Camera Icon Overlay -->
+								<div class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity">
+									<svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+									</svg>
+								</div>
+							</div>
+						</div>
+						
+						<!-- Upload Controls -->
+						<input
+							type="file"
+							accept="image/*"
+							onchange={handleAvatarChange}
+							class="hidden"
+							id="modal-avatar-upload"
+						/>
+						
+						<div class="space-y-3">
+							<!-- Choose File Button -->
+							<label
+								for="modal-avatar-upload"
+								class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-200 text-indigo-700 rounded-xl text-sm font-semibold hover:from-indigo-100 hover:to-purple-100 hover:border-indigo-300 cursor-pointer transition-all hover:shadow-md"
+							>
+								<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+								</svg>
+								Choose Image
+							</label>
+							
+							<!-- Upload Button (shown when file selected) -->
+							{#if avatarFile}
+								<button
+									onclick={uploadAvatar}
+									disabled={uploadingAvatar}
+									class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-sm font-semibold hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
+								>
+									{#if uploadingAvatar}
+										<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+											<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+											<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+										</svg>
+										Uploading...
+									{:else}
+										<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+										</svg>
+										Upload Image
+									{/if}
+								</button>
+							{/if}
+							
+							<!-- File Info -->
+							<div class="flex items-center justify-center gap-2 text-xs text-gray-500">
+								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+								</svg>
+								<span>JPG, PNG or GIF • Max 5MB</span>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Divider -->
+				<div class="relative">
+					<div class="absolute inset-0 flex items-center">
+						<div class="w-full border-t border-gray-200"></div>
+					</div>
+					<div class="relative flex justify-center">
+						<span class="px-3 bg-white text-xs text-gray-500 font-medium">ABOUT YOU</span>
+					</div>
+				</div>
+
+				<!-- Bio Section -->
+				<div>
+					<label class="block text-sm font-semibold text-gray-900 mb-3">Bio</label>
+					<div class="relative">
+						<textarea
+							bind:value={bio}
+							placeholder="Tell people about yourself..."
+							rows="5"
+							maxlength="200"
+							class="w-full px-4 py-3 bg-gradient-to-br from-gray-50 to-gray-100/50 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white transition-all resize-none text-sm placeholder:text-gray-400"
+						></textarea>
+						
+						<!-- Character Count Badge -->
+						<div class="absolute bottom-3 right-3">
+							<span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium transition-colors {bio.length >= 180 ? 'bg-amber-100 text-amber-700' : bio.length >= 200 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}">
+								{bio.length}/200
+							</span>
+						</div>
+					</div>
+					<p class="text-xs text-gray-500 mt-2 flex items-center gap-1.5">
+						<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+						</svg>
+						Share your story, interests, or what makes you unique
+					</p>
+				</div>
+			</div>
+			
+			<!-- Modal Footer -->
+			<div class="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex items-center justify-end gap-3">
+				<button
+					onclick={() => showProfileModal = false}
+					class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+				>
+					Cancel
+				</button>
+				<button
+					onclick={async () => {
+						await saveProfile();
+						showProfileModal = false;
+					}}
+					disabled={savingProfile}
+					class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+				>
+					{#if savingProfile}
+						<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+						</svg>
+						Saving...
+					{:else}
+						Save Changes
+					{/if}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}

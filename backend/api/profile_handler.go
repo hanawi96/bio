@@ -56,16 +56,17 @@ func (h *ProfileHandler) ApplyTheme(c *fiber.Ctx) error {
 	userID := c.Locals("userID").(string)
 
 	var req struct {
-		ThemeConfig map[string]interface{} `json:"theme_config"`
-		CardStyles  map[string]interface{} `json:"card_styles"`
-		TextStyles  string                 `json:"text_styles"`
+		ThemeConfig  map[string]interface{} `json:"theme_config"`
+		CardStyles   map[string]interface{} `json:"card_styles"`
+		TextStyles   string                 `json:"text_styles"`
+		HeaderConfig map[string]interface{} `json:"header_config"`
 	}
 
 	if err := c.BodyParser(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")
 	}
 
-	result, err := h.profileService.ApplyTheme(userID, req.ThemeConfig, req.CardStyles, req.TextStyles)
+	result, err := h.profileService.ApplyTheme(userID, req.ThemeConfig, req.CardStyles, req.TextStyles, req.HeaderConfig)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}

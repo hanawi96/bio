@@ -77,6 +77,7 @@ func SetupRoutes(api fiber.Router, db *sql.DB, cfg *config.Config) {
 	protected.Post("/links/:id/thumbnail", uploadHandler.UploadLinkThumbnail)
 	protected.Delete("/links/:id/thumbnail", uploadHandler.DeleteLinkThumbnail)
 	protected.Post("/profile/avatar", uploadHandler.UploadAvatar)
+	protected.Post("/upload", uploadHandler.UploadFile)
 
 	// Block management
 	protected.Get("/blocks", blockHandler.GetBlocks)

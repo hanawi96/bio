@@ -128,7 +128,13 @@
 	<title>{$page.params.username} - LinkBio</title>
 </svelte:head>
 
-<div class="min-h-screen py-12 px-4 relative" style="background: {styles.pageBackground}">
+<div class="min-h-screen py-12 px-4 relative" style="{styles.pageBackgroundType === 'image' ? `background: ${styles.pageBackground} center/cover no-repeat fixed;` : `background: ${styles.pageBackground};`}">
+	{#if styles.pageBackgroundType === 'video' && styles.pageBackgroundVideo}
+		<video autoplay muted loop playsinline class="fixed inset-0 w-full h-full object-cover -z-10">
+			<source src={styles.pageBackgroundVideo} type="video/mp4" />
+		</video>
+		<div class="fixed inset-0 bg-black/20 -z-10"></div>
+	{/if}
 	<!-- Fixed Action Buttons -->
 	<div class="fixed top-6 left-6 right-6 flex justify-between items-center z-50 max-w-md mx-auto">
 		<button 

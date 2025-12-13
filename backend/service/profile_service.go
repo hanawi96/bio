@@ -71,11 +71,16 @@ func (s *ProfileService) GetPublicProfileWithLinks(username string) (map[string]
 }
 
 // ApplyTheme applies theme preset to profile and all groups
-func (s *ProfileService) ApplyTheme(userID string, themeConfig map[string]interface{}, cardStyles map[string]interface{}, textStyles string) (map[string]interface{}, error) {
-	// 1. Update profile theme_config
-	profile, err := s.profileRepo.Update(userID, map[string]interface{}{
+func (s *ProfileService) ApplyTheme(userID string, themeConfig map[string]interface{}, cardStyles map[string]interface{}, textStyles string, headerConfig map[string]interface{}) (map[string]interface{}, error) {
+	// 1. Update profile theme_config and header_config
+	updateData := map[string]interface{}{
 		"theme_config": themeConfig,
-	})
+	}
+	if headerConfig != nil {
+		updateData["header_config"] = headerConfig
+	}
+	
+	profile, err := s.profileRepo.Update(userID, updateData)
 	if err != nil {
 		return nil, err
 	}

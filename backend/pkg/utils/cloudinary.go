@@ -19,10 +19,18 @@ type CloudinaryResponse struct {
 }
 
 func UploadToCloudinary(file multipart.File, filename string) (string, error) {
+	return uploadToCloudinaryWithType(file, filename, "image")
+}
+
+func UploadVideoToCloudinary(file multipart.File, filename string) (string, error) {
+	return uploadToCloudinaryWithType(file, filename, "video")
+}
+
+func uploadToCloudinaryWithType(file multipart.File, filename string, resourceType string) (string, error) {
 	cloudName := os.Getenv("CLOUDINARY_CLOUD_NAME")
 	uploadPreset := os.Getenv("CLOUDINARY_UPLOAD_PRESET")
 
-	fmt.Printf("🔧 Cloudinary config: cloudName=%s, uploadPreset=%s\n", cloudName, uploadPreset)
+	fmt.Printf("🔧 Cloudinary config: cloudName=%s, uploadPreset=%s, resourceType=%s\n", cloudName, uploadPreset, resourceType)
 
 	if cloudName == "" {
 		return "", fmt.Errorf("cloudinary cloud name not configured")
@@ -31,7 +39,7 @@ func UploadToCloudinary(file multipart.File, filename string) (string, error) {
 		return "", fmt.Errorf("cloudinary upload preset not configured")
 	}
 
-	url := fmt.Sprintf("https://api.cloudinary.com/v1_1/%s/image/upload", cloudName)
+	url := fmt.Sprintf("https://api.cloudinary.com/v1_1/%s/%s/upload", cloudName, resourceType)
 	fmt.Printf("📤 Uploading to: %s\n", url)
 
 	body := &bytes.Buffer{}

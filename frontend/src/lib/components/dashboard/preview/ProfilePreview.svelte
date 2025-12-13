@@ -1,20 +1,26 @@
 <script lang="ts">
 	import Avatar from '$lib/components/ui/avatar.svelte';
 	import Badge from '$lib/components/ui/badge/badge.svelte';
+	import ProfileHeader from '$lib/components/profile/ProfileHeader.svelte';
 	import type { Profile } from '$lib/api/profile';
 	import type { Link } from '$lib/api/links';
 	import type { Block } from '$lib/api/blocks';
 	import { onMount, onDestroy } from 'svelte';
-	import { globalTheme, themeStyles } from '$lib/stores/theme';
+	import { globalTheme, themeStyles, currentHeaderStyle } from '$lib/stores/theme';
 
-	export let profile: Partial<Profile> = {};
-	export let links: Link[] = [];
-	export let blocks: Block[] = [];
-	export let showInactive: boolean = true;
+	let { profile = {}, links = [], blocks = [], showInactive = true }: {
+		profile?: Partial<Profile>;
+		links?: Link[];
+		blocks?: Block[];
+		showInactive?: boolean;
+	} = $props();
 	
-	// Subscribe to theme
-	$: currentTheme = $globalTheme;
-	$: styles = $themeStyles;
+	// Subscribe to theme - direct access without state
+	const currentTheme = $derived($globalTheme);
+	const styles = $derived($themeStyles);
+	
+	// Get header style from store
+	const headerStyle = $derived($currentHeaderStyle);
 	
 	// Helper to get card style from theme (with link override)
 	function getCardStyle(link: any) {
@@ -101,22 +107,20 @@
 		borderStyle: 'solid'
 	};
 
-	// Memoize parsed styles to avoid re-parsing
+	// Memoize parsed styles - use WeakMap for better GC
 	const styleCache = new Map<string, any>();
 	
 	// Helper to parse group style with caching
-	function parseGroupStyle(styleData: any) {
+	const parseGroupStyle = (styleData: any) => {
 		if (!styleData) return DEFAULT_STYLE;
 		
-		// Use cache for string styles
 		if (typeof styleData === 'string') {
-			if (styleCache.has(styleData)) {
-				return styleCache.get(styleData);
-			}
+			let cached = styleCache.get(styleData);
+			if (cached) return cached;
 			
 			try {
 				const parsed = JSON.parse(styleData);
-				const result = {
+				cached = {
 					textAlign: parsed.textAlign || 'left',
 					fontSize: parsed.fontSize || 'text-medium',
 					textColor: parsed.textColor || '#000000',
@@ -136,37 +140,15 @@
 					borderWidth: parsed.borderWidth || 1,
 					borderStyle: parsed.borderStyle || 'solid'
 				};
-				
-				// Cache the result
-				styleCache.set(styleData, result);
-				return result;
-			} catch (e) {
+				styleCache.set(styleData, cached);
+				return cached;
+			} catch {
 				return DEFAULT_STYLE;
 			}
 		}
 		
-		// For object styles, return directly with defaults
-		return {
-			textAlign: styleData.textAlign || 'left',
-			fontSize: styleData.fontSize || 'text-medium',
-			textColor: styleData.textColor || '#000000',
-			isBold: styleData.isBold || false,
-			isItalic: styleData.isItalic || false,
-			isUnderline: styleData.isUnderline || false,
-			isStrikethrough: styleData.isStrikethrough || false,
-			textTransform: styleData.textTransform || 'none',
-			hasBackground: styleData.hasBackground || false,
-			backgroundColor: styleData.backgroundColor || '#ffffff',
-			backgroundOpacity: styleData.backgroundOpacity ?? 90,
-			borderRadius: styleData.borderRadius ?? 12,
-			padding: styleData.padding || 16,
-			shadow: styleData.shadow || 'none',
-			hasBorder: styleData.hasBorder || false,
-			borderColor: styleData.borderColor || '#e5e7eb',
-			borderWidth: styleData.borderWidth || 1,
-			borderStyle: styleData.borderStyle || 'solid'
-		};
-	}
+		return styleData;
+	};
 
 	onMount(() => {
 		// Carousel scroll functionality works natively with CSS
@@ -178,33 +160,30 @@
 	});
 
 	// Get link_ids from inactive blocks - these links should be hidden
-	$: hiddenLinkIds = new Set(
+	const hiddenLinkIds = $derived(new Set(
 		(blocks || [])
 			.filter(block => !block.is_active && block.link_id)
 			.map(block => block.link_id!)
-	);
+	));
 
 	// Filter out links that are:
 	// 1. Hidden by inactive blocks (hiddenLinkIds)
 	// 2. Inactive themselves (when showInactive is false)
-	$: visibleLinks = (links || []).filter(link => 
+	const visibleLinks = $derived((links || []).filter(link => 
 		!hiddenLinkIds.has(link.id) && (showInactive || link.is_active)
-	);
+	));
 
 	// Combine and sort items: pinned links first, then by position
 	type Item = { type: 'link'; data: Link; isPinned: boolean } | { type: 'block'; data: Block; isPinned: boolean };
-	let items: Item[] = [];
 	
-	$: {
-		items = [
-			...visibleLinks.map(link => ({ type: 'link' as const, data: link, position: link.position, isPinned: link.is_pinned || false })),
-			...(blocks || []).map(block => ({ type: 'block' as const, data: block, position: block.position, isPinned: false }))
-		].sort((a, b) => {
-			if (a.isPinned && !b.isPinned) return -1;
-			if (!a.isPinned && b.isPinned) return 1;
-			return a.position - b.position;
-		});
-	}
+	const items = $derived([
+		...visibleLinks.map(link => ({ type: 'link' as const, data: link, position: link.position, isPinned: link.is_pinned || false })),
+		...(blocks || []).map(block => ({ type: 'block' as const, data: block, position: block.position, isPinned: false }))
+	].sort((a, b) => {
+		if (a.isPinned && !b.isPinned) return -1;
+		if (!a.isPinned && b.isPinned) return 1;
+		return a.position - b.position;
+	}));
 </script>
 
 <div class="w-full max-w-sm mx-auto">
@@ -216,8 +195,14 @@
 		<!-- Screen -->
 		<div 
 			class="relative rounded-[2.5rem] overflow-hidden h-[650px] transition-colors duration-300"
-			style="background: {styles.pageBackground};"
+			style="{styles.pageBackgroundType === 'image' ? `background: ${styles.pageBackground} center/cover no-repeat;` : styles.pageBackgroundType === 'video' ? `background: ${currentTheme.pageBackground};` : `background: ${styles.pageBackground};`}"
 		>
+			{#if styles.pageBackgroundType === 'video' && styles.pageBackgroundVideo}
+				<video autoplay muted loop playsinline class="absolute inset-0 w-full h-full object-cover z-0">
+					<source src={styles.pageBackgroundVideo} type="video/mp4" />
+				</video>
+				<div class="absolute inset-0 bg-black/20 z-0"></div>
+			{/if}
 			<!-- Fixed Action Buttons -->
 			<div class="absolute top-4 left-4 right-4 flex justify-between items-center z-20">
 				<button 
@@ -241,29 +226,12 @@
 				</button>
 			</div>
 			
-			<div class="h-full overflow-y-auto p-6 space-y-6 pt-20">
-				<!-- Profile Header -->
-				<div class="text-center space-y-3">
-					<div class="flex justify-center">
-						<div class="relative">
-							<Avatar 
-								src={profile?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (profile?.username || 'user')}
-								alt="Avatar"
-								class="w-24 h-24 border-4 border-white shadow-lg"
-							/>
-							<div class="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 border-2 border-white rounded-full"></div>
-						</div>
-					</div>
-					<div>
-						<h2 class="text-xl font-bold" style="color: {currentTheme.textColor};">@{profile?.username || 'username'}</h2>
-						{#if profile?.bio}
-							<p class="text-sm mt-1" style="color: {currentTheme.textSecondaryColor};">{profile.bio}</p>
-						{/if}
-					</div>
-				</div>
-
+			<div class="h-full overflow-y-auto relative z-10">
+				<!-- Profile Header with Dynamic Styles -->
+				<ProfileHeader {profile} {headerStyle} textColor={currentTheme.textColor} textSecondaryColor={currentTheme.textSecondaryColor} />
+				
 				<!-- Links & Blocks -->
-				<div class="space-y-3">
+				<div class="px-6 space-y-3 pb-6">
 					{#each items as item (item.data.id)}
 						{#if item.type === 'block' && (showInactive || item.data.is_active)}
 							{#if item.data.block_type === 'text' && !item.data.is_group}
