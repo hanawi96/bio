@@ -9,6 +9,7 @@
 	const headerStyle = $derived($currentHeaderStyle);
 	let selectedCategory = $state<string>('classic');
 	let applying = $state(false);
+	let manuallySelected = $state<string | null>(null);
 
 	const categories = [
 		{ id: 'classic', label: 'Classic' },
@@ -57,6 +58,9 @@
 		const oldStyle = { ...headerStyle };
 		const newStyle = { ...headerStyle, ...presetMap[layout], avatarBorderColor: headerStyle.avatarBorderColor || '#ffffff' };
 		
+		// Mark as manually selected
+		manuallySelected = layout;
+		
 		// Optimistic update
 		currentHeaderStyle.set(newStyle);
 		
@@ -68,11 +72,19 @@
 		} catch (e: any) {
 			// Rollback on error
 			currentHeaderStyle.set(oldStyle);
+			manuallySelected = null;
 			toast.error(e.message || 'Failed to update header');
 		} finally {
 			applying = false;
 		}
 	}
+	
+	// Reset manual selection when theme changes externally
+	$effect(() => {
+		if (headerStyle.layout && manuallySelected && headerStyle.layout !== manuallySelected) {
+			manuallySelected = null;
+		}
+	});
 </script>
 
 <div class="space-y-6">
@@ -111,7 +123,7 @@
 					onclick={() => selectLayout(preset.layout)}
 					class="group relative"
 				>
-					<div class="aspect-[3/4] rounded-xl overflow-hidden border-2 transition-all {headerStyle.layout === preset.layout ? 'border-indigo-600 shadow-lg' : 'border-gray-200 hover:border-gray-300'}"
+					<div class="aspect-[3/4] rounded-xl overflow-hidden border-2 transition-all {manuallySelected === preset.layout ? 'border-indigo-600 shadow-lg' : 'border-gray-200 hover:border-gray-300'}"
 						style="background: {preset.preview.cover};"
 					>
 						<div class="h-full flex flex-col items-center justify-center p-3">
@@ -120,7 +132,7 @@
 							<div class="mt-1 w-8 h-1 rounded" style="background: {preset.preview.avatar}; opacity: 0.5;"></div>
 						</div>
 					</div>
-					{#if headerStyle.layout === preset.layout}
+					{#if manuallySelected === preset.layout}
 						<div class="absolute top-2 right-2 w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center">
 							<svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />

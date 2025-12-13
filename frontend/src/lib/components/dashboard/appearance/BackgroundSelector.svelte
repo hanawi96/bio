@@ -12,6 +12,9 @@
 	let imageUrl = $state('');
 	let videoUrl = $state('');
 	let uploading = $state(false);
+	
+	// Track if user manually selected a type
+	let manuallySelectedType = $state<string | null>(null);
 
 	// Ensure color is always in HEX format
 	function normalizeHex(color: string): string {
@@ -20,21 +23,36 @@
 		return `#${color}`.toUpperCase();
 	}
 
-	// Load current background on mount
-	let mounted = $state(false);
+	// Reactive subscription to globalTheme store
+	let unsubscribe: (() => void) | null = null;
 	
 	$effect(() => {
-		if (!mounted) {
-			const theme = globalTheme.getCurrent();
+		// Subscribe to theme store changes
+		unsubscribe = globalTheme.subscribe((theme) => {
 			selectedType = theme.pageBackgroundType || 'solid';
-			solidColor = theme.pageBackground || '#ffffff';
-			gradientFrom = theme.pageGradientFrom || '#faf5ff';
-			gradientTo = theme.pageGradientTo || '#eff6ff';
+			solidColor = normalizeHex(theme.pageBackground || '#ffffff');
+			gradientFrom = normalizeHex(theme.pageGradientFrom || '#faf5ff');
+			gradientTo = normalizeHex(theme.pageGradientTo || '#eff6ff');
 			imageUrl = theme.pageBackgroundImage || '';
 			videoUrl = theme.pageBackgroundVideo || '';
-			mounted = true;
-		}
+			
+			// Reset manual selection when theme changes externally
+			if (manuallySelectedType && selectedType !== manuallySelectedType) {
+				manuallySelectedType = null;
+			}
+		});
+		
+		// Cleanup on unmount
+		return () => {
+			if (unsubscribe) unsubscribe();
+		};
 	});
+	
+	// Handle manual type selection
+	function selectType(type: 'solid' | 'gradient' | 'image' | 'video') {
+		manuallySelectedType = type;
+		selectedType = type;
+	}
 
 	let saving = $state(false);
 
@@ -124,8 +142,8 @@
 		<!-- Type Selector -->
 		<div class="grid grid-cols-5 gap-3 mb-6">
 			<button
-				onclick={() => selectedType = 'solid'}
-				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all {selectedType === 'solid' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
+				onclick={() => selectType('solid')}
+				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all {manuallySelectedType === 'solid' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
 			>
 				<div class="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-100 to-indigo-200 flex items-center justify-center">
 					<div class="w-6 h-6 rounded bg-indigo-600"></div>
@@ -134,8 +152,8 @@
 			</button>
 
 			<button
-				onclick={() => selectedType = 'gradient'}
-				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all {selectedType === 'gradient' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
+				onclick={() => selectType('gradient')}
+				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all {manuallySelectedType === 'gradient' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
 			>
 				<div class="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
 					<svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -147,8 +165,8 @@
 			</button>
 
 			<button
-				onclick={() => selectedType = 'image'}
-				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all {selectedType === 'image' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
+				onclick={() => selectType('image')}
+				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all {manuallySelectedType === 'image' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
 			>
 				<div class="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center">
 					<svg class="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
@@ -159,8 +177,8 @@
 			</button>
 
 			<button
-				onclick={() => selectedType = 'video'}
-				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all {selectedType === 'video' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
+				onclick={() => selectType('video')}
+				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all {manuallySelectedType === 'video' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
 			>
 				<div class="w-12 h-12 rounded-lg bg-gray-300 flex items-center justify-center">
 					<svg class="w-6 h-6 text-gray-700" fill="currentColor" viewBox="0 0 20 20">
@@ -185,8 +203,8 @@
 			</button>
 		</div>
 
-		<!-- Settings -->
-		{#if selectedType === 'solid'}
+		<!-- Settings (only show when manually selected) -->
+		{#if manuallySelectedType === 'solid'}
 			<div class="space-y-4">
 				<div>
 					<label class="block text-sm font-medium text-gray-700 mb-2">Color</label>
@@ -256,7 +274,7 @@
 				<!-- Preview -->
 				<div class="w-full h-24 rounded-lg border border-gray-200 shadow-sm" style="background: {solidColor};"></div>
 			</div>
-		{:else if selectedType === 'gradient'}
+		{:else if manuallySelectedType === 'gradient'}
 			<div class="space-y-4">
 				<div class="grid grid-cols-2 gap-4">
 					<div>
@@ -310,7 +328,7 @@
 				</div>
 				<div class="w-full h-24 rounded-lg border border-gray-200 shadow-sm" style="background: linear-gradient(to bottom right, {gradientFrom}, {gradientTo});"></div>
 			</div>
-		{:else if selectedType === 'image'}
+		{:else if manuallySelectedType === 'image'}
 			<div class="space-y-3">
 				<div class="flex gap-2">
 					<input
@@ -358,7 +376,7 @@
 					</div>
 				{/if}
 			</div>
-		{:else if selectedType === 'video'}
+		{:else if manuallySelectedType === 'video'}
 			<div class="space-y-3">
 				<div class="flex gap-2">
 					<input
@@ -408,22 +426,24 @@
 			</div>
 		{/if}
 
-		<!-- Apply Button -->
-		<button
-			onclick={applyBackground}
-			disabled={uploading || saving}
-			class="w-full mt-6 px-5 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"
-		>
-			{#if saving}
-				<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-					<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-				</svg>
-				Saving...
-			{:else}
-				Apply Background
-			{/if}
-		</button>
+		<!-- Apply Button (only show when manually selected) -->
+		{#if manuallySelectedType}
+			<button
+				onclick={applyBackground}
+				disabled={uploading || saving}
+				class="w-full mt-6 px-5 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"
+			>
+				{#if saving}
+					<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+						<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+					</svg>
+					Saving...
+				{:else}
+					Apply Background
+				{/if}
+			</button>
+		{/if}
 	</div>
 </div>
 
