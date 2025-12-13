@@ -3,6 +3,9 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api/client';
 	import type { Link } from '$lib/api/links';
+	import { globalTheme, themeStyles } from '$lib/stores/theme';
+	
+	$: styles = $themeStyles;
 
 	let profile: any = null;
 	let links: Link[] = [];
@@ -45,11 +48,19 @@
 			links = data.links || [];
 			blocks = data.blocks || [];
 			
-			console.log('🌐 [Public Page] Data loaded:', {
-				linksCount: links.length,
-				blocksCount: blocks.length,
-				links: links.map(l => ({ id: l.id, title: l.title || l.group_title, isGroup: l.is_group, layout: l.group_layout, children: l.children?.length }))
-			});
+			// Load theme if exists
+			if (profile?.theme_config) {
+				try {
+					const themeStr = typeof profile.theme_config === 'string' 
+						? profile.theme_config 
+						: JSON.stringify(profile.theme_config);
+					if (themeStr && themeStr !== '{}' && themeStr !== 'null') {
+						globalTheme.loadFromJSON(themeStr);
+					}
+				} catch (e) {
+					console.warn('Failed to load theme:', e);
+				}
+			}
 
 			// Wait for DOM to render then check carousels
 			setTimeout(() => {
@@ -117,7 +128,7 @@
 	<title>{$page.params.username} - LinkBio</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 py-12 px-4 relative">
+<div class="min-h-screen py-12 px-4 relative" style="background: {styles.pageBackground}">
 	<!-- Fixed Action Buttons -->
 	<div class="fixed top-6 left-6 right-6 flex justify-between items-center z-50 max-w-md mx-auto">
 		<button 

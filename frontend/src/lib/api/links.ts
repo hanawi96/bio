@@ -29,6 +29,11 @@ export interface Link {
 	card_background_opacity?: number;
 	card_border_radius?: number;
 	card_text_color?: string;
+	has_card_border?: boolean;
+	card_border_color?: string;
+	card_border_style?: string;
+	card_border_width?: number;
+	show_outline?: boolean;
 	style?: string | null;
 	position: number;
 	clicks: number;

@@ -5,11 +5,51 @@
 	import type { Link } from '$lib/api/links';
 	import type { Block } from '$lib/api/blocks';
 	import { onMount, onDestroy } from 'svelte';
+	import { globalTheme, themeStyles } from '$lib/stores/theme';
 
 	export let profile: Partial<Profile> = {};
 	export let links: Link[] = [];
 	export let blocks: Block[] = [];
 	export let showInactive: boolean = true;
+	
+	// Subscribe to theme
+	$: currentTheme = $globalTheme;
+	$: styles = $themeStyles;
+	
+	// Helper to get card style from theme (with link override)
+	function getCardStyle(link: any) {
+		const t = currentTheme;
+		const hasCustomBg = link?.has_card_background ?? true;
+		const bgColor = link?.card_background_color || t.cardBackground;
+		const bgOpacity = link?.card_background_opacity ?? t.cardBackgroundOpacity;
+		const borderRadius = link?.card_border_radius ?? t.cardBorderRadius;
+		const textColor = link?.card_text_color || t.cardTextColor;
+		const showShadow = link?.show_shadow ?? t.cardShadow;
+		const shadowX = link?.shadow_x ?? t.cardShadowX;
+		const shadowY = link?.shadow_y ?? t.cardShadowY;
+		const shadowBlur = link?.shadow_blur ?? t.cardShadowBlur;
+		const hasBorder = link?.has_card_border ?? t.cardBorder;
+		const borderColor = link?.card_border_color || t.cardBorderColor;
+		const borderWidth = link?.card_border_width ?? t.cardBorderWidth;
+		
+		const r = parseInt(bgColor.slice(1, 3), 16);
+		const g = parseInt(bgColor.slice(3, 5), 16);
+		const b = parseInt(bgColor.slice(5, 7), 16);
+		
+		let style = '';
+		if (hasCustomBg) {
+			style += `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100});`;
+		}
+		style += `border-radius: ${borderRadius}px;`;
+		style += `color: ${textColor};`;
+		if (showShadow) {
+			style += `box-shadow: ${shadowX}px ${shadowY}px ${shadowBlur}px rgba(0,0,0,0.1);`;
+		}
+		if (hasBorder) {
+			style += `border: ${borderWidth}px solid ${borderColor};`;
+		}
+		return style;
+	}
 	
 	// Helper function to parse padding from style
 	function getPaddingStyle(style: string | null | undefined): string {
@@ -174,7 +214,10 @@
 		<div class="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-7 bg-gray-900 rounded-b-3xl z-10"></div>
 		
 		<!-- Screen -->
-		<div class="relative bg-gradient-to-br from-purple-50 to-blue-50 rounded-[2.5rem] overflow-hidden h-[650px]">
+		<div 
+			class="relative rounded-[2.5rem] overflow-hidden h-[650px] transition-colors duration-300"
+			style="background: {styles.pageBackground};"
+		>
 			<!-- Fixed Action Buttons -->
 			<div class="absolute top-4 left-4 right-4 flex justify-between items-center z-20">
 				<button 
@@ -204,7 +247,7 @@
 					<div class="flex justify-center">
 						<div class="relative">
 							<Avatar 
-								src={profile.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (profile.username || 'user')}
+								src={profile?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (profile?.username || 'user')}
 								alt="Avatar"
 								class="w-24 h-24 border-4 border-white shadow-lg"
 							/>
@@ -212,9 +255,9 @@
 						</div>
 					</div>
 					<div>
-						<h2 class="text-xl font-bold text-gray-900">@{profile.username || 'username'}</h2>
-						{#if profile.bio}
-							<p class="text-sm text-gray-600 mt-1">{profile.bio}</p>
+						<h2 class="text-xl font-bold" style="color: {currentTheme.textColor};">@{profile?.username || 'username'}</h2>
+						{#if profile?.bio}
+							<p class="text-sm mt-1" style="color: {currentTheme.textSecondaryColor};">{profile.bio}</p>
 						{/if}
 					</div>
 				</div>
@@ -592,7 +635,8 @@
 								href={link.url}
 								target="_blank"
 								rel="noopener noreferrer"
-								class="block w-full bg-white hover:bg-gray-50 rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-200 {!link.is_active ? 'opacity-50' : ''}"
+								class="block w-full overflow-hidden transition-all duration-200 {!link.is_active ? 'opacity-50' : ''}"
+								style="{getCardStyle(link)} padding: 0;"
 							>
 								{#if link.thumbnail_url}
 									<div class="relative h-32 bg-gradient-to-br from-indigo-100 to-blue-100">
@@ -620,7 +664,8 @@
 									href={link.url}
 									target="_blank"
 									rel="noopener noreferrer"
-									class="block w-full bg-white hover:bg-gray-50 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-200 {!link.is_active ? 'opacity-50' : ''}"
+									class="block w-full p-4 transition-all duration-200 {!link.is_active ? 'opacity-50' : ''}"
+									style="{getCardStyle(link)}"
 								>
 									<div class="flex items-center gap-3">
 										{#if link.thumbnail_url}
@@ -632,7 +677,7 @@
 												/>
 											</div>
 										{/if}
-										<span class="font-medium text-gray-900 flex-1">{link.title}</span>
+										<span class="font-medium flex-1" style="color: {currentTheme.cardTextColor};">{link.title}</span>
 									</div>
 								</a>
 							{/if}

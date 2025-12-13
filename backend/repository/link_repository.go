@@ -987,3 +987,47 @@ func (r *LinkRepository) ReorderGroupLinks(userID string, groupID string, linkID
 
 	return tx.Commit()
 }
+
+
+// UpdateAllGroupsCardStyles updates card styles for all link groups of a user
+func (r *LinkRepository) UpdateAllGroupsCardStyles(userID string, cardStyles map[string]interface{}) error {
+	query := `
+		UPDATE links l
+		SET 
+			card_background_color = COALESCE($2, card_background_color),
+			card_background_opacity = COALESCE($3, card_background_opacity),
+			card_text_color = COALESCE($4, card_text_color),
+			card_border_radius = COALESCE($5, card_border_radius),
+			show_shadow = COALESCE($6, show_shadow),
+			shadow_x = COALESCE($7, shadow_x),
+			shadow_y = COALESCE($8, shadow_y),
+			shadow_blur = COALESCE($9, shadow_blur),
+			has_card_border = COALESCE($10, has_card_border),
+			card_border_color = COALESCE($11, card_border_color),
+			card_border_width = COALESCE($12, card_border_width),
+			has_card_background = COALESCE($13, has_card_background),
+			updated_at = CURRENT_TIMESTAMP
+		FROM profiles p
+		WHERE l.profile_id = p.id 
+		  AND p.user_id = $1 
+		  AND l.is_group = true
+	`
+
+	_, err := r.db.Exec(query,
+		userID,
+		cardStyles["card_background_color"],
+		cardStyles["card_background_opacity"],
+		cardStyles["card_text_color"],
+		cardStyles["card_border_radius"],
+		cardStyles["show_shadow"],
+		cardStyles["shadow_x"],
+		cardStyles["shadow_y"],
+		cardStyles["shadow_blur"],
+		cardStyles["has_card_border"],
+		cardStyles["card_border_color"],
+		cardStyles["card_border_width"],
+		cardStyles["has_card_background"],
+	)
+
+	return err
+}

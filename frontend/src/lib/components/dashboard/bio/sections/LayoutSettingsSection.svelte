@@ -1,10 +1,31 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
 	import type { Link } from '$lib/api/links';
+	import { themePresets, defaultCardStyles } from '$lib/stores/theme';
 	
 	export let group: Link;
 	
 	const dispatch = createEventDispatcher();
+	
+	// Reset group to default card styles
+	function resetToTheme() {
+		const card = defaultCardStyles;
+		dispatch('update', {
+			groupId: group.id,
+			card_background_color: card.cardBackground,
+			card_background_opacity: card.cardBackgroundOpacity,
+			card_text_color: card.cardTextColor,
+			card_border_radius: card.cardBorderRadius,
+			show_shadow: card.cardShadow,
+			shadow_x: card.cardShadowX,
+			shadow_y: card.cardShadowY,
+			shadow_blur: card.cardShadowBlur,
+			has_card_border: card.cardBorder,
+			card_border_color: card.cardBorderColor,
+			card_border_width: card.cardBorderWidth,
+			has_card_background: true
+		});
+	}
 	
 	// Debounce timer for slider updates
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -207,6 +228,20 @@
 </script>
 
 <div class="p-6 space-y-6">
+	<!-- Reset to Theme Button -->
+	<div class="flex justify-end">
+		<button
+			onclick={resetToTheme}
+			class="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors flex items-center gap-1.5"
+			title="Reset this group's styles to match the current theme"
+		>
+			<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+			</svg>
+			Reset to Theme
+		</button>
+	</div>
+
 	<!-- Layout Section -->
 	<div>
 		<h3 class="text-base font-semibold text-gray-900 mb-3">Layout</h3>
@@ -334,7 +369,7 @@
 					<button
 						type="button"
 						onclick={() => dispatch('update', { groupId: group.id, grid_columns: cols })}
-						class="flex-1 px-4 py-3 border-2 rounded-lg transition-all hover:shadow-md"
+						class="flex-1 px-4 py-3 border rounded-lg transition-all hover:shadow-md"
 						class:border-emerald-500={(group.grid_columns || 2) === cols}
 						class:bg-emerald-50={(group.grid_columns || 2) === cols}
 						class:border-gray-200={(group.grid_columns || 2) !== cols}
@@ -367,7 +402,7 @@
 					<button
 						type="button"
 						onclick={() => dispatch('update', { groupId: group.id, grid_aspect_ratio: ratio.value })}
-						class="px-3 py-2.5 border-2 rounded-lg transition-all hover:shadow-md text-xs font-medium"
+						class="px-3 py-2.5 border rounded-lg transition-all hover:shadow-md text-xs font-medium"
 						class:border-emerald-500={(group.grid_aspect_ratio || '3:2') === ratio.value}
 						class:bg-emerald-50={(group.grid_aspect_ratio || '3:2') === ratio.value}
 						class:text-emerald-700={(group.grid_aspect_ratio || '3:2') === ratio.value}
@@ -390,7 +425,7 @@
 				<button
 					type="button"
 					onclick={() => updateShowText(true)}
-					class="flex-1 px-4 py-3 border-2 rounded-lg transition-all hover:shadow-md font-medium text-sm"
+					class="flex-1 px-4 py-3 border rounded-lg transition-all hover:shadow-md font-medium text-sm"
 					class:border-emerald-500={showText}
 					class:bg-emerald-50={showText}
 					class:text-emerald-700={showText}
@@ -403,7 +438,7 @@
 				<button
 					type="button"
 					onclick={() => updateShowText(false)}
-					class="flex-1 px-4 py-3 border-2 rounded-lg transition-all hover:shadow-md font-medium text-sm"
+					class="flex-1 px-4 py-3 border rounded-lg transition-all hover:shadow-md font-medium text-sm"
 					class:border-emerald-500={!showText}
 					class:bg-emerald-50={!showText}
 					class:text-emerald-700={!showText}
@@ -426,7 +461,7 @@
 				<button
 					type="button"
 					onclick={() => dispatch('update', { groupId: group.id, image_placement: 'left' })}
-					class="px-4 py-3 border-2 rounded-lg transition-all hover:shadow-md text-left"
+					class="px-4 py-3 border rounded-lg transition-all hover:shadow-md text-left"
 					class:border-emerald-500={(group.image_placement || 'alternating') === 'left'}
 					class:bg-emerald-50={(group.image_placement || 'alternating') === 'left'}
 					class:border-gray-200={(group.image_placement || 'alternating') !== 'left'}
@@ -438,7 +473,7 @@
 				<button
 					type="button"
 					onclick={() => dispatch('update', { groupId: group.id, image_placement: 'right' })}
-					class="px-4 py-3 border-2 rounded-lg transition-all hover:shadow-md text-left"
+					class="px-4 py-3 border rounded-lg transition-all hover:shadow-md text-left"
 					class:border-emerald-500={(group.image_placement || 'alternating') === 'right'}
 					class:bg-emerald-50={(group.image_placement || 'alternating') === 'right'}
 					class:border-gray-200={(group.image_placement || 'alternating') !== 'right'}
@@ -450,7 +485,7 @@
 				<button
 					type="button"
 					onclick={() => dispatch('update', { groupId: group.id, image_placement: 'alternating' })}
-					class="px-4 py-3 border-2 rounded-lg transition-all hover:shadow-md text-left"
+					class="px-4 py-3 border rounded-lg transition-all hover:shadow-md text-left"
 					class:border-emerald-500={(group.image_placement || 'alternating') === 'alternating'}
 					class:bg-emerald-50={(group.image_placement || 'alternating') === 'alternating'}
 					class:border-gray-200={(group.image_placement || 'alternating') !== 'alternating'}
@@ -470,7 +505,7 @@
 			<button
 				type="button"
 				onclick={() => updateTextAlignment('left')}
-				class="flex-1 px-4 py-2.5 border-2 rounded-lg transition-all flex items-center justify-center"
+				class="flex-1 px-4 py-2.5 border rounded-lg transition-all flex items-center justify-center"
 				class:border-gray-900={textAlignment === 'left'}
 				class:bg-gray-900={textAlignment === 'left'}
 				class:text-white={textAlignment === 'left'}
@@ -486,7 +521,7 @@
 			<button
 				type="button"
 				onclick={() => updateTextAlignment('center')}
-				class="flex-1 px-4 py-2.5 border-2 rounded-lg transition-all flex items-center justify-center"
+				class="flex-1 px-4 py-2.5 border rounded-lg transition-all flex items-center justify-center"
 				class:border-gray-900={textAlignment === 'center'}
 				class:bg-gray-900={textAlignment === 'center'}
 				class:text-white={textAlignment === 'center'}
@@ -502,7 +537,7 @@
 			<button
 				type="button"
 				onclick={() => updateTextAlignment('right')}
-				class="flex-1 px-4 py-2.5 border-2 rounded-lg transition-all flex items-center justify-center"
+				class="flex-1 px-4 py-2.5 border rounded-lg transition-all flex items-center justify-center"
 				class:border-gray-900={textAlignment === 'right'}
 				class:bg-gray-900={textAlignment === 'right'}
 				class:text-white={textAlignment === 'right'}
@@ -525,7 +560,7 @@
 				<button
 					type="button"
 					onclick={() => dispatch('update', { groupId: group.id, text_size: size })}
-					class="flex-1 px-4 py-2.5 border-2 rounded-lg transition-all font-semibold"
+					class="flex-1 px-4 py-2.5 border rounded-lg transition-all font-semibold"
 					class:border-gray-900={(group.text_size || 'M') === size}
 					class:bg-gray-900={(group.text_size || 'M') === size}
 					class:text-white={(group.text_size || 'M') === size}
@@ -580,7 +615,7 @@
 				<button
 					type="button"
 					onclick={() => dispatch('update', { groupId: group.id, image_shape: 'sharp' })}
-					class="flex-1 px-4 py-2.5 border-2 rounded-lg transition-all hover:shadow-md"
+					class="flex-1 px-4 py-2.5 border rounded-lg transition-all hover:shadow-md"
 					class:border-emerald-500={(group.image_shape || 'square') === 'sharp'}
 					class:bg-emerald-50={(group.image_shape || 'square') === 'sharp'}
 					class:border-gray-200={(group.image_shape || 'square') !== 'sharp'}
@@ -594,7 +629,7 @@
 				<button
 					type="button"
 					onclick={() => dispatch('update', { groupId: group.id, image_shape: 'square' })}
-					class="flex-1 px-4 py-2.5 border-2 rounded-lg transition-all hover:shadow-md"
+					class="flex-1 px-4 py-2.5 border rounded-lg transition-all hover:shadow-md"
 					class:border-emerald-500={(group.image_shape || 'square') === 'square'}
 					class:bg-emerald-50={(group.image_shape || 'square') === 'square'}
 					class:border-gray-200={(group.image_shape || 'square') !== 'square'}
@@ -608,7 +643,7 @@
 				<button
 					type="button"
 					onclick={() => dispatch('update', { groupId: group.id, image_shape: 'circle' })}
-					class="flex-1 px-4 py-2.5 border-2 rounded-lg transition-all hover:shadow-md"
+					class="flex-1 px-4 py-2.5 border rounded-lg transition-all hover:shadow-md"
 					class:border-emerald-500={(group.image_shape || 'square') === 'circle'}
 					class:bg-emerald-50={(group.image_shape || 'square') === 'circle'}
 					class:border-gray-200={(group.image_shape || 'square') !== 'circle'}
@@ -651,7 +686,7 @@
 							showCustomShadow = false;
 							updateShadowPreset(0, 2, 4);
 						}} 
-						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
 						class:border-emerald-500={!showCustomShadow && group.shadow_x === 0 && group.shadow_y === 2 && group.shadow_blur === 4}
 						class:bg-emerald-50={!showCustomShadow && group.shadow_x === 0 && group.shadow_y === 2 && group.shadow_blur === 4}
 						class:border-gray-200={showCustomShadow || group.shadow_x !== 0 || group.shadow_y !== 2 || group.shadow_blur !== 4}
@@ -664,7 +699,7 @@
 							showCustomShadow = false;
 							updateShadowPreset(0, 4, 10);
 						}} 
-						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
 						class:border-emerald-500={!showCustomShadow && group.shadow_x === 0 && group.shadow_y === 4 && group.shadow_blur === 10}
 						class:bg-emerald-50={!showCustomShadow && group.shadow_x === 0 && group.shadow_y === 4 && group.shadow_blur === 10}
 						class:border-gray-200={showCustomShadow || group.shadow_x !== 0 || group.shadow_y !== 4 || group.shadow_blur !== 10}
@@ -677,7 +712,7 @@
 							showCustomShadow = false;
 							updateShadowPreset(0, 8, 20);
 						}} 
-						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
 						class:border-emerald-500={!showCustomShadow && group.shadow_x === 0 && group.shadow_y === 8 && group.shadow_blur === 20}
 						class:bg-emerald-50={!showCustomShadow && group.shadow_x === 0 && group.shadow_y === 8 && group.shadow_blur === 20}
 						class:border-gray-200={showCustomShadow || group.shadow_x !== 0 || group.shadow_y !== 8 || group.shadow_blur !== 20}
@@ -687,7 +722,7 @@
 					</button>
 					<button 
 						onclick={() => showCustomShadow = !showCustomShadow} 
-						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
 						class:border-emerald-500={showCustomShadow}
 						class:bg-emerald-50={showCustomShadow}
 						class:border-gray-200={!showCustomShadow}
@@ -813,7 +848,7 @@
 							showCustomOpacity = false;
 							updateOpacityPreset(50);
 						}} 
-						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
 						class:border-emerald-500={!showCustomOpacity && (group.card_background_opacity || 100) === 50}
 						class:bg-emerald-50={!showCustomOpacity && (group.card_background_opacity || 100) === 50}
 						class:border-gray-200={showCustomOpacity || (group.card_background_opacity || 100) !== 50}
@@ -826,7 +861,7 @@
 							showCustomOpacity = false;
 							updateOpacityPreset(75);
 						}} 
-						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
 						class:border-emerald-500={!showCustomOpacity && (group.card_background_opacity || 100) === 75}
 						class:bg-emerald-50={!showCustomOpacity && (group.card_background_opacity || 100) === 75}
 						class:border-gray-200={showCustomOpacity || (group.card_background_opacity || 100) !== 75}
@@ -839,7 +874,7 @@
 							showCustomOpacity = false;
 							updateOpacityPreset(100);
 						}} 
-						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
 						class:border-emerald-500={!showCustomOpacity && (group.card_background_opacity || 100) === 100}
 						class:bg-emerald-50={!showCustomOpacity && (group.card_background_opacity || 100) === 100}
 						class:border-gray-200={showCustomOpacity || (group.card_background_opacity || 100) !== 100}
@@ -849,7 +884,7 @@
 					</button>
 					<button 
 						onclick={() => showCustomOpacity = !showCustomOpacity} 
-						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
 						class:border-emerald-500={showCustomOpacity}
 						class:bg-emerald-50={showCustomOpacity}
 						class:border-gray-200={!showCustomOpacity}
@@ -888,7 +923,7 @@
 							showCustomBorderRadius = false;
 							updateBorderRadiusPreset(0);
 						}} 
-						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
 						class:border-emerald-500={!showCustomBorderRadius && (group.card_border_radius || 12) === 0}
 						class:bg-emerald-50={!showCustomBorderRadius && (group.card_border_radius || 12) === 0}
 						class:border-gray-200={showCustomBorderRadius || (group.card_border_radius || 12) !== 0}
@@ -901,7 +936,7 @@
 							showCustomBorderRadius = false;
 							updateBorderRadiusPreset(8);
 						}} 
-						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
 						class:border-emerald-500={!showCustomBorderRadius && (group.card_border_radius || 12) === 8}
 						class:bg-emerald-50={!showCustomBorderRadius && (group.card_border_radius || 12) === 8}
 						class:border-gray-200={showCustomBorderRadius || (group.card_border_radius || 12) !== 8}
@@ -914,7 +949,7 @@
 							showCustomBorderRadius = false;
 							updateBorderRadiusPreset(12);
 						}} 
-						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
 						class:border-emerald-500={!showCustomBorderRadius && (group.card_border_radius || 12) === 12}
 						class:bg-emerald-50={!showCustomBorderRadius && (group.card_border_radius || 12) === 12}
 						class:border-gray-200={showCustomBorderRadius || (group.card_border_radius || 12) !== 12}
@@ -927,7 +962,7 @@
 							showCustomBorderRadius = false;
 							updateBorderRadiusPreset(24);
 						}} 
-						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
 						class:border-emerald-500={!showCustomBorderRadius && (group.card_border_radius || 12) === 24}
 						class:bg-emerald-50={!showCustomBorderRadius && (group.card_border_radius || 12) === 24}
 						class:border-gray-200={showCustomBorderRadius || (group.card_border_radius || 12) !== 24}
@@ -937,7 +972,7 @@
 					</button>
 					<button 
 						onclick={() => showCustomBorderRadius = !showCustomBorderRadius} 
-						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
 						class:border-emerald-500={showCustomBorderRadius}
 						class:bg-emerald-50={showCustomBorderRadius}
 						class:border-gray-200={!showCustomBorderRadius}
@@ -1024,7 +1059,7 @@
 				<div class="flex gap-2">
 					<button 
 						onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_style: 'solid' })} 
-						class="flex-1 px-3 py-2 text-xs bg-white border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class="flex-1 px-3 py-2 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors"
 						class:border-emerald-500={(group.card_border_style || 'solid') === 'solid'}
 						class:bg-emerald-50={(group.card_border_style || 'solid') === 'solid'}
 						class:border-gray-200={(group.card_border_style || 'solid') !== 'solid'}
@@ -1068,7 +1103,7 @@
 					>1px</button>
 					<button 
 						onclick={() => dispatch('update', { groupId: group.id, has_card_border: true, card_border_width: 2 })} 
-						class="flex-1 px-3 py-2 text-xs bg-white border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class="flex-1 px-3 py-2 text-xs bg-white border rounded-lg hover:bg-gray-50 transition-colors"
 						class:border-emerald-500={(group.card_border_width || 1) === 2}
 						class:bg-emerald-50={(group.card_border_width || 1) === 2}
 						class:border-gray-200={(group.card_border_width || 1) !== 2}
@@ -1104,7 +1139,7 @@
 						showCustomPadding = false;
 						updatePadding(8);
 					}} 
-					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+					class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
 					class:border-emerald-500={displayPadding === 8 && isDisplayUniform && !showCustomPadding}
 					class:bg-emerald-50={displayPadding === 8 && isDisplayUniform && !showCustomPadding}
 					class:border-gray-200={!(displayPadding === 8 && isDisplayUniform && !showCustomPadding)}
@@ -1117,7 +1152,7 @@
 						showCustomPadding = false;
 						updatePadding(16);
 					}} 
-					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+					class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
 					class:border-emerald-500={displayPadding === 16 && isDisplayUniform && !showCustomPadding}
 					class:bg-emerald-50={displayPadding === 16 && isDisplayUniform && !showCustomPadding}
 					class:border-gray-200={!(displayPadding === 16 && isDisplayUniform && !showCustomPadding)}
@@ -1130,7 +1165,7 @@
 						showCustomPadding = false;
 						updatePadding(24);
 					}} 
-					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+					class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
 					class:border-emerald-500={displayPadding === 24 && isDisplayUniform && !showCustomPadding}
 					class:bg-emerald-50={displayPadding === 24 && isDisplayUniform && !showCustomPadding}
 					class:border-gray-200={!(displayPadding === 24 && isDisplayUniform && !showCustomPadding)}
@@ -1143,7 +1178,7 @@
 						showCustomPadding = false;
 						updatePadding(32);
 					}} 
-					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+					class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
 					class:border-emerald-500={displayPadding === 32 && isDisplayUniform && !showCustomPadding}
 					class:bg-emerald-50={displayPadding === 32 && isDisplayUniform && !showCustomPadding}
 					class:border-gray-200={!(displayPadding === 32 && isDisplayUniform && !showCustomPadding)}
@@ -1153,7 +1188,7 @@
 				</button>
 				<button 
 					onclick={() => showCustomPadding = !showCustomPadding} 
-					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+					class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
 					class:border-emerald-500={showCustomPadding}
 					class:bg-emerald-50={showCustomPadding}
 					class:border-gray-200={!showCustomPadding}
@@ -1245,7 +1280,7 @@
 						showCustomSpacing = false;
 						updateMargin(4);
 					}} 
-					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+					class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
 					class:border-emerald-500={displayMargin === 4 && !showCustomSpacing}
 					class:bg-emerald-50={displayMargin === 4 && !showCustomSpacing}
 					class:border-gray-200={!(displayMargin === 4 && !showCustomSpacing)}
@@ -1258,7 +1293,7 @@
 						showCustomSpacing = false;
 						updateMargin(8);
 					}} 
-					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+					class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
 					class:border-emerald-500={displayMargin === 8 && !showCustomSpacing}
 					class:bg-emerald-50={displayMargin === 8 && !showCustomSpacing}
 					class:border-gray-200={!(displayMargin === 8 && !showCustomSpacing)}
@@ -1271,7 +1306,7 @@
 						showCustomSpacing = false;
 						updateMargin(16);
 					}} 
-					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+					class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
 					class:border-emerald-500={displayMargin === 16 && !showCustomSpacing}
 					class:bg-emerald-50={displayMargin === 16 && !showCustomSpacing}
 					class:border-gray-200={!(displayMargin === 16 && !showCustomSpacing)}
@@ -1281,7 +1316,7 @@
 				</button>
 				<button 
 					onclick={() => showCustomSpacing = !showCustomSpacing} 
-					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+					class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
 					class:border-emerald-500={showCustomSpacing}
 					class:bg-emerald-50={showCustomSpacing}
 					class:border-gray-200={!showCustomSpacing}

@@ -51,6 +51,7 @@ func SetupRoutes(api fiber.Router, db *sql.DB, cfg *config.Config) {
 	// Profile management
 	protected.Get("/profile", profileHandler.GetMyProfile)
 	protected.Put("/profile", profileHandler.UpdateProfile)
+	protected.Post("/profile/apply-theme", profileHandler.ApplyTheme)
 
 	// Link management
 	protected.Get("/links", linkHandler.GetLinks)

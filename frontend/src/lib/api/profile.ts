@@ -1,4 +1,6 @@
 import { api } from './client';
+import type { Link } from './links';
+import type { Block } from './blocks';
 
 export interface Profile {
 	id: string;
@@ -6,8 +8,20 @@ export interface Profile {
 	username: string;
 	avatar_url?: string;
 	bio?: string;
-	theme_config: Record<string, any>;
+	theme_config?: string | object;
 	custom_css?: string;
+}
+
+export interface ApplyThemeRequest {
+	theme_config: object;
+	card_styles: object;
+	text_styles: string;
+}
+
+export interface ApplyThemeResponse {
+	profile: Profile;
+	links: Link[];
+	blocks: Block[];
 }
 
 export const profileApi = {
@@ -15,6 +29,17 @@ export const profileApi = {
 	getPublicProfile: (username: string) => api.get<Profile>(`/p/${username}`),
 	updateProfile: (data: Partial<Profile>, token: string) =>
 		api.put<Profile>('/profile', data, token),
+	
+	/**
+	 * Apply theme preset to profile and all groups
+	 * This will update:
+	 * - profile.theme_config (page styles)
+	 * - All link groups (card styles)
+	 * - All text groups (text styles)
+	 */
+	applyTheme: (data: ApplyThemeRequest, token: string) =>
+		api.post<ApplyThemeResponse>('/profile/apply-theme', data, token),
+	
 	uploadAvatar: async (file: File, token: string): Promise<Profile> => {
 		const formData = new FormData();
 		formData.append('avatar', file);

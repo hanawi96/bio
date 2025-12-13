@@ -72,7 +72,8 @@
 					shadow: 'none',
 					hasBorder: false,
 					borderColor: '#e5e7eb',
-					borderWidth: 1
+					borderWidth: 1,
+					borderStyle: 'solid'
 				};
 			} else if (typeof group.style === 'string') {
 				const parsed = JSON.parse(group.style);
@@ -138,7 +139,8 @@
 				shadow: 'none',
 				hasBorder: false,
 				borderColor: '#e5e7eb',
-				borderWidth: 1
+				borderWidth: 1,
+				borderStyle: 'solid'
 			};
 		}
 	}
@@ -264,77 +266,77 @@
 		// Gradient-inspired with depth
 		'ocean-depth': { 
 			textAlign: 'center', fontSize: 'text-medium', textColor: '#ffffff', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
-			hasBackground: true, backgroundColor: '#06B6D4', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+			hasBackground: true, backgroundColor: '#06B6D4', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1, borderStyle: 'solid'
 		},
 		// Warm sunset with complementary
 		'sunset-blaze': { 
 			textAlign: 'center', fontSize: 'text-medium', textColor: '#ffffff', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
-			hasBackground: true, backgroundColor: '#F97316', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+			hasBackground: true, backgroundColor: '#F97316', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1, borderStyle: 'solid'
 		},
 		// Purple luxury with gold accent
 		'royal-purple': { 
 			textAlign: 'center', fontSize: 'text-medium', textColor: '#FDE047', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
-			hasBackground: true, backgroundColor: '#7C3AED', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+			hasBackground: true, backgroundColor: '#7C3AED', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1, borderStyle: 'solid'
 		},
 		// Mint with deep teal
 		'mint-teal': { 
 			textAlign: 'center', fontSize: 'text-medium', textColor: '#ffffff', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
-			hasBackground: true, backgroundColor: '#34D399', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+			hasBackground: true, backgroundColor: '#34D399', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1, borderStyle: 'solid'
 		},
 		// Hot pink with purple
 		'pink-passion': { 
 			textAlign: 'center', fontSize: 'text-medium', textColor: '#ffffff', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
-			hasBackground: true, backgroundColor: '#EC4899', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+			hasBackground: true, backgroundColor: '#EC4899', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1, borderStyle: 'solid'
 		},
 		// Navy with cyan accent
 		'navy-cyan': { 
 			textAlign: 'center', fontSize: 'text-medium', textColor: '#67E8F9', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
-			hasBackground: true, backgroundColor: '#1E3A8A', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+			hasBackground: true, backgroundColor: '#1E3A8A', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1, borderStyle: 'solid'
 		},
 		// Coral with deep orange
 		'coral-dream': { 
 			textAlign: 'center', fontSize: 'text-medium', textColor: '#ffffff', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
-			hasBackground: true, backgroundColor: '#FB923C', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+			hasBackground: true, backgroundColor: '#FB923C', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1, borderStyle: 'solid'
 		},
 		// Electric blue with pink
 		'electric-pop': { 
 			textAlign: 'center', fontSize: 'text-medium', textColor: '#ffffff', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
-			hasBackground: true, backgroundColor: '#3B82F6', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+			hasBackground: true, backgroundColor: '#3B82F6', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1, borderStyle: 'solid'
 		},
 		// Lime with emerald
 		'lime-fresh': { 
 			textAlign: 'center', fontSize: 'text-medium', textColor: '#14532D', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
-			hasBackground: true, backgroundColor: '#BEF264', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+			hasBackground: true, backgroundColor: '#BEF264', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1, borderStyle: 'solid'
 		},
 		// Deep red with dark border
 		'crimson-bold': { 
 			textAlign: 'center', fontSize: 'text-medium', textColor: '#ffffff', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
-			hasBackground: true, backgroundColor: '#DC2626', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+			hasBackground: true, backgroundColor: '#DC2626', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1, borderStyle: 'solid'
 		},
 		// Indigo with violet
 		'indigo-wave': { 
 			textAlign: 'center', fontSize: 'text-medium', textColor: '#E0E7FF', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
-			hasBackground: true, backgroundColor: '#6366F1', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+			hasBackground: true, backgroundColor: '#6366F1', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1, borderStyle: 'solid'
 		},
 		// Teal with sky blue
 		'teal-sky': { 
 			textAlign: 'center', fontSize: 'text-medium', textColor: '#ffffff', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
-			hasBackground: true, backgroundColor: '#14B8A6', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+			hasBackground: true, backgroundColor: '#14B8A6', backgroundOpacity: 100, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1, borderStyle: 'solid'
 		},
 		// Frosted glass premium
 		'glass-elite': { 
 			textAlign: 'center', fontSize: 'text-medium', textColor: '#1E293B', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none',
-			hasBackground: true, backgroundColor: '#F8FAFC', backgroundOpacity: 60, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+			hasBackground: true, backgroundColor: '#F8FAFC', backgroundOpacity: 60, borderRadius: 24, padding: 24, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1, borderStyle: 'solid'
 		},
 		// Neon cyberpunk
 		'neon-cyber': { 
 			textAlign: 'center', fontSize: 'text-medium', textColor: '#00FFF0', isBold: true, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'uppercase',
-			hasBackground: true, backgroundColor: '#0F172A', backgroundOpacity: 100, borderRadius: 20, padding: 22, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+			hasBackground: true, backgroundColor: '#0F172A', backgroundOpacity: 100, borderRadius: 20, padding: 22, shadow: 'xl', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1, borderStyle: 'solid'
 		},
 		// Elegant quote
 		'quote-elegant': { 
 			textAlign: 'center', fontSize: 'text-large', textColor: '#475569', isBold: false, isItalic: true, isUnderline: false, isStrikethrough: false, textTransform: 'none',
-			hasBackground: true, backgroundColor: '#F1F5F9', backgroundOpacity: 100, borderRadius: 20, padding: 24, shadow: 'md', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1
+			hasBackground: true, backgroundColor: '#F1F5F9', backgroundOpacity: 100, borderRadius: 20, padding: 24, shadow: 'md', hasBorder: false, borderColor: '#e5e7eb', borderWidth: 1, borderStyle: 'solid'
 		}
 	};
 	

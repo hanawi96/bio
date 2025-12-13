@@ -15,7 +15,7 @@ func NewProfileRepository(db *sql.DB) *ProfileRepository {
 
 func (r *ProfileRepository) GetByUsername(username string) (*Profile, error) {
 	var profile Profile
-	var themeJSON []byte
+	var themeJSON sql.NullString
 	query := `
 		SELECT p.id, p.user_id, u.username, p.avatar_url, p.bio, 
 		       p.theme_config, p.custom_css, p.created_at, p.updated_at
@@ -30,13 +30,15 @@ func (r *ProfileRepository) GetByUsername(username string) (*Profile, error) {
 	if err != nil {
 		return nil, err
 	}
-	json.Unmarshal(themeJSON, &profile.ThemeConfig)
+	if themeJSON.Valid && themeJSON.String != "" {
+		json.Unmarshal([]byte(themeJSON.String), &profile.ThemeConfig)
+	}
 	return &profile, nil
 }
 
 func (r *ProfileRepository) GetByUserID(userID string) (*Profile, error) {
 	var profile Profile
-	var themeJSON []byte
+	var themeJSON sql.NullString
 	query := `
 		SELECT p.id, p.user_id, u.username, p.avatar_url, p.bio,
 		       p.theme_config, p.custom_css, p.created_at, p.updated_at
@@ -51,7 +53,9 @@ func (r *ProfileRepository) GetByUserID(userID string) (*Profile, error) {
 	if err != nil {
 		return nil, err
 	}
-	json.Unmarshal(themeJSON, &profile.ThemeConfig)
+	if themeJSON.Valid && themeJSON.String != "" {
+		json.Unmarshal([]byte(themeJSON.String), &profile.ThemeConfig)
+	}
 	return &profile, nil
 }
 
@@ -74,10 +78,22 @@ func (r *ProfileRepository) Update(userID string, data map[string]interface{}) (
 		UPDATE profiles
 		SET bio = COALESCE($2, bio),
 		    avatar_url = COALESCE($3, avatar_url),
+		    theme_config = COALESCE($4, theme_config),
 		    updated_at = CURRENT_TIMESTAMP
 		WHERE user_id = $1
 	`
-	_, err := r.db.Exec(query, userID, data["bio"], data["avatar_url"])
+	
+	var themeConfig interface{}
+	if tc, ok := data["theme_config"]; ok {
+		if tcStr, ok := tc.(string); ok {
+			themeConfig = []byte(tcStr)
+		} else {
+			themeJSON, _ := json.Marshal(tc)
+			themeConfig = themeJSON
+		}
+	}
+	
+	_, err := r.db.Exec(query, userID, data["bio"], data["avatar_url"], themeConfig)
 	if err != nil {
 		return nil, err
 	}

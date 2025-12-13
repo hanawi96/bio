@@ -546,3 +546,20 @@ func (r *BlockRepository) DuplicateGroup(userID string, groupID string) (*Block,
 
 	return &newGroup, nil
 }
+
+
+// UpdateAllGroupsStyle updates style for all text groups of a user
+func (r *BlockRepository) UpdateAllGroupsStyle(userID string, style string) error {
+	query := `
+		UPDATE blocks b
+		SET style = $2,
+		    updated_at = CURRENT_TIMESTAMP
+		FROM profiles p
+		WHERE b.profile_id = p.id 
+		  AND p.user_id = $1 
+		  AND b.is_group = true
+	`
+
+	_, err := r.db.Exec(query, userID, style)
+	return err
+}

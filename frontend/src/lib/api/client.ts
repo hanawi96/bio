@@ -22,7 +22,13 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 	});
 
 	if (!response.ok) {
-		const error = await response.json().catch(() => ({ error: 'Request failed' }));
+		const errorText = await response.text();
+		let error;
+		try {
+			error = JSON.parse(errorText);
+		} catch {
+			error = { error: errorText || 'Request failed' };
+		}
 		throw new Error(error.error || error.message || `HTTP ${response.status}`);
 	}
 

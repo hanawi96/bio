@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { dndzone } from 'svelte-dnd-action';
 	import { auth } from '$lib/stores/auth';
+	import { globalTheme } from '$lib/stores/theme';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -106,6 +107,15 @@
 			
 			try {
 				profileData = await profileApi.getMyProfile($auth.token!);
+				// Load theme if exists
+				if (profileData?.theme_config) {
+					const themeStr = typeof profileData.theme_config === 'string' 
+						? profileData.theme_config 
+						: JSON.stringify(profileData.theme_config);
+					if (themeStr && themeStr !== '{}' && themeStr !== 'null') {
+						globalTheme.loadFromJSON(themeStr);
+					}
+				}
 			} catch (profileError: any) {
 				console.warn('Profile not found, will be created automatically:', profileError);
 			}

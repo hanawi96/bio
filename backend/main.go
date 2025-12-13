@@ -122,6 +122,28 @@ func main() {
 		log.Println("✅ Migration: card background constraints ready")
 	}
 
+	// Add theme_config column to profiles (safe - uses IF NOT EXISTS)
+	_, err = db.Exec(`
+		ALTER TABLE profiles 
+		ADD COLUMN IF NOT EXISTS theme_config JSONB DEFAULT NULL
+	`)
+	if err != nil {
+		log.Println("⚠️ Theme config migration warning:", err)
+	} else {
+		log.Println("✅ Migration: theme_config column ready")
+	}
+
+	// Add index for theme_config (safe - uses IF NOT EXISTS)
+	_, err = db.Exec(`
+		CREATE INDEX IF NOT EXISTS idx_profiles_theme_config 
+		ON profiles USING GIN (theme_config)
+	`)
+	if err != nil {
+		log.Println("⚠️ Theme config index warning:", err)
+	} else {
+		log.Println("✅ Migration: theme_config index ready")
+	}
+
 	// Create Fiber app
 	app := fiber.New(fiber.Config{
 		AppName:      "LinkBio API",

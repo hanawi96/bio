@@ -69,3 +69,43 @@ func (s *ProfileService) GetPublicProfileWithLinks(username string) (map[string]
 		"blocks":  blocks,
 	}, nil
 }
+
+// ApplyTheme applies theme preset to profile and all groups
+func (s *ProfileService) ApplyTheme(userID string, themeConfig map[string]interface{}, cardStyles map[string]interface{}, textStyles string) (map[string]interface{}, error) {
+	// 1. Update profile theme_config
+	profile, err := s.profileRepo.Update(userID, map[string]interface{}{
+		"theme_config": themeConfig,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Update all link groups with card styles
+	err = s.linkRepo.UpdateAllGroupsCardStyles(userID, cardStyles)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Update all text groups with text styles
+	err = s.blockRepo.UpdateAllGroupsStyle(userID, textStyles)
+	if err != nil {
+		return nil, err
+	}
+
+	// 4. Fetch updated data
+	links, err := s.linkRepo.GetByUserID(userID)
+	if err != nil {
+		links = []repository.Link{}
+	}
+
+	blocks, err := s.blockRepo.GetByUserID(userID)
+	if err != nil {
+		blocks = []repository.Block{}
+	}
+
+	return map[string]interface{}{
+		"profile": profile,
+		"links":   links,
+		"blocks":  blocks,
+	}, nil
+}
