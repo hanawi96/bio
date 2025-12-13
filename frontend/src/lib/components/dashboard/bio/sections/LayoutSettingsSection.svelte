@@ -20,12 +20,21 @@
 	let localMarginValue: number | null = null;
 	let localPaddingValue: number | null = null;
 	let lastGroupId: string = '';
+	let showCustomPadding = false;
+	let showCustomSpacing = false;
+	let showCustomShadow = false;
+	let showCustomOpacity = false;
+	let showCustomBorderRadius = false;
 	
 	// Reset local state when switching to different group
 	$: if (group.id !== lastGroupId) {
-		console.log('🔄 Group changed, resetting local state');
 		localPaddingValue = null;
 		localMarginValue = null;
+		showCustomPadding = false;
+		showCustomSpacing = false;
+		showCustomShadow = false;
+		showCustomOpacity = false;
+		showCustomBorderRadius = false;
 		lastGroupId = group.id;
 	}
 	
@@ -44,23 +53,6 @@
 	
 	// When local padding is set, assume uniform (since we set all 4 sides equal)
 	$: isDisplayUniform = localPaddingValue !== null ? true : isUniformPadding;
-	
-	// Debug logging
-	$: console.log('🔍 Padding Debug:', {
-		localPaddingValue,
-		currentPaddingTop: currentPadding.top,
-		displayPadding,
-		isUniformPadding,
-		isDisplayUniform,
-		allPadding: currentPadding,
-		condition_8: displayPadding === 8 && isDisplayUniform,
-		condition_16: displayPadding === 16 && isDisplayUniform,
-		condition_24: displayPadding === 24 && isDisplayUniform,
-		condition_32: displayPadding === 32 && isDisplayUniform
-	});
-	
-	// Don't auto-reset localPaddingValue - keep it until user changes to different value
-	// This ensures button stays active after click
 	
 	function updateLayout(value: string) {
 		dispatch('update', {
@@ -109,12 +101,7 @@
 	}
 
 	function updatePadding(value: number) {
-		console.log('🎯 updatePadding called with value:', value);
-		// Always update local value to ensure button stays active
 		localPaddingValue = value;
-		console.log('📝 localPaddingValue set to:', localPaddingValue);
-		console.log('✅ Button should be active:', { displayPadding: value, isUniformPadding: true });
-		
 		let style: any = {};
 		if (group.style) {
 			try {
@@ -122,7 +109,6 @@
 			} catch {}
 		}
 		style.padding = { top: value, right: value, bottom: value, left: value };
-		console.log('📤 Dispatching update with padding:', style.padding);
 		dispatch('update', {
 			groupId: group.id,
 			style: JSON.stringify(style)
@@ -161,25 +147,44 @@
 		}
 	}
 
-	// Preset buttons - instant update (no debounce)
 	function updateMargin(value: number) {
-		console.log('🎯 updateMargin called with value:', value);
-		// Set local state immediately to show active button
 		localMarginValue = value;
-		console.log('📝 localMarginValue set to:', localMarginValue);
-		
 		let style: any = {};
 		if (group.style) {
 			try {
 				style = JSON.parse(group.style);
 			} catch {}
 		}
-		// Only use margin-bottom to avoid CSS margin collapse
 		style.margin = { top: 0, bottom: value };
-		console.log('📤 Dispatching margin update:', style.margin);
 		dispatch('update', {
 			groupId: group.id,
 			style: JSON.stringify(style)
+		});
+	}
+
+	function updateShadowPreset(x: number, y: number, blur: number) {
+		dispatch('update', {
+			groupId: group.id,
+			show_shadow: true,
+			shadow_x: x,
+			shadow_y: y,
+			shadow_blur: blur
+		});
+	}
+
+	function updateOpacityPreset(value: number) {
+		dispatch('update', {
+			groupId: group.id,
+			has_card_background: true,
+			card_background_opacity: value
+		});
+	}
+
+	function updateBorderRadiusPreset(value: number) {
+		dispatch('update', {
+			groupId: group.id,
+			has_card_background: true,
+			card_border_radius: value
 		});
 	}
 	
@@ -621,104 +626,155 @@
 	<!-- Toggles Section -->
 	<div class="space-y-4">
 		<div>
-			<label class="flex items-center justify-between cursor-pointer mb-3">
-				<span class="text-base font-medium text-gray-900">Link shadow</span>
+			<div class="flex items-center gap-3 mb-3">
+				<h3 class="text-base font-semibold text-gray-900">Link shadow</h3>
 				<button
 					type="button"
 					onclick={updateShowShadow}
-					class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+					class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
 					class:bg-gray-900={showShadow}
 					class:bg-gray-300={!showShadow}
 				>
 					<span
-						class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
-						class:translate-x-6={showShadow}
-						class:translate-x-1={!showShadow}
+						class="inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform"
+						class:translate-x-5={showShadow}
+						class:translate-x-0.5={!showShadow}
 					></span>
 				</button>
-			</label>
+			</div>
 			
 			{#if showShadow}
-				<div class="grid grid-cols-3 gap-4 pl-4 border-l-2 border-gray-200">
-					<!-- Shadow X (Horizontal) -->
-					<div>
-						<div class="flex items-center justify-between mb-1.5">
-							<span class="text-xs font-medium text-gray-700">Horizontal</span>
-							<span class="text-xs font-mono text-gray-500">{group.shadow_x ?? 0}px</span>
-						</div>
-						<input 
-							type="range" 
-							min="-20" 
-							max="20" 
-							value={group.shadow_x ?? 0}
-							oninput={(e) => dispatchDebounced({ groupId: group.id, show_shadow: true, shadow_x: parseInt(e.currentTarget.value) })}
-							class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-900"
-						/>
-					</div>
-					
-					<!-- Shadow Y (Vertical) -->
-					<div>
-						<div class="flex items-center justify-between mb-1.5">
-							<span class="text-xs font-medium text-gray-700">Vertical</span>
-							<span class="text-xs font-mono text-gray-500">{group.shadow_y ?? 4}px</span>
-						</div>
-						<input 
-							type="range" 
-							min="0" 
-							max="20" 
-							value={group.shadow_y ?? 4}
-							oninput={(e) => dispatchDebounced({ groupId: group.id, show_shadow: true, shadow_y: parseInt(e.currentTarget.value) })}
-							class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-900"
-						/>
-					</div>
-					
-					<!-- Shadow Blur -->
-					<div>
-						<div class="flex items-center justify-between mb-1.5">
-							<span class="text-xs font-medium text-gray-700">Blur</span>
-							<span class="text-xs font-mono text-gray-500">{group.shadow_blur ?? 10}px</span>
-						</div>
-						<input 
-							type="range" 
-							min="0" 
-							max="40" 
-							value={group.shadow_blur ?? 10}
-							oninput={(e) => dispatchDebounced({ groupId: group.id, show_shadow: true, shadow_blur: parseInt(e.currentTarget.value) })}
-							class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-900"
-						/>
-					</div>
+				<!-- Preset Buttons -->
+				<div class="flex gap-2 mb-4">
+					<button 
+						onclick={() => {
+							showCustomShadow = false;
+							updateShadowPreset(0, 2, 4);
+						}} 
+						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class:border-emerald-500={!showCustomShadow && group.shadow_x === 0 && group.shadow_y === 2 && group.shadow_blur === 4}
+						class:bg-emerald-50={!showCustomShadow && group.shadow_x === 0 && group.shadow_y === 2 && group.shadow_blur === 4}
+						class:border-gray-200={showCustomShadow || group.shadow_x !== 0 || group.shadow_y !== 2 || group.shadow_blur !== 4}
+						class:bg-white={showCustomShadow || group.shadow_x !== 0 || group.shadow_y !== 2 || group.shadow_blur !== 4}
+					>
+						Subtle
+					</button>
+					<button 
+						onclick={() => {
+							showCustomShadow = false;
+							updateShadowPreset(0, 4, 10);
+						}} 
+						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class:border-emerald-500={!showCustomShadow && group.shadow_x === 0 && group.shadow_y === 4 && group.shadow_blur === 10}
+						class:bg-emerald-50={!showCustomShadow && group.shadow_x === 0 && group.shadow_y === 4 && group.shadow_blur === 10}
+						class:border-gray-200={showCustomShadow || group.shadow_x !== 0 || group.shadow_y !== 4 || group.shadow_blur !== 10}
+						class:bg-white={showCustomShadow || group.shadow_x !== 0 || group.shadow_y !== 4 || group.shadow_blur !== 10}
+					>
+						Medium
+					</button>
+					<button 
+						onclick={() => {
+							showCustomShadow = false;
+							updateShadowPreset(0, 8, 20);
+						}} 
+						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class:border-emerald-500={!showCustomShadow && group.shadow_x === 0 && group.shadow_y === 8 && group.shadow_blur === 20}
+						class:bg-emerald-50={!showCustomShadow && group.shadow_x === 0 && group.shadow_y === 8 && group.shadow_blur === 20}
+						class:border-gray-200={showCustomShadow || group.shadow_x !== 0 || group.shadow_y !== 8 || group.shadow_blur !== 20}
+						class:bg-white={showCustomShadow || group.shadow_x !== 0 || group.shadow_y !== 8 || group.shadow_blur !== 20}
+					>
+						Strong
+					</button>
+					<button 
+						onclick={() => showCustomShadow = !showCustomShadow} 
+						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class:border-emerald-500={showCustomShadow}
+						class:bg-emerald-50={showCustomShadow}
+						class:border-gray-200={!showCustomShadow}
+						class:bg-white={!showCustomShadow}
+					>
+						Custom
+					</button>
 				</div>
+
+				{#if showCustomShadow}
+					<div class="grid grid-cols-3 gap-4 pl-4 border-l-2 border-gray-200">
+						<!-- Shadow X (Horizontal) -->
+						<div>
+							<div class="flex items-center justify-between mb-1.5">
+								<span class="text-xs font-medium text-gray-700">Horizontal</span>
+								<span class="text-xs font-mono text-gray-500">{group.shadow_x ?? 0}px</span>
+							</div>
+							<input 
+								type="range" 
+								min="-20" 
+								max="20" 
+								value={group.shadow_x ?? 0}
+								oninput={(e) => dispatchDebounced({ groupId: group.id, show_shadow: true, shadow_x: parseInt(e.currentTarget.value) })}
+								class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-900"
+							/>
+						</div>
+						
+						<!-- Shadow Y (Vertical) -->
+						<div>
+							<div class="flex items-center justify-between mb-1.5">
+								<span class="text-xs font-medium text-gray-700">Vertical</span>
+								<span class="text-xs font-mono text-gray-500">{group.shadow_y ?? 4}px</span>
+							</div>
+							<input 
+								type="range" 
+								min="0" 
+								max="20" 
+								value={group.shadow_y ?? 4}
+								oninput={(e) => dispatchDebounced({ groupId: group.id, show_shadow: true, shadow_y: parseInt(e.currentTarget.value) })}
+								class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-900"
+							/>
+						</div>
+						
+						<!-- Shadow Blur -->
+						<div>
+							<div class="flex items-center justify-between mb-1.5">
+								<span class="text-xs font-medium text-gray-700">Blur</span>
+								<span class="text-xs font-mono text-gray-500">{group.shadow_blur ?? 10}px</span>
+							</div>
+							<input 
+								type="range" 
+								min="0" 
+								max="40" 
+								value={group.shadow_blur ?? 10}
+								oninput={(e) => dispatchDebounced({ groupId: group.id, show_shadow: true, shadow_blur: parseInt(e.currentTarget.value) })}
+								class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-900"
+							/>
+						</div>
+					</div>
+				{/if}
 			{/if}
 		</div>
 	</div>
 
-	<!-- Divider -->
-	<div class="border-t border-gray-200 my-6"></div>
-
 	<!-- Link Card Background Section -->
 	<div class="space-y-4">
 		<div>
-			<label class="flex items-center justify-between cursor-pointer mb-3">
-				<span class="text-base font-medium text-gray-900">Link card background</span>
+			<div class="flex items-center gap-3 mb-3">
+				<h3 class="text-base font-semibold text-gray-900">Link card background</h3>
 				<button
 					type="button"
 					onclick={() => dispatch('update', { groupId: group.id, has_card_background: !(group.has_card_background || false) })}
-					class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+					class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
 					class:bg-gray-900={group.has_card_background}
 					class:bg-gray-300={!group.has_card_background}
 				>
 					<span
-						class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
-						class:translate-x-6={group.has_card_background}
-						class:translate-x-1={!group.has_card_background}
+						class="inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform"
+						class:translate-x-5={group.has_card_background}
+						class:translate-x-0.5={!group.has_card_background}
 					></span>
 				</button>
-			</label>
+			</div>
 
 		{#if group.has_card_background}
 			<!-- Background Color -->
 			<div>
-				<label class="text-sm font-medium text-gray-700 mb-2 block">Background Color</label>
 				<div class="flex gap-3 items-center">
 					<!-- Color Picker (Large) -->
 					<div class="flex items-center gap-2">
@@ -746,66 +802,191 @@
 				</div>
 			</div>
 
-			<!-- Opacity & Border Radius - 2 Columns -->
-			<div class="grid grid-cols-2 gap-4">
-				<!-- Opacity -->
-				<div>
-					<div class="flex items-center justify-between mb-2">
-						<label class="text-xs font-medium text-gray-700">Opacity</label>
-						<span class="text-xs font-mono text-gray-500">{group.card_background_opacity || 100}%</span>
-					</div>
-					<input 
-						type="range" 
-						min="0" 
-						max="100" 
-						value={group.card_background_opacity || 100}
-						oninput={(e) => dispatchDebounced({ groupId: group.id, has_card_background: true, card_background_opacity: parseInt(e.currentTarget.value) })}
-						class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
-					/>
+			<!-- Background Opacity -->
+			<div>
+				<h3 class="text-base font-semibold text-gray-900 mb-3 mt-2">Background opacity</h3>
+				
+				<!-- Preset Buttons -->
+				<div class="flex gap-2 mb-3">
+					<button 
+						onclick={() => {
+							showCustomOpacity = false;
+							updateOpacityPreset(50);
+						}} 
+						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class:border-emerald-500={!showCustomOpacity && (group.card_background_opacity || 100) === 50}
+						class:bg-emerald-50={!showCustomOpacity && (group.card_background_opacity || 100) === 50}
+						class:border-gray-200={showCustomOpacity || (group.card_background_opacity || 100) !== 50}
+						class:bg-white={showCustomOpacity || (group.card_background_opacity || 100) !== 50}
+					>
+						50%
+					</button>
+					<button 
+						onclick={() => {
+							showCustomOpacity = false;
+							updateOpacityPreset(75);
+						}} 
+						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class:border-emerald-500={!showCustomOpacity && (group.card_background_opacity || 100) === 75}
+						class:bg-emerald-50={!showCustomOpacity && (group.card_background_opacity || 100) === 75}
+						class:border-gray-200={showCustomOpacity || (group.card_background_opacity || 100) !== 75}
+						class:bg-white={showCustomOpacity || (group.card_background_opacity || 100) !== 75}
+					>
+						75%
+					</button>
+					<button 
+						onclick={() => {
+							showCustomOpacity = false;
+							updateOpacityPreset(100);
+						}} 
+						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class:border-emerald-500={!showCustomOpacity && (group.card_background_opacity || 100) === 100}
+						class:bg-emerald-50={!showCustomOpacity && (group.card_background_opacity || 100) === 100}
+						class:border-gray-200={showCustomOpacity || (group.card_background_opacity || 100) !== 100}
+						class:bg-white={showCustomOpacity || (group.card_background_opacity || 100) !== 100}
+					>
+						100%
+					</button>
+					<button 
+						onclick={() => showCustomOpacity = !showCustomOpacity} 
+						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class:border-emerald-500={showCustomOpacity}
+						class:bg-emerald-50={showCustomOpacity}
+						class:border-gray-200={!showCustomOpacity}
+						class:bg-white={!showCustomOpacity}
+					>
+						Custom
+					</button>
 				</div>
 
-				<!-- Border Radius -->
-				<div>
-					<div class="flex items-center justify-between mb-2">
-						<label class="text-xs font-medium text-gray-700">Border Radius</label>
-						<span class="text-xs font-mono text-gray-500">{group.card_border_radius || 12}px</span>
+				{#if showCustomOpacity}
+					<div class="pl-4 border-l-2 border-gray-200">
+						<div class="flex items-center justify-between mb-2">
+							<span class="text-xs font-medium text-gray-700">Custom opacity</span>
+							<span class="text-xs font-mono text-gray-500">{group.card_background_opacity || 100}%</span>
+						</div>
+						<input 
+							type="range" 
+							min="0" 
+							max="100" 
+							value={group.card_background_opacity || 100}
+							oninput={(e) => dispatchDebounced({ groupId: group.id, has_card_background: true, card_background_opacity: parseInt(e.currentTarget.value) })}
+							class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+						/>
 					</div>
-					<input 
-						type="range" 
-						min="0" 
-						max="32" 
-						value={group.card_border_radius || 12}
-						oninput={(e) => dispatchDebounced({ groupId: group.id, has_card_background: true, card_border_radius: parseInt(e.currentTarget.value) })}
-						class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
-					/>
+				{/if}
+			</div>
+
+			<!-- Border Radius -->
+			<div>
+				<h3 class="text-base font-semibold text-gray-900 mb-3">Border radius</h3>
+				
+				<!-- Preset Buttons -->
+				<div class="flex gap-2 mb-3">
+					<button 
+						onclick={() => {
+							showCustomBorderRadius = false;
+							updateBorderRadiusPreset(0);
+						}} 
+						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class:border-emerald-500={!showCustomBorderRadius && (group.card_border_radius || 12) === 0}
+						class:bg-emerald-50={!showCustomBorderRadius && (group.card_border_radius || 12) === 0}
+						class:border-gray-200={showCustomBorderRadius || (group.card_border_radius || 12) !== 0}
+						class:bg-white={showCustomBorderRadius || (group.card_border_radius || 12) !== 0}
+					>
+						None
+					</button>
+					<button 
+						onclick={() => {
+							showCustomBorderRadius = false;
+							updateBorderRadiusPreset(8);
+						}} 
+						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class:border-emerald-500={!showCustomBorderRadius && (group.card_border_radius || 12) === 8}
+						class:bg-emerald-50={!showCustomBorderRadius && (group.card_border_radius || 12) === 8}
+						class:border-gray-200={showCustomBorderRadius || (group.card_border_radius || 12) !== 8}
+						class:bg-white={showCustomBorderRadius || (group.card_border_radius || 12) !== 8}
+					>
+						Small
+					</button>
+					<button 
+						onclick={() => {
+							showCustomBorderRadius = false;
+							updateBorderRadiusPreset(12);
+						}} 
+						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class:border-emerald-500={!showCustomBorderRadius && (group.card_border_radius || 12) === 12}
+						class:bg-emerald-50={!showCustomBorderRadius && (group.card_border_radius || 12) === 12}
+						class:border-gray-200={showCustomBorderRadius || (group.card_border_radius || 12) !== 12}
+						class:bg-white={showCustomBorderRadius || (group.card_border_radius || 12) !== 12}
+					>
+						Medium
+					</button>
+					<button 
+						onclick={() => {
+							showCustomBorderRadius = false;
+							updateBorderRadiusPreset(24);
+						}} 
+						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class:border-emerald-500={!showCustomBorderRadius && (group.card_border_radius || 12) === 24}
+						class:bg-emerald-50={!showCustomBorderRadius && (group.card_border_radius || 12) === 24}
+						class:border-gray-200={showCustomBorderRadius || (group.card_border_radius || 12) !== 24}
+						class:bg-white={showCustomBorderRadius || (group.card_border_radius || 12) !== 24}
+					>
+						Large
+					</button>
+					<button 
+						onclick={() => showCustomBorderRadius = !showCustomBorderRadius} 
+						class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+						class:border-emerald-500={showCustomBorderRadius}
+						class:bg-emerald-50={showCustomBorderRadius}
+						class:border-gray-200={!showCustomBorderRadius}
+						class:bg-white={!showCustomBorderRadius}
+					>
+						Custom
+					</button>
 				</div>
+
+				{#if showCustomBorderRadius}
+					<div class="pl-4 border-l-2 border-gray-200">
+						<div class="flex items-center justify-between mb-2">
+							<span class="text-xs font-medium text-gray-700">Custom radius</span>
+							<span class="text-xs font-mono text-gray-500">{group.card_border_radius || 12}px</span>
+						</div>
+						<input 
+							type="range" 
+							min="0" 
+							max="32" 
+							value={group.card_border_radius || 12}
+							oninput={(e) => dispatchDebounced({ groupId: group.id, has_card_background: true, card_border_radius: parseInt(e.currentTarget.value) })}
+							class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+						/>
+					</div>
+				{/if}
 			</div>
 		{/if}
 		</div>
 	</div>
 
-	<!-- Divider -->
-	<div class="border-t border-gray-200 my-6"></div>
-
 	<!-- Link Card Border Section -->
 	<div class="space-y-4">
 		<div>
-			<label class="flex items-center justify-between cursor-pointer mb-3">
-				<span class="text-base font-medium text-gray-900">Link card border</span>
+			<div class="flex items-center gap-3 mb-3">
+				<h3 class="text-base font-semibold text-gray-900">Link card border</h3>
 				<button
 					type="button"
 					onclick={() => dispatch('update', { groupId: group.id, has_card_border: !(group.has_card_border || false) })}
-					class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+					class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
 					class:bg-gray-900={group.has_card_border}
 					class:bg-gray-300={!group.has_card_border}
 				>
 					<span
-						class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
-						class:translate-x-6={group.has_card_border}
-						class:translate-x-1={!group.has_card_border}
+						class="inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform"
+						class:translate-x-5={group.has_card_border}
+						class:translate-x-0.5={!group.has_card_border}
 					></span>
 				</button>
-			</label>
+			</div>
 
 		{#if group.has_card_border}
 			<!-- Border Color -->
@@ -912,9 +1093,6 @@
 		</div>
 	</div>
 
-	<!-- Divider -->
-	<div class="border-t border-gray-200 my-6"></div>
-
 	<!-- Link Card Padding Section -->
 	<div class="space-y-4">
 		<h3 class="text-base font-semibold text-gray-900">Link Card Padding</h3>
@@ -923,70 +1101,69 @@
 		<div class="flex gap-2">
 				<button 
 					onclick={() => {
-						console.log('🔘 Small button clicked');
+						showCustomPadding = false;
 						updatePadding(8);
 					}} 
 					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
-					class:border-emerald-500={displayPadding === 8 && isDisplayUniform}
-					class:bg-emerald-50={displayPadding === 8 && isDisplayUniform}
-					class:border-gray-200={!(displayPadding === 8 && isDisplayUniform)}
-					class:bg-white={!(displayPadding === 8 && isDisplayUniform)}
+					class:border-emerald-500={displayPadding === 8 && isDisplayUniform && !showCustomPadding}
+					class:bg-emerald-50={displayPadding === 8 && isDisplayUniform && !showCustomPadding}
+					class:border-gray-200={!(displayPadding === 8 && isDisplayUniform && !showCustomPadding)}
+					class:bg-white={!(displayPadding === 8 && isDisplayUniform && !showCustomPadding)}
 				>
 					Small
-					{#if displayPadding === 8 && isDisplayUniform}
-						<span class="text-[8px]">✓</span>
-					{/if}
 				</button>
 				<button 
 					onclick={() => {
-						console.log('🔘 Medium button clicked');
+						showCustomPadding = false;
 						updatePadding(16);
 					}} 
 					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
-					class:border-emerald-500={displayPadding === 16 && isDisplayUniform}
-					class:bg-emerald-50={displayPadding === 16 && isDisplayUniform}
-					class:border-gray-200={!(displayPadding === 16 && isDisplayUniform)}
-					class:bg-white={!(displayPadding === 16 && isDisplayUniform)}
+					class:border-emerald-500={displayPadding === 16 && isDisplayUniform && !showCustomPadding}
+					class:bg-emerald-50={displayPadding === 16 && isDisplayUniform && !showCustomPadding}
+					class:border-gray-200={!(displayPadding === 16 && isDisplayUniform && !showCustomPadding)}
+					class:bg-white={!(displayPadding === 16 && isDisplayUniform && !showCustomPadding)}
 				>
 					Medium
-					{#if displayPadding === 16 && isDisplayUniform}
-						<span class="text-[8px]">✓</span>
-					{/if}
 				</button>
 				<button 
 					onclick={() => {
-						console.log('🔘 Large button clicked');
+						showCustomPadding = false;
 						updatePadding(24);
 					}} 
 					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
-					class:border-emerald-500={displayPadding === 24 && isDisplayUniform}
-					class:bg-emerald-50={displayPadding === 24 && isDisplayUniform}
-					class:border-gray-200={!(displayPadding === 24 && isDisplayUniform)}
-					class:bg-white={!(displayPadding === 24 && isDisplayUniform)}
+					class:border-emerald-500={displayPadding === 24 && isDisplayUniform && !showCustomPadding}
+					class:bg-emerald-50={displayPadding === 24 && isDisplayUniform && !showCustomPadding}
+					class:border-gray-200={!(displayPadding === 24 && isDisplayUniform && !showCustomPadding)}
+					class:bg-white={!(displayPadding === 24 && isDisplayUniform && !showCustomPadding)}
 				>
 					Large
-					{#if displayPadding === 24 && isDisplayUniform}
-						<span class="text-[8px]">✓</span>
-					{/if}
 				</button>
 				<button 
 					onclick={() => {
-						console.log('🔘 XL button clicked');
+						showCustomPadding = false;
 						updatePadding(32);
 					}} 
 					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
-					class:border-emerald-500={displayPadding === 32 && isDisplayUniform}
-					class:bg-emerald-50={displayPadding === 32 && isDisplayUniform}
-					class:border-gray-200={!(displayPadding === 32 && isDisplayUniform)}
-					class:bg-white={!(displayPadding === 32 && isDisplayUniform)}
+					class:border-emerald-500={displayPadding === 32 && isDisplayUniform && !showCustomPadding}
+					class:bg-emerald-50={displayPadding === 32 && isDisplayUniform && !showCustomPadding}
+					class:border-gray-200={!(displayPadding === 32 && isDisplayUniform && !showCustomPadding)}
+					class:bg-white={!(displayPadding === 32 && isDisplayUniform && !showCustomPadding)}
 				>
 					XL
-					{#if displayPadding === 32 && isDisplayUniform}
-						<span class="text-[8px]">✓</span>
-					{/if}
+				</button>
+				<button 
+					onclick={() => showCustomPadding = !showCustomPadding} 
+					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+					class:border-emerald-500={showCustomPadding}
+					class:bg-emerald-50={showCustomPadding}
+					class:border-gray-200={!showCustomPadding}
+					class:bg-white={!showCustomPadding}
+				>
+					Custom
 				</button>
 		</div>
 
+		{#if showCustomPadding}
 			<!-- Custom Padding Sliders - 2x2 Grid -->
 			<div class="grid grid-cols-2 gap-4 pl-4 border-l-2 border-gray-200">
 				<!-- Top -->
@@ -1053,10 +1230,8 @@
 					/>
 				</div>
 			</div>
+		{/if}
 	</div>
-
-	<!-- Divider -->
-	<div class="border-t border-gray-200 my-6"></div>
 
 	<!-- Link Card Spacing Section -->
 	<div class="space-y-4">
@@ -1067,54 +1242,56 @@
 		<div class="flex gap-2">
 				<button 
 					onclick={() => {
-						console.log('🔘 Small spacing clicked');
+						showCustomSpacing = false;
 						updateMargin(4);
 					}} 
 					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
-					class:border-emerald-500={displayMargin === 4}
-					class:bg-emerald-50={displayMargin === 4}
-					class:border-gray-200={displayMargin !== 4}
-					class:bg-white={displayMargin !== 4}
+					class:border-emerald-500={displayMargin === 4 && !showCustomSpacing}
+					class:bg-emerald-50={displayMargin === 4 && !showCustomSpacing}
+					class:border-gray-200={!(displayMargin === 4 && !showCustomSpacing)}
+					class:bg-white={!(displayMargin === 4 && !showCustomSpacing)}
 				>
 					Small
-					{#if displayMargin === 4}
-						<span class="text-[8px]">✓</span>
-					{/if}
 				</button>
 				<button 
 					onclick={() => {
-						console.log('🔘 Medium spacing clicked');
+						showCustomSpacing = false;
 						updateMargin(8);
 					}} 
 					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
-					class:border-emerald-500={displayMargin === 8}
-					class:bg-emerald-50={displayMargin === 8}
-					class:border-gray-200={displayMargin !== 8}
-					class:bg-white={displayMargin !== 8}
+					class:border-emerald-500={displayMargin === 8 && !showCustomSpacing}
+					class:bg-emerald-50={displayMargin === 8 && !showCustomSpacing}
+					class:border-gray-200={!(displayMargin === 8 && !showCustomSpacing)}
+					class:bg-white={!(displayMargin === 8 && !showCustomSpacing)}
 				>
 					Medium
-					{#if displayMargin === 8}
-						<span class="text-[8px]">✓</span>
-					{/if}
 				</button>
 				<button 
 					onclick={() => {
-						console.log('🔘 Large spacing clicked');
+						showCustomSpacing = false;
 						updateMargin(16);
 					}} 
 					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
-					class:border-emerald-500={displayMargin === 16}
-					class:bg-emerald-50={displayMargin === 16}
-					class:border-gray-200={displayMargin !== 16}
-					class:bg-white={displayMargin !== 16}
+					class:border-emerald-500={displayMargin === 16 && !showCustomSpacing}
+					class:bg-emerald-50={displayMargin === 16 && !showCustomSpacing}
+					class:border-gray-200={!(displayMargin === 16 && !showCustomSpacing)}
+					class:bg-white={!(displayMargin === 16 && !showCustomSpacing)}
 				>
 					Large
-					{#if displayMargin === 16}
-						<span class="text-[8px]">✓</span>
-					{/if}
+				</button>
+				<button 
+					onclick={() => showCustomSpacing = !showCustomSpacing} 
+					class="flex-1 px-3 py-2 text-xs border-2 rounded-lg hover:bg-gray-50 transition-colors"
+					class:border-emerald-500={showCustomSpacing}
+					class:bg-emerald-50={showCustomSpacing}
+					class:border-gray-200={!showCustomSpacing}
+					class:bg-white={!showCustomSpacing}
+				>
+					Custom
 				</button>
 			</div>
 
+		{#if showCustomSpacing}
 			<!-- Custom Spacing Slider -->
 			<div class="pl-4 border-l-2 border-gray-200">
 				<div class="flex items-center justify-between mb-2">
@@ -1130,6 +1307,7 @@
 					class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
 				/>
 			</div>
+		{/if}
 	</div>
 </div>
 
