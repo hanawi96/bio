@@ -128,11 +128,11 @@
 		</div>
 		
 		<!-- Category Tabs -->
-		<div class="flex gap-2 mb-6">
+		<div class="flex gap-2 mb-3">
 			{#each categories as cat}
 				<button
 					onclick={() => selectedCategory = cat.id}
-					class="px-4 py-2 rounded-full text-sm font-medium transition-all {selectedCategory === cat.id
+					class="px-3 py-1.5 rounded-full text-xs font-medium transition-all {selectedCategory === cat.id
 						? 'bg-gray-900 text-white'
 						: 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
 				>
@@ -142,48 +142,48 @@
 		</div>
 
 		<!-- Header Presets Grid -->
-		<div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+		<div class="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-2">
 			{#each headerPresets[selectedCategory] || [] as preset}
 				<div class="relative">
 					<button
 						onclick={() => selectLayout(preset.layout)}
 						class="group relative w-full"
 					>
-						<div class="aspect-[3/4] rounded-xl overflow-hidden border-2 transition-all {manuallySelected === preset.layout ? 'border-indigo-600 shadow-lg' : 'border-gray-200 hover:border-gray-300'}"
+						<div class="aspect-[9/16] rounded-lg overflow-hidden border-2 transition-all {manuallySelected === preset.layout ? 'border-indigo-600 shadow-md ring-2 ring-indigo-200' : 'border-gray-200 hover:border-gray-300'}"
 							style="background: {preset.preview.cover};"
 						>
-							<div class="h-full flex flex-col items-center justify-center p-3 relative">
-								<div class="w-10 h-10 rounded-full" style="border: 2px solid {preset.preview.avatar}; background: rgba(255,255,255,0.3);"></div>
-								<div class="mt-2 w-12 h-1.5 rounded" style="background: {preset.preview.avatar}; opacity: 0.7;"></div>
-								<div class="mt-1 w-8 h-1 rounded" style="background: {preset.preview.avatar}; opacity: 0.5;"></div>
+							<div class="h-full flex flex-col items-center justify-center p-1.5 relative">
+								<div class="w-5 h-5 rounded-full" style="border: 1px solid {preset.preview.avatar}; background: rgba(255,255,255,0.3);"></div>
+								<div class="mt-1 w-6 h-0.5 rounded" style="background: {preset.preview.avatar}; opacity: 0.7;"></div>
+								<div class="mt-0.5 w-4 h-0.5 rounded" style="background: {preset.preview.avatar}; opacity: 0.5;"></div>
 								
-								<!-- Customize Button inside card - only show when selected -->
+								<!-- Customize Button - only show when selected -->
 								{#if manuallySelected === preset.layout}
 									<button
 										onclick={(e) => { e.stopPropagation(); toggleCustomize(preset.layout); }}
-										class="absolute bottom-3 left-3 right-3 px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 backdrop-blur-sm {expandedPreset === preset.layout ? 'bg-white/95 text-indigo-600 border border-indigo-600' : 'bg-white/90 text-gray-700 border border-white/50 hover:bg-white'}"
+										class="absolute bottom-1 left-1 right-1 px-1.5 py-1 text-[9px] font-medium rounded transition-all flex items-center justify-center gap-1 backdrop-blur-sm {expandedPreset === preset.layout ? 'bg-white/95 text-indigo-600 border border-indigo-600' : 'bg-white/90 text-gray-700 border border-white/50 hover:bg-white'}"
 									>
-										<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
 										</svg>
-										{expandedPreset === preset.layout ? 'Thu gọn' : 'Tùy chỉnh'}
+										{expandedPreset === preset.layout ? 'Hide' : 'Edit'}
 									</button>
 								{/if}
 							</div>
 						</div>
 						{#if manuallySelected === preset.layout}
-							<div class="absolute top-2 right-2 w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center z-10">
-								<svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<div class="absolute top-1 right-1 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center z-10">
+								<svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
 								</svg>
 							</div>
 						{/if}
 						{#if customizedPresets.has(preset.layout)}
-							<div class="absolute top-2 left-2 px-2 py-0.5 bg-indigo-600 text-white text-[10px] font-medium rounded-full z-10">
-								Đã tùy chỉnh
+							<div class="absolute top-1 left-1 px-1.5 py-0.5 bg-indigo-600 text-white text-[8px] font-medium rounded-full z-10">
+								Custom
 							</div>
 						{/if}
-						<p class="mt-2 text-xs font-medium text-gray-700 text-center">{preset.name}</p>
+						<p class="mt-1 text-[10px] font-medium text-gray-600 text-center truncate">{preset.name}</p>
 					</button>
 
 					<!-- Expand Section (OUTSIDE button) -->

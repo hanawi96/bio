@@ -37,7 +37,7 @@
 	let profile = $state<Profile | null>(null);
 	let links = $state<Link[]>([]);
 	let blocks = $state<Block[]>([]);
-	let selectedCategory = $state<string>('classic');
+	let selectedCategory = $state<string>('all');
 	let currentTheme = $state<string>('default');
 	let saving = $state(false);
 	let applying = $state(false);
@@ -63,6 +63,34 @@
 
 
 	const presetColorsCache = new Map<string, ReturnType<typeof getPresetColors>>();
+
+	// Check if current theme is customized
+	function isThemeCustomized(): boolean {
+		if (!currentTheme || currentTheme.startsWith('custom-')) return false;
+		
+		const currentConfig = globalTheme.getCurrent();
+		const preset = themePresets[currentTheme];
+		
+		if (!preset) return false;
+		
+		// Compare key properties
+		const isModified = 
+			currentConfig.pageBackground !== preset.page.pageBackground ||
+			currentConfig.pageBackgroundType !== preset.page.pageBackgroundType ||
+			currentConfig.cardBackground !== preset.card.cardBackground ||
+			currentConfig.cardTextColor !== preset.card.cardTextColor ||
+			currentConfig.cardBorderRadius !== preset.card.cardBorderRadius;
+		
+		return isModified;
+	}
+
+	// Auto-switch to custom when user modifies theme
+	$effect(() => {
+		if (hasUnsavedChanges && isThemeCustomized() && currentTheme !== 'custom') {
+			selectedCategory = 'custom';
+			currentTheme = 'custom';
+		}
+	});
 
 	async function saveAllChanges() {
 		if (saving || !hasUnsavedChanges) return;
@@ -96,6 +124,11 @@
 			links = await linksApi.getLinks(token);
 			syncPreviewStyles(links);
 			
+			// If currently on custom theme, keep it selected after save
+			if (currentTheme === 'custom') {
+				selectedCategory = 'custom';
+			}
+			
 			pendingChanges.reset();
 			toast.success('All changes saved!');
 		} catch (e: any) {
@@ -106,10 +139,12 @@
 	}
 
 	const categories = [
+		{ id: 'all', label: 'All' },
 		{ id: 'classic', label: 'Classic' },
 		{ id: 'vibrant', label: 'Vibrant' },
 		{ id: 'cozy', label: 'Cozy' },
-		{ id: 'bold', label: 'Bold' }
+		{ id: 'bold', label: 'Bold' },
+		{ id: 'custom', label: 'Custom' }
 	];
 
 	// Helper to sync previewStyles from links data
@@ -136,7 +171,7 @@
 		}
 	}
 
-	const themes: Record<string, Array<{ id: string; name: string; preset: string }>> = {
+	const themes: Record<string, Array<{ id: string; name: string; preset: string; isCustom?: boolean }>> = {
 		classic: [
 			{ id: 'mcalpine', name: 'McAlpine', preset: 'mcalpine' },
 			{ id: 'yoga', name: 'Yoga', preset: 'yoga' },
@@ -151,6 +186,9 @@
 		],
 		bold: [
 			{ id: 'dark', name: 'Dark Mode', preset: 'dark' }
+		],
+		custom: [
+			{ id: 'custom', name: 'Your Custom Theme', preset: 'custom', isCustom: true }
 		]
 	};
 
@@ -227,10 +265,13 @@
 						
 						// Detect which theme preset is active
 						const loadedTheme = JSON.parse(themeStr);
+						let themeFound = false;
+						
 						for (const [presetName, preset] of Object.entries(themePresets)) {
 							const match = 
 								preset.page.pageBackground === loadedTheme.pageBackground &&
-								preset.page.textColor === loadedTheme.textColor;
+								preset.page.textColor === loadedTheme.textColor &&
+								preset.card.cardBackground === loadedTheme.cardBackground;
 							if (match) {
 								// Find theme ID from themes object
 								for (const [categoryId, categoryThemes] of Object.entries(themes)) {
@@ -238,11 +279,18 @@
 									if (found) {
 										currentTheme = found.id;
 										selectedCategory = categoryId;
+										themeFound = true;
 										break;
 									}
 								}
 								break;
 							}
+						}
+						
+						// If no preset matches, it's a custom theme
+						if (!themeFound) {
+							currentTheme = 'custom';
+							selectedCategory = 'custom';
 						}
 					}
 				} catch (themeError) {
@@ -270,14 +318,61 @@
 	});
 
 	/**
-	 * Apply theme preset - Optimistic update + API call
-	 * Reset all settings including custom background to theme defaults
+	 * Apply theme preset or load custom theme
 	 */
 	async function selectTheme(themeId: string, presetName: string) {
 		if (applying) return;
 		
+		console.log('🎨 selectTheme called:', { themeId, presetName });
+		
+		// If selecting custom, reload saved config from profile
+		if (themeId === 'custom') {
+			console.log('📦 Loading custom theme from DB...');
+			currentTheme = 'custom';
+			selectedCategory = 'custom';
+			
+			// Reload theme config from profile (DB)
+			try {
+				const token = get(auth).token;
+				const profileData = await profileApi.getMyProfile(token!);
+				
+				if (profileData?.theme_config) {
+					const themeStr = typeof profileData.theme_config === 'string' 
+						? profileData.theme_config 
+						: JSON.stringify(profileData.theme_config);
+					
+					console.log('✅ Custom theme loaded from DB:', JSON.parse(themeStr));
+					globalTheme.loadFromJSON(themeStr);
+					
+					// Reload header config
+					if (profileData?.header_config) {
+						const headerConfig = typeof profileData.header_config === 'string' 
+							? JSON.parse(profileData.header_config) 
+							: profileData.header_config;
+						currentHeaderStyle.set(headerConfig);
+					}
+					
+					// Reload links to sync preview
+					const freshLinks = await linksApi.getLinks(token!);
+					links = freshLinks || [];
+					syncPreviewStyles(freshLinks || []);
+				}
+			} catch (e: any) {
+				console.error('❌ Failed to load custom theme:', e);
+				toast.error('Failed to load custom theme');
+			}
+			
+			pendingChanges.reset();
+			return;
+		}
+		
 		const preset = themePresets[presetName];
-		if (!preset) return;
+		if (!preset) {
+			console.warn('⚠️ Preset not found:', presetName);
+			return;
+		}
+
+		console.log('🎭 Applying preset:', presetName);
 
 		// Reset previewStyles to clear any custom overrides
 		previewStyles.reset();
@@ -286,6 +381,7 @@
 		const oldTheme = currentTheme;
 		currentTheme = themeId;
 		globalTheme.setPreset(presetName);
+		console.log('✅ Theme set to:', themeId);
 		
 		// Update header style
 		if (preset.header) {
@@ -303,44 +399,15 @@
 			blocks = blocks.map(block => block.is_group ? applyTextStylesToGroup(block, preset.text) : block);
 		}
 
-		// API call
-		applying = true;
-		try {
-			const cardStyles = cardStylesToLinkFields(preset.card, preset.text);
-			
-			const result = await profileApi.applyTheme({
-				theme_config: { ...preset.page, ...preset.card },
-				card_styles: cardStyles,
-				text_styles: textStylesToBlockStyle(preset.text),
-				header_config: preset.header
-			}, get(auth).token!);
-
-			// Reload links to get fresh data from server
-			const token = get(auth).token;
-			const freshLinks = await linksApi.getLinks(token!);
-			links = freshLinks || [];
-			
-			// Sync previewStyles from fresh data
-			syncPreviewStyles(freshLinks || []);
-
-			profile = result.profile;
-			toast.success('Theme applied!');
-		} catch (e: any) {
-			// Rollback on error - reload from server
-			currentTheme = oldTheme;
-			globalTheme.setPreset(oldTheme);
-			
-			// Reload data from server
-			const token = get(auth).token;
-			Promise.all([
-				linksApi.getLinks(token!).then(data => links = data || []),
-				blocksApi.getBlocks(token!).then(data => blocks = data || [])
-			]).catch(() => {});
-			
-			toast.error(e.message || 'Failed to apply theme');
-		} finally {
-			applying = false;
-		}
+		// Mark as having changes (will need to save)
+		pendingChanges.updateTheme({ ...preset.page, ...preset.card });
+		pendingChanges.updateHeader(preset.header);
+		
+		const cardStyles = cardStylesToLinkFields(preset.card, preset.text);
+		pendingChanges.updateLinkStyles(cardStyles);
+		
+		console.log('⚠️ Theme changed - need to Save All to persist');
+		toast.info('Theme preview applied. Click "Save All" to keep changes.');
 	}
 
 	function handleAvatarChange(e: Event) {
@@ -509,88 +576,85 @@
 						</span>
 					</div>
 					
-					<div class="flex gap-3 mb-6">
+					<div class="flex gap-2 mb-4">
 						{#each categories as cat}
 							<button
 								onclick={() => selectedCategory = cat.id}
-								class="px-6 py-2.5 rounded-full text-sm font-medium transition-all {selectedCategory === cat.id
-									? 'bg-gray-900 text-white'
+								class="px-4 py-2 rounded-full text-xs font-medium transition-all {selectedCategory === cat.id
+									? cat.id === 'custom' 
+										? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md'
+										: 'bg-gray-900 text-white'
 									: 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
 							>
-								{cat.label}
+								{#if cat.id === 'custom'}
+									<span class="flex items-center gap-1.5">
+										<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+										</svg>
+										{cat.label}
+									</span>
+								{:else}
+									{cat.label}
+								{/if}
 							</button>
 						{/each}
 					</div>
 
 					<!-- Theme Grid -->
-					<div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-						{#each themes[selectedCategory] || [] as themeItem (themeItem.id)}
+					<div class="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-2">
+						{#each (selectedCategory === 'all' ? Object.values(themes).flat() : themes[selectedCategory] || []) as themeItem (themeItem.id)}
 							{@const colors = getPresetColors(themeItem.preset)}
 							{@const isSelected = currentTheme === themeItem.id}
 							<button
 								onclick={() => selectTheme(themeItem.id, themeItem.preset)}
 								class="relative group cursor-pointer"
 							>
-								<!-- Theme Preview Card -->
+								<!-- Theme Preview Card - Phone Shape -->
 								<div
-									class="aspect-[3/4] rounded-2xl overflow-hidden border-2 transition-all {isSelected
-										? 'border-indigo-600 shadow-xl'
-										: 'border-gray-200 hover:border-gray-300 hover:shadow-lg'}"
-									style="background: {colors.bg};"
+									class="aspect-[9/16] rounded-lg overflow-hidden border-2 transition-all relative {isSelected
+										? 'border-indigo-600 shadow-md ring-2 ring-indigo-200'
+										: themeItem.isCustom
+										? 'border-dashed border-gray-300'
+										: 'border-gray-200 hover:border-gray-300 hover:shadow-sm'}"
+									style="background: {themeItem.isCustom ? 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)' : colors.bg};"
 								>
-									<!-- Mock Profile Preview -->
-									<div class="h-full flex flex-col items-center justify-start p-4 pt-8">
-										<!-- Avatar -->
-										<div class="w-12 h-12 rounded-full bg-gray-300 mb-2"></div>
-										
-										<!-- Name -->
-										<div
-											class="text-sm font-bold mb-1"
-											style="color: {colors.textColor};"
-										>
-											{themeItem.name}
+									{#if themeItem.isCustom}
+										<!-- Custom Icon -->
+										<div class="h-full flex items-center justify-center">
+											<svg class="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+											</svg>
 										</div>
-										
-										<!-- Social Icons -->
-										<div class="flex gap-1 mb-4">
-											{#each [1, 2, 3] as _}
-												<div class="w-3 h-3 rounded-full" style="background: {colors.accent}; opacity: 0.7;"></div>
-											{/each}
+									{:else}
+										<!-- Minimal Preview -->
+										<div class="h-full flex flex-col p-1.5 gap-1">
+											<div class="w-full h-2 rounded-sm" style="background: {colors.cardBg}; opacity: 0.8;"></div>
+											<div class="w-full h-2 rounded-sm" style="background: {colors.cardBg}; opacity: 0.6;"></div>
+											<div class="flex-1"></div>
+											<div class="w-3 h-3 rounded-full mx-auto" style="background: {colors.accent}; opacity: 0.5;"></div>
 										</div>
+									{/if}
 
-										<!-- Links Preview -->
-										<div class="w-full space-y-2">
-											{#each [1, 2] as _}
-												<div
-													class="w-full h-8 rounded-lg"
-													style="background: {colors.cardBg};"
-												>
-													<div class="h-full flex items-center justify-center">
-														<div class="w-2/3 h-2 rounded" style="background: {colors.cardText}; opacity: 0.3;"></div>
-													</div>
-												</div>
-											{/each}
+									<!-- Selected Indicator -->
+									{#if isSelected}
+										<div class="absolute inset-0 flex items-center justify-center bg-indigo-600/10">
+											<div class="w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center shadow-lg">
+												<svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+												</svg>
+											</div>
 										</div>
-									</div>
+									{/if}
 								</div>
 
-								<!-- Selected Indicator -->
-								{#if isSelected}
-									<div class="absolute top-2 right-2 w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center">
-										<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-										</svg>
-									</div>
-								{/if}
-
 								<!-- Theme Name -->
-								<p class="mt-2 text-sm font-medium text-gray-700 text-center">{themeItem.name}</p>
+								<p class="mt-1 text-[10px] font-medium text-center truncate {themeItem.isCustom ? 'text-indigo-600' : 'text-gray-600'}">{themeItem.name}</p>
 							</button>
 						{/each}
 					</div>
 
-					<p class="mt-4 text-sm text-gray-500">
-						Selecting a theme will apply styles to your page background and all link/text groups. You can customize individual groups in the Bio page.
+					<p class="mt-3 text-xs text-gray-500">
+						Selecting a theme will apply styles to your page background and all link/text groups.
 					</p>
 				</div>
 
