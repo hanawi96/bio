@@ -6,9 +6,11 @@
 	let solidColor = $state('#ffffff');
 	let gradientFrom = $state('#faf5ff');
 	let gradientTo = $state('#eff6ff');
+	let gradientDirection = $state<'up' | 'down' | 'radial'>('up');
 	let imageUrl = $state('');
 	let videoUrl = $state('');
 	let uploading = $state(false);
+	let showGradientCustom = $state(false);
 
 	// Ensure color is always in HEX format
 	function normalizeHex(color: string): string {
@@ -17,44 +19,53 @@
 		return `#${color}`.toUpperCase();
 	}
 
-	// Reactive subscription to globalTheme store
-	let unsubscribe: (() => void) | null = null;
-	
+	let isInitialized = false;
+
+	// Load initial values from store once
 	$effect(() => {
-		// Subscribe to theme store changes
-		unsubscribe = globalTheme.subscribe((theme) => {
+		const theme = $globalTheme;
+		console.log('[BG] Effect 1 - Load from store:', { 
+			isInitialized, 
+			themeType: theme.pageBackgroundType,
+			currentSelectedType: selectedType 
+		});
+		if (!isInitialized) {
 			selectedType = theme.pageBackgroundType || 'solid';
 			solidColor = normalizeHex(theme.pageBackground || '#ffffff');
 			gradientFrom = normalizeHex(theme.pageGradientFrom || '#faf5ff');
 			gradientTo = normalizeHex(theme.pageGradientTo || '#eff6ff');
+			gradientDirection = theme.pageGradientDirection || 'up';
 			imageUrl = theme.pageBackgroundImage || '';
 			videoUrl = theme.pageBackgroundVideo || '';
-		});
-		
-		// Cleanup on unmount
-		return () => {
-			if (unsubscribe) unsubscribe();
-		};
+			isInitialized = true;
+			console.log('[BG] Initialized with type:', selectedType);
+		}
 	});
-	
-	// Handle type selection
-	function selectType(type: 'solid' | 'gradient' | 'image' | 'video') {
-		selectedType = type;
-	}
 
-	function applyBackground() {
-		const updates: any = {
-			pageBackgroundType: selectedType,
-			pageBackground: solidColor,
-			pageGradientFrom: gradientFrom,
-			pageGradientTo: gradientTo,
-			pageBackgroundImage: imageUrl,
-			pageBackgroundVideo: videoUrl
-		};
-
-		globalTheme.update(updates);
-		pendingChanges.updateTheme(updates);
-	}
+	// Auto-update theme on user changes
+	$effect(() => {
+		console.log('[BG] Effect 2 - Auto update:', { 
+			isInitialized, 
+			selectedType, 
+			solidColor, 
+			gradientFrom, 
+			gradientTo 
+		});
+		if (isInitialized) {
+			const updates: any = {
+				pageBackgroundType: selectedType,
+				pageBackground: solidColor,
+				pageGradientFrom: gradientFrom,
+				pageGradientTo: gradientTo,
+				pageGradientDirection: gradientDirection,
+				pageBackgroundImage: imageUrl,
+				pageBackgroundVideo: videoUrl
+			};
+			console.log('[BG] Updating theme with:', updates);
+			globalTheme.update(updates);
+			pendingChanges.updateTheme(updates);
+		}
+	});
 
 	async function uploadFile(e: Event, type: 'image' | 'video') {
 		const input = e.target as HTMLInputElement;
@@ -88,8 +99,6 @@
 				videoUrl = data.url;
 				selectedType = 'video';
 			}
-			
-			applyBackground();
 		} catch (e: any) {
 			console.error('Upload failed:', e);
 		} finally {
@@ -100,12 +109,12 @@
 
 <div class="space-y-6">
 	<div>
-		<h3 class="text-lg font-bold text-gray-900 mb-4">Background</h3>
+		<h3 class="text-lg font-bold text-gray-900 mb-4">Wallpaper</h3>
 		
 		<!-- Type Selector -->
 		<div class="grid grid-cols-5 gap-3 mb-6">
 			<button
-				onclick={() => selectType('solid')}
+				onclick={() => selectedType = 'solid'}
 				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all {selectedType === 'solid' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
 			>
 				<div class="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-100 to-indigo-200 flex items-center justify-center">
@@ -115,7 +124,7 @@
 			</button>
 
 			<button
-				onclick={() => selectType('gradient')}
+				onclick={() => selectedType = 'gradient'}
 				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all {selectedType === 'gradient' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
 			>
 				<div class="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
@@ -128,7 +137,7 @@
 			</button>
 
 			<button
-				onclick={() => selectType('image')}
+				onclick={() => selectedType = 'image'}
 				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all {selectedType === 'image' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
 			>
 				<div class="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center">
@@ -140,7 +149,7 @@
 			</button>
 
 			<button
-				onclick={() => selectType('video')}
+				onclick={() => selectedType = 'video'}
 				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all {selectedType === 'video' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
 			>
 				<div class="w-12 h-12 rounded-lg bg-gray-300 flex items-center justify-center">
@@ -169,16 +178,18 @@
 		<!-- Settings -->
 		{#if selectedType === 'solid'}
 			<div class="space-y-4">
-				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">Color</label>
-					<div class="flex gap-2 items-center">
-						<input
-							type="color"
-							value={solidColor}
-							oninput={(e) => solidColor = normalizeHex(e.currentTarget.value)}
-							class="w-10 h-10 rounded-full border-2 border-gray-200 cursor-pointer"
-							style="padding: 0; -webkit-appearance: none; appearance: none;"
-						/>
+				<div class="flex gap-3 items-center">
+					<!-- Color Picker & Hex Input -->
+					<div class="flex gap-2 items-center flex-shrink-0">
+						<div class="w-10 h-10 rounded-lg border-2 border-gray-300 overflow-hidden bg-white">
+							<input
+								type="color"
+								value={solidColor}
+								oninput={(e) => solidColor = normalizeHex(e.currentTarget.value)}
+								class="w-full h-full cursor-pointer block"
+								style="-webkit-appearance: none; appearance: none; border: none; padding: 0; margin: 0;"
+							/>
+						</div>
 						<input
 							type="text"
 							value={solidColor}
@@ -187,17 +198,14 @@
 								if (/^#[0-9A-F]{6}$/.test(val)) solidColor = val;
 								else if (/^#[0-9A-F]{0,6}$/.test(val)) e.currentTarget.value = val;
 							}}
-							class="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white transition-colors"
+							class="w-24 px-2 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white transition-colors"
 							placeholder="#FFFFFF"
 							maxlength="7"
 						/>
 					</div>
-				</div>
-				
-				<!-- Color Presets -->
-				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">Trendy Colors</label>
-					<div class="flex flex-wrap gap-2">
+					
+					<!-- Color Presets -->
+					<div class="flex-1 flex flex-wrap gap-1.5 items-center">
 						{#each [
 							{ color: '#FFFFFF', name: 'White' },
 							{ color: '#F8FAFC', name: 'Slate' },
@@ -206,7 +214,6 @@
 							{ color: '#E0E7FF', name: 'Indigo' },
 							{ color: '#FCE7F3', name: 'Pink' },
 							{ color: '#DCFCE7', name: 'Green' },
-							{ color: '#FEF3C7', name: 'Amber' },
 							{ color: '#1E293B', name: 'Dark' },
 							{ color: '#0F172A', name: 'Night' },
 							{ color: '#4F46E5', name: 'Purple' },
@@ -218,7 +225,7 @@
 						] as preset}
 							<button
 								onclick={() => solidColor = preset.color}
-								class="relative w-7 h-7 rounded-full border-2 transition-all hover:scale-125 {solidColor.toUpperCase() === preset.color ? 'border-indigo-600 ring-2 ring-indigo-200' : 'border-gray-300 hover:border-gray-400'}"
+								class="relative w-7 h-7 rounded-full border-2 transition-all hover:scale-110 flex-shrink-0 {solidColor.toUpperCase() === preset.color ? 'border-indigo-600 ring-2 ring-indigo-200' : 'border-gray-300 hover:border-gray-400'}"
 								style="background: {preset.color};"
 								title={preset.name}
 							>
@@ -233,63 +240,154 @@
 						{/each}
 					</div>
 				</div>
-				
-				<!-- Preview -->
-				<div class="w-full h-24 rounded-lg border border-gray-200 shadow-sm" style="background: {solidColor};"></div>
 			</div>
 		{:else if selectedType === 'gradient'}
 			<div class="space-y-4">
-				<div class="grid grid-cols-2 gap-4">
-					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">From Color</label>
-						<div class="flex gap-2 items-center">
-							<input
-								type="color"
-								value={gradientFrom}
-								oninput={(e) => gradientFrom = normalizeHex(e.currentTarget.value)}
-								class="w-10 h-10 rounded-full border-2 border-gray-200 cursor-pointer"
-								style="padding: 0; -webkit-appearance: none; appearance: none;"
-							/>
-							<input
-								type="text"
-								value={gradientFrom}
-								oninput={(e) => {
-									const val = e.currentTarget.value.toUpperCase();
-									if (/^#[0-9A-F]{6}$/.test(val)) gradientFrom = val;
-									else if (/^#[0-9A-F]{0,6}$/.test(val)) e.currentTarget.value = val;
-								}}
-								class="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white transition-colors"
-								placeholder="#FAF5FF"
-								maxlength="7"
-							/>
-						</div>
-					</div>
-					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">To Color</label>
-						<div class="flex gap-2 items-center">
-							<input
-								type="color"
-								value={gradientTo}
-								oninput={(e) => gradientTo = normalizeHex(e.currentTarget.value)}
-								class="w-10 h-10 rounded-full border-2 border-gray-200 cursor-pointer"
-								style="padding: 0; -webkit-appearance: none; appearance: none;"
-							/>
-							<input
-								type="text"
-								value={gradientTo}
-								oninput={(e) => {
-									const val = e.currentTarget.value.toUpperCase();
-									if (/^#[0-9A-F]{6}$/.test(val)) gradientTo = val;
-									else if (/^#[0-9A-F]{0,6}$/.test(val)) e.currentTarget.value = val;
-								}}
-								class="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white transition-colors"
-								placeholder="#EFF6FF"
-								maxlength="7"
-							/>
-						</div>
+				<!-- Gradient Presets -->
+				<div class="flex flex-wrap gap-1.5 items-center">
+					{#each [
+						{ from: '#667EEA', to: '#764BA2', name: 'Purple Dream' },
+						{ from: '#F093FB', to: '#F5576C', name: 'Pink Sunset' },
+						{ from: '#4FACFE', to: '#00F2FE', name: 'Ocean Blue' },
+						{ from: '#43E97B', to: '#38F9D7', name: 'Mint Fresh' },
+						{ from: '#FA709A', to: '#FEE140', name: 'Peach Glow' },
+						{ from: '#30CFD0', to: '#330867', name: 'Deep Sea' },
+						{ from: '#A8EDEA', to: '#FED6E3', name: 'Cotton Candy' },
+						{ from: '#FF9A9E', to: '#FAD0C4', name: 'Soft Coral' },
+						{ from: '#FBC2EB', to: '#A6C1EE', name: 'Lavender Sky' },
+						{ from: '#FDCBF1', to: '#E6DEE9', name: 'Pastel Pink' },
+						{ from: '#A1C4FD', to: '#C2E9FB', name: 'Sky Blue' },
+						{ from: '#D299C2', to: '#FEF9D7', name: 'Spring Bloom' },
+						{ from: '#FEE140', to: '#FA709A', name: 'Sunset Vibes' },
+						{ from: '#CE9FFC', to: '#7367F0', name: 'Royal Purple' },
+						{ from: '#90F7EC', to: '#32CCBC', name: 'Aqua Marine' },
+						{ from: '#FFF1EB', to: '#ACE0F9', name: 'Soft Sky' }
+					] as preset}
+						<button
+							onclick={() => {
+								gradientFrom = preset.from;
+								gradientTo = preset.to;
+								showGradientCustom = false;
+							}}
+							class="relative w-6 h-10 rounded border-2 transition-all hover:scale-110 flex-shrink-0 {gradientFrom.toUpperCase() === preset.from && gradientTo.toUpperCase() === preset.to && !showGradientCustom ? 'border-indigo-600 ring-2 ring-indigo-200' : 'border-gray-300 hover:border-gray-400'}"
+							style="background: linear-gradient(to bottom, {preset.from}, {preset.to});"
+							title={preset.name}
+						>
+							{#if gradientFrom.toUpperCase() === preset.from && gradientTo.toUpperCase() === preset.to && !showGradientCustom}
+								<div class="absolute inset-0 flex items-center justify-center">
+									<svg class="w-3 h-3 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20">
+										<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+									</svg>
+								</div>
+							{/if}
+						</button>
+					{/each}
+					
+					<!-- Custom Button -->
+					<button
+						onclick={() => showGradientCustom = !showGradientCustom}
+						class="w-6 h-10 rounded border-2 transition-all hover:scale-110 flex-shrink-0 flex items-center justify-center {showGradientCustom ? 'border-indigo-600 bg-indigo-50' : 'border-gray-300 hover:border-gray-400 bg-gray-50'}"
+						title="Custom Gradient"
+					>
+						<svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+						</svg>
+					</button>
+				</div>
+				
+				<!-- Direction Selector - Always visible -->
+				<div>
+					<div class="grid grid-cols-3 gap-2">
+						<button
+							onclick={() => gradientDirection = 'up'}
+							class="flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all {gradientDirection === 'up' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
+						>
+							<svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+							</svg>
+							<span class="text-xs font-medium text-gray-700">Up</span>
+						</button>
+						<button
+							onclick={() => gradientDirection = 'down'}
+							class="flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all {gradientDirection === 'down' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
+						>
+							<svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+							</svg>
+							<span class="text-xs font-medium text-gray-700">Down</span>
+						</button>
+						<button
+							onclick={() => gradientDirection = 'radial'}
+							class="flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all {gradientDirection === 'radial' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
+						>
+							<svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<circle cx="12" cy="12" r="10" stroke-width="2"/>
+								<circle cx="12" cy="12" r="6" stroke-width="2"/>
+								<circle cx="12" cy="12" r="2" stroke-width="2"/>
+							</svg>
+							<span class="text-xs font-medium text-gray-700">Radial</span>
+						</button>
 					</div>
 				</div>
-				<div class="w-full h-24 rounded-lg border border-gray-200 shadow-sm" style="background: linear-gradient(to bottom right, {gradientFrom}, {gradientTo});"></div>
+				
+				{#if showGradientCustom}
+					<div class="space-y-3 p-4 bg-gray-50 rounded-lg">
+						<div class="grid grid-cols-2 gap-4">
+							<div>
+								<label class="block text-xs font-medium text-gray-700 mb-2">From Color</label>
+								<div class="flex gap-2 items-center">
+									<div class="w-8 h-8 rounded border-2 border-gray-300 overflow-hidden bg-white flex-shrink-0">
+										<input
+											type="color"
+											value={gradientFrom}
+											oninput={(e) => gradientFrom = normalizeHex(e.currentTarget.value)}
+											class="w-full h-full cursor-pointer block"
+											style="-webkit-appearance: none; appearance: none; border: none; padding: 0; margin: 0;"
+										/>
+									</div>
+									<input
+										type="text"
+										value={gradientFrom}
+										oninput={(e) => {
+											const val = e.currentTarget.value.toUpperCase();
+											if (/^#[0-9A-F]{6}$/.test(val)) gradientFrom = val;
+											else if (/^#[0-9A-F]{0,6}$/.test(val)) e.currentTarget.value = val;
+										}}
+										class="flex-1 px-2 py-1.5 bg-white border border-gray-200 rounded text-xs font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+										placeholder="#FAF5FF"
+										maxlength="7"
+									/>
+								</div>
+							</div>
+							<div>
+								<label class="block text-xs font-medium text-gray-700 mb-2">To Color</label>
+								<div class="flex gap-2 items-center">
+									<div class="w-8 h-8 rounded border-2 border-gray-300 overflow-hidden bg-white flex-shrink-0">
+										<input
+											type="color"
+											value={gradientTo}
+											oninput={(e) => gradientTo = normalizeHex(e.currentTarget.value)}
+											class="w-full h-full cursor-pointer block"
+											style="-webkit-appearance: none; appearance: none; border: none; padding: 0; margin: 0;"
+										/>
+									</div>
+									<input
+										type="text"
+										value={gradientTo}
+										oninput={(e) => {
+											const val = e.currentTarget.value.toUpperCase();
+											if (/^#[0-9A-F]{6}$/.test(val)) gradientTo = val;
+											else if (/^#[0-9A-F]{0,6}$/.test(val)) e.currentTarget.value = val;
+										}}
+										class="flex-1 px-2 py-1.5 bg-white border border-gray-200 rounded text-xs font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+										placeholder="#EFF6FF"
+										maxlength="7"
+									/>
+								</div>
+							</div>
+						</div>
+					</div>
+				{/if}
 			</div>
 		{:else if selectedType === 'image'}
 			<div class="space-y-3">
@@ -389,16 +487,7 @@
 			</div>
 		{/if}
 
-		<!-- Apply Button -->
-		{#if selectedType}
-			<button
-				onclick={applyBackground}
-				disabled={uploading}
-				class="w-full mt-6 px-5 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"
-			>
-				Apply Background
-			</button>
-		{/if}
+
 	</div>
 </div>
 
