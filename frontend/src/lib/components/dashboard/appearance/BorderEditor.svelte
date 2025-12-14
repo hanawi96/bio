@@ -1,17 +1,11 @@
 <script lang="ts">
 	import { globalTheme } from '$lib/stores/theme';
-	import { profileApi } from '$lib/api/profile';
-	import { linksApi } from '$lib/api/links';
-	import { auth } from '$lib/stores/auth';
-	import { get } from 'svelte/store';
-	import { toast } from 'svelte-sonner';
 	import { previewStyles } from '$lib/stores/previewStyles';
+	import { pendingChanges } from '$lib/stores/pendingChanges';
 
-	let { onUpdate, links = [] }: { onUpdate?: () => Promise<void>; links?: any[] } = $props();
+	let { links = [] }: { links?: any[] } = $props();
 
 	const currentBorderRadius = $derived($globalTheme.cardBorderRadius);
-	
-	// Sync from first group
 	const firstGroup = $derived(links.find(l => l.is_group));
 	const hasBorder = $derived(firstGroup?.has_card_border ?? false);
 	const borderColor = $derived(firstGroup?.card_border_color || '#e5e7eb');
@@ -19,70 +13,26 @@
 	
 	let showCustomRadius = $state(false);
 
-	async function updateBorderRadius(radius: number) {
+	function updateBorderRadius(radius: number) {
 		globalTheme.update({ cardBorderRadius: radius });
 		previewStyles.update({ card_border_radius: radius });
-		
-		try {
-			const updatedTheme = globalTheme.getCurrent();
-			await profileApi.updateProfile({ 
-				theme_config: JSON.stringify(updatedTheme) 
-			}, get(auth).token!);
-			
-			await linksApi.updateAllGroupStyles({
-				card_border_radius: radius
-			}, get(auth).token!);
-			
-			if (onUpdate) await onUpdate();
-		} catch (e: any) {
-			toast.error(e.message || 'Failed to update');
-		}
+		pendingChanges.updateTheme({ cardBorderRadius: radius });
+		pendingChanges.updateLinkStyles({ card_border_radius: radius });
 	}
 
-	async function updateBorder(enabled: boolean) {
+	function updateBorder(enabled: boolean) {
 		previewStyles.update({ has_card_border: enabled, card_border_color: borderColor, card_border_width: borderWidth });
-		
-		try {
-			await linksApi.updateAllGroupStyles({
-				has_card_border: enabled,
-				card_border_color: borderColor,
-				card_border_width: borderWidth
-			}, get(auth).token!);
-			
-			if (onUpdate) await onUpdate();
-		} catch (e: any) {
-			toast.error(e.message || 'Failed to update');
-		}
+		pendingChanges.updateLinkStyles({ has_card_border: enabled, card_border_color: borderColor, card_border_width: borderWidth });
 	}
 
-	async function updateBorderColor(color: string) {
+	function updateBorderColor(color: string) {
 		previewStyles.update({ card_border_color: color });
-		
-		try {
-			await linksApi.updateAllGroupStyles({
-				has_card_border: true,
-				card_border_color: color
-			}, get(auth).token!);
-			
-			if (onUpdate) await onUpdate();
-		} catch (e: any) {
-			toast.error(e.message || 'Failed to update');
-		}
+		pendingChanges.updateLinkStyles({ has_card_border: true, card_border_color: color });
 	}
 
-	async function updateBorderWidth(width: number) {
+	function updateBorderWidth(width: number) {
 		previewStyles.update({ card_border_width: width });
-		
-		try {
-			await linksApi.updateAllGroupStyles({
-				has_card_border: true,
-				card_border_width: width
-			}, get(auth).token!);
-			
-			if (onUpdate) await onUpdate();
-		} catch (e: any) {
-			toast.error(e.message || 'Failed to update');
-		}
+		pendingChanges.updateLinkStyles({ has_card_border: true, card_border_width: width });
 	}
 
 	const colorPresets = [

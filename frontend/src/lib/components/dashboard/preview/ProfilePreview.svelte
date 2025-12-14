@@ -219,7 +219,13 @@
 		<!-- Screen -->
 		<div 
 			class="relative rounded-[2.5rem] overflow-hidden h-[650px] transition-colors duration-300"
-			style="{styles.pageBackgroundType === 'image' ? `background: ${styles.pageBackground} center/cover no-repeat;` : styles.pageBackgroundType === 'video' ? `background: ${currentTheme.pageBackground};` : `background: ${styles.pageBackground};`}"
+			style="{
+				styles.pageBackgroundType === 'image' && styles.pageBackgroundImage
+					? `background: url(${styles.pageBackgroundImage}) center/cover no-repeat;`
+					: styles.pageBackgroundType === 'video' && styles.pageBackgroundVideo
+					? `background: ${currentTheme.pageBackground};`
+					: `background: ${styles.pageBackground};`
+			}"
 		>
 			{#if styles.pageBackgroundType === 'video' && styles.pageBackgroundVideo}
 				<video autoplay muted loop playsinline class="absolute inset-0 w-full h-full object-cover z-0">

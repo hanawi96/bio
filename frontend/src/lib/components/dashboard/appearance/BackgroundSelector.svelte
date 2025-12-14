@@ -1,9 +1,6 @@
 <script lang="ts">
 	import { globalTheme } from '$lib/stores/theme';
-	import { profileApi } from '$lib/api/profile';
-	import { auth } from '$lib/stores/auth';
-	import { get } from 'svelte/store';
-	import { toast } from 'svelte-sonner';
+	import { pendingChanges } from '$lib/stores/pendingChanges';
 
 	let selectedType = $state<'solid' | 'gradient' | 'image' | 'video'>('solid');
 	let solidColor = $state('#ffffff');
@@ -12,9 +9,6 @@
 	let imageUrl = $state('');
 	let videoUrl = $state('');
 	let uploading = $state(false);
-	
-	// Track if user manually selected a type
-	let manuallySelectedType = $state<string | null>(null);
 
 	// Ensure color is always in HEX format
 	function normalizeHex(color: string): string {
@@ -35,11 +29,6 @@
 			gradientTo = normalizeHex(theme.pageGradientTo || '#eff6ff');
 			imageUrl = theme.pageBackgroundImage || '';
 			videoUrl = theme.pageBackgroundVideo || '';
-			
-			// Reset manual selection when theme changes externally
-			if (manuallySelectedType && selectedType !== manuallySelectedType) {
-				manuallySelectedType = null;
-			}
 		});
 		
 		// Cleanup on unmount
@@ -48,31 +37,13 @@
 		};
 	});
 	
-	// Handle manual type selection
+	// Handle type selection
 	function selectType(type: 'solid' | 'gradient' | 'image' | 'video') {
-		manuallySelectedType = type;
 		selectedType = type;
 	}
 
-	let saving = $state(false);
-
-	async function applyBackground() {
-		if (saving) return;
-		
-		// Validate
-		if (selectedType === 'image' && !imageUrl) {
-			toast.error('Please enter an image URL or upload an image');
-			return;
-		}
-		if (selectedType === 'video' && !videoUrl) {
-			toast.error('Please enter a video URL or upload a video');
-			return;
-		}
-		
-		saving = true;
-		const theme = globalTheme.getCurrent();
+	function applyBackground() {
 		const updates: any = {
-			...theme,
 			pageBackgroundType: selectedType,
 			pageBackground: solidColor,
 			pageGradientFrom: gradientFrom,
@@ -82,17 +53,7 @@
 		};
 
 		globalTheme.update(updates);
-
-		try {
-			await profileApi.updateProfile({
-				theme_config: updates
-			}, get(auth).token!);
-			toast.success('Background updated!');
-		} catch (e: any) {
-			toast.error(e.message || 'Failed to update background');
-		} finally {
-			saving = false;
-		}
+		pendingChanges.updateTheme(updates);
 	}
 
 	async function uploadFile(e: Event, type: 'image' | 'video') {
@@ -104,10 +65,12 @@
 		try {
 			const formData = new FormData();
 			formData.append('file', file);
-
+			
+			// Get token from localStorage directly
+			const token = localStorage.getItem('token');
 			const response = await fetch('/api/upload', {
 				method: 'POST',
-				headers: { Authorization: `Bearer ${get(auth).token}` },
+				headers: { Authorization: `Bearer ${token}` },
 				body: formData
 			});
 
@@ -126,9 +89,9 @@
 				selectedType = 'video';
 			}
 			
-			await applyBackground();
+			applyBackground();
 		} catch (e: any) {
-			toast.error(e.message || 'Upload failed');
+			console.error('Upload failed:', e);
 		} finally {
 			uploading = false;
 		}
@@ -143,7 +106,7 @@
 		<div class="grid grid-cols-5 gap-3 mb-6">
 			<button
 				onclick={() => selectType('solid')}
-				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all {manuallySelectedType === 'solid' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
+				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all {selectedType === 'solid' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
 			>
 				<div class="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-100 to-indigo-200 flex items-center justify-center">
 					<div class="w-6 h-6 rounded bg-indigo-600"></div>
@@ -153,7 +116,7 @@
 
 			<button
 				onclick={() => selectType('gradient')}
-				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all {manuallySelectedType === 'gradient' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
+				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all {selectedType === 'gradient' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
 			>
 				<div class="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
 					<svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -166,7 +129,7 @@
 
 			<button
 				onclick={() => selectType('image')}
-				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all {manuallySelectedType === 'image' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
+				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all {selectedType === 'image' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
 			>
 				<div class="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center">
 					<svg class="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
@@ -178,7 +141,7 @@
 
 			<button
 				onclick={() => selectType('video')}
-				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all {manuallySelectedType === 'video' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
+				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all {selectedType === 'video' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
 			>
 				<div class="w-12 h-12 rounded-lg bg-gray-300 flex items-center justify-center">
 					<svg class="w-6 h-6 text-gray-700" fill="currentColor" viewBox="0 0 20 20">
@@ -203,8 +166,8 @@
 			</button>
 		</div>
 
-		<!-- Settings (only show when manually selected) -->
-		{#if manuallySelectedType === 'solid'}
+		<!-- Settings -->
+		{#if selectedType === 'solid'}
 			<div class="space-y-4">
 				<div>
 					<label class="block text-sm font-medium text-gray-700 mb-2">Color</label>
@@ -274,7 +237,7 @@
 				<!-- Preview -->
 				<div class="w-full h-24 rounded-lg border border-gray-200 shadow-sm" style="background: {solidColor};"></div>
 			</div>
-		{:else if manuallySelectedType === 'gradient'}
+		{:else if selectedType === 'gradient'}
 			<div class="space-y-4">
 				<div class="grid grid-cols-2 gap-4">
 					<div>
@@ -328,7 +291,7 @@
 				</div>
 				<div class="w-full h-24 rounded-lg border border-gray-200 shadow-sm" style="background: linear-gradient(to bottom right, {gradientFrom}, {gradientTo});"></div>
 			</div>
-		{:else if manuallySelectedType === 'image'}
+		{:else if selectedType === 'image'}
 			<div class="space-y-3">
 				<div class="flex gap-2">
 					<input
@@ -376,7 +339,7 @@
 					</div>
 				{/if}
 			</div>
-		{:else if manuallySelectedType === 'video'}
+		{:else if selectedType === 'video'}
 			<div class="space-y-3">
 				<div class="flex gap-2">
 					<input
@@ -426,22 +389,14 @@
 			</div>
 		{/if}
 
-		<!-- Apply Button (only show when manually selected) -->
-		{#if manuallySelectedType}
+		<!-- Apply Button -->
+		{#if selectedType}
 			<button
 				onclick={applyBackground}
-				disabled={uploading || saving}
+				disabled={uploading}
 				class="w-full mt-6 px-5 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"
 			>
-				{#if saving}
-					<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-						<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-					</svg>
-					Saving...
-				{:else}
-					Apply Background
-				{/if}
+				Apply Background
 			</button>
 		{/if}
 	</div>

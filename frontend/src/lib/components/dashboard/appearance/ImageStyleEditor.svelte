@@ -1,28 +1,15 @@
 <script lang="ts">
-	import { linksApi } from '$lib/api/links';
-	import { auth } from '$lib/stores/auth';
-	import { get } from 'svelte/store';
-	import { toast } from 'svelte-sonner';
 	import { previewStyles } from '$lib/stores/previewStyles';
+	import { pendingChanges } from '$lib/stores/pendingChanges';
 
-	let { onUpdate, links = [] }: { onUpdate?: () => Promise<void>; links?: any[] } = $props();
+	let { links = [] }: { links?: any[] } = $props();
 
-	// Sync from first group in links
 	const firstGroup = $derived(links.find(l => l.is_group));
 	const imageShape = $derived<'sharp' | 'square' | 'circle'>(firstGroup?.image_shape || 'square');
 
-	async function updateImageShape(shape: 'sharp' | 'square' | 'circle') {
+	function updateImageShape(shape: 'sharp' | 'square' | 'circle') {
 		previewStyles.update({ image_shape: shape });
-		
-		try {
-			await linksApi.updateAllGroupStyles({
-				image_shape: shape
-			}, get(auth).token!);
-			
-			if (onUpdate) await onUpdate();
-		} catch (e: any) {
-			toast.error(e.message || 'Failed to update');
-		}
+		pendingChanges.updateLinkStyles({ image_shape: shape });
 	}
 </script>
 

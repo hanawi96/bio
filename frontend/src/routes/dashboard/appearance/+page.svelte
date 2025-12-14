@@ -13,6 +13,7 @@
 		applyTextStylesToGroup
 	} from '$lib/stores/theme';
 	import { previewStyles } from '$lib/stores/previewStyles';
+	import { pendingChanges } from '$lib/stores/pendingChanges';
 	import type { CardStyles, TextStyles, ThemePreset } from '$lib/stores/theme';
 	import { profileApi } from '$lib/api/profile';
 	import { linksApi } from '$lib/api/links';
@@ -41,6 +42,8 @@
 	let saving = $state(false);
 	let applying = $state(false);
 	
+	const hasUnsavedChanges = $derived($pendingChanges.hasChanges);
+	
 	// Profile edit
 	let bio = $state('');
 	let avatarFile = $state<File | null>(null);
@@ -59,8 +62,48 @@
 	
 
 
-	// Memoize preset colors for performance
 	const presetColorsCache = new Map<string, ReturnType<typeof getPresetColors>>();
+
+	async function saveAllChanges() {
+		if (saving || !hasUnsavedChanges) return;
+		
+		saving = true;
+		try {
+			const changes = pendingChanges.getAll();
+			const token = get(auth).token!;
+			
+			// Save theme changes
+			if (changes.theme) {
+				const updatedTheme = globalTheme.getCurrent();
+				await profileApi.updateProfile({ 
+					theme_config: JSON.stringify(updatedTheme) 
+				}, token);
+			}
+			
+			// Save header changes
+			if (changes.header) {
+				await profileApi.updateProfile({ 
+					header_config: JSON.stringify(get(currentHeaderStyle)) 
+				}, token);
+			}
+			
+			// Save link styles
+			if (changes.linkStyles) {
+				await linksApi.updateAllGroupStyles(changes.linkStyles, token);
+			}
+			
+			// Reload data
+			links = await linksApi.getLinks(token);
+			syncPreviewStyles(links);
+			
+			pendingChanges.reset();
+			toast.success('All changes saved!');
+		} catch (e: any) {
+			toast.error(e.message || 'Failed to save changes');
+		} finally {
+			saving = false;
+		}
+	}
 
 	const categories = [
 		{ id: 'classic', label: 'Classic' },
@@ -371,16 +414,42 @@
 				<h1 class="text-xl font-bold text-gray-900">Appearance</h1>
 				<p class="text-xs text-gray-500">Customize your profile appearance</p>
 			</div>
-			<button
-				onclick={() => {
-					if (profile?.username) {
-						window.open(`/${profile.username}`, '_blank');
-					}
-				}}
-				class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
-			>
-				View Live Preview
-			</button>
+			<div class="flex items-center gap-3">
+				{#if hasUnsavedChanges}
+					<div class="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg">
+						<div class="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+						<span class="text-xs font-medium text-amber-700">Unsaved changes</span>
+					</div>
+				{/if}
+				<button
+					onclick={saveAllChanges}
+					disabled={saving || !hasUnsavedChanges}
+					class="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-sm hover:shadow-md"
+				>
+					{#if saving}
+						<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+						</svg>
+						Saving...
+					{:else}
+						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+						</svg>
+						Save All
+					{/if}
+				</button>
+				<button
+					onclick={() => {
+						if (profile?.username) {
+							window.open(`/${profile.username}`, '_blank');
+						}
+					}}
+					class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+				>
+					View Live
+				</button>
+			</div>
 		</div>
 	</div>
 
@@ -537,50 +606,32 @@
 
 				<!-- Card Colors Section -->
 				<div class="bg-white rounded-2xl border border-gray-200 p-6">
-					<CardStyleEditor onUpdate={async () => {
-						const token = get(auth).token;
-						links = await linksApi.getLinks(token!);
-					}} />
+					<CardStyleEditor />
 				</div>
 
 				<!-- Typography Section -->
 				<div class="bg-white rounded-2xl border border-gray-200 p-6">
-					<TypographyEditor {links} onUpdate={async () => {
-						const token = get(auth).token;
-						links = await linksApi.getLinks(token!);
-					}} />
+					<TypographyEditor {links} />
 				</div>
 
 				<!-- Image Shape Section -->
 				<div class="bg-white rounded-2xl border border-gray-200 p-6">
-					<ImageStyleEditor {links} onUpdate={async () => {
-						const token = get(auth).token;
-						links = await linksApi.getLinks(token!);
-					}} />
+					<ImageStyleEditor {links} />
 				</div>
 
 				<!-- Shadow Section -->
 				<div class="bg-white rounded-2xl border border-gray-200 p-6">
-					<ShadowEditor {links} onUpdate={async () => {
-						const token = get(auth).token;
-						links = await linksApi.getLinks(token!);
-					}} />
+					<ShadowEditor {links} />
 				</div>
 
 				<!-- Border & Radius Section -->
 				<div class="bg-white rounded-2xl border border-gray-200 p-6">
-					<BorderEditor {links} onUpdate={async () => {
-						const token = get(auth).token;
-						links = await linksApi.getLinks(token!);
-					}} />
+					<BorderEditor {links} />
 				</div>
 
 				<!-- Spacing Section -->
 				<div class="bg-white rounded-2xl border border-gray-200 p-6">
-					<SpacingEditor {links} onUpdate={async () => {
-						const token = get(auth).token;
-						links = await linksApi.getLinks(token!);
-					}} />
+					<SpacingEditor {links} />
 				</div>
 
 				<!-- Social Links Section -->

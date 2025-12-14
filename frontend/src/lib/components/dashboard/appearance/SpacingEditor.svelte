@@ -1,11 +1,8 @@
 <script lang="ts">
-	import { linksApi } from '$lib/api/links';
-	import { auth } from '$lib/stores/auth';
-	import { get } from 'svelte/store';
-	import { toast } from 'svelte-sonner';
 	import { previewStyles } from '$lib/stores/previewStyles';
+	import { pendingChanges } from '$lib/stores/pendingChanges';
 
-	let { onUpdate, links = [] }: { onUpdate?: () => Promise<void>; links?: any[] } = $props();
+	let { links = [] }: { links?: any[] } = $props();
 
 	// Sync from first group
 	const firstGroup = $derived(links.find(l => l.is_group));
@@ -29,8 +26,7 @@
 	let showCustomPadding = $state(false);
 	let showCustomSpacing = $state(false);
 
-	async function updatePadding(value: number) {
-		// Parse current style to preserve margin
+	function updatePadding(value: number) {
 		let currentStyle: any = {};
 		if (firstGroup?.style) {
 			try {
@@ -38,27 +34,16 @@
 			} catch {}
 		}
 		
-		// Merge: keep margin, update padding
 		const newStyle = {
 			...currentStyle,
 			padding: { top: value, right: value, bottom: value, left: value }
 		};
 		const styleStr = JSON.stringify(newStyle);
 		previewStyles.update({ style: styleStr });
-		
-		try {
-			await linksApi.updateAllGroupStyles({
-				style: styleStr
-			}, get(auth).token!);
-			
-			if (onUpdate) await onUpdate();
-		} catch (e: any) {
-			toast.error(e.message || 'Failed to update');
-		}
+		pendingChanges.updateLinkStyles({ style: styleStr });
 	}
 
-	async function updateSpacing(value: number) {
-		// Parse current style to preserve padding
+	function updateSpacing(value: number) {
 		let currentStyle: any = {};
 		if (firstGroup?.style) {
 			try {
@@ -66,23 +51,13 @@
 			} catch {}
 		}
 		
-		// Merge: keep padding, update margin
 		const newStyle = {
 			...currentStyle,
 			margin: { top: 0, bottom: value }
 		};
 		const styleStr = JSON.stringify(newStyle);
 		previewStyles.update({ style: styleStr });
-		
-		try {
-			await linksApi.updateAllGroupStyles({
-				style: styleStr
-			}, get(auth).token!);
-			
-			if (onUpdate) await onUpdate();
-		} catch (e: any) {
-			toast.error(e.message || 'Failed to update');
-		}
+		pendingChanges.updateLinkStyles({ style: styleStr });
 	}
 </script>
 

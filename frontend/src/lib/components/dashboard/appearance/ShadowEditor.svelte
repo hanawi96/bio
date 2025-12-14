@@ -1,11 +1,8 @@
 <script lang="ts">
-	import { linksApi } from '$lib/api/links';
-	import { auth } from '$lib/stores/auth';
-	import { get } from 'svelte/store';
-	import { toast } from 'svelte-sonner';
 	import { previewStyles } from '$lib/stores/previewStyles';
+	import { pendingChanges } from '$lib/stores/pendingChanges';
 
-	let { onUpdate, links = [] }: { onUpdate?: () => Promise<void>; links?: any[] } = $props();
+	let { links = [] }: { links?: any[] } = $props();
 
 	const shadowPresets = {
 		subtle: { x: 0, y: 2, blur: 4 },
@@ -32,7 +29,7 @@
 
 
 
-	async function updateShadow(enabled: boolean, preset?: 'subtle' | 'medium' | 'strong') {
+	function updateShadow(enabled: boolean, preset?: 'subtle' | 'medium' | 'strong') {
 		let x = shadowX, y = shadowY, blur = shadowBlur;
 		if (preset) {
 			const shadow = shadowPresets[preset];
@@ -42,36 +39,12 @@
 		}
 		
 		previewStyles.update({ show_shadow: enabled, shadow_x: x, shadow_y: y, shadow_blur: blur });
-		
-		try {
-			await linksApi.updateAllGroupStyles({
-				show_shadow: enabled,
-				shadow_x: x,
-				shadow_y: y,
-				shadow_blur: blur
-			}, get(auth).token!);
-			
-			if (onUpdate) await onUpdate();
-		} catch (e: any) {
-			toast.error(e.message || 'Failed to update');
-		}
+		pendingChanges.updateLinkStyles({ show_shadow: enabled, shadow_x: x, shadow_y: y, shadow_blur: blur });
 	}
 
-	async function updateCustomShadow(x: number, y: number, blur: number) {
+	function updateCustomShadow(x: number, y: number, blur: number) {
 		previewStyles.update({ show_shadow: true, shadow_x: x, shadow_y: y, shadow_blur: blur });
-		
-		try {
-			await linksApi.updateAllGroupStyles({
-				show_shadow: true,
-				shadow_x: x,
-				shadow_y: y,
-				shadow_blur: blur
-			}, get(auth).token!);
-			
-			if (onUpdate) await onUpdate();
-		} catch (e: any) {
-			toast.error(e.message || 'Failed to update');
-		}
+		pendingChanges.updateLinkStyles({ show_shadow: true, shadow_x: x, shadow_y: y, shadow_blur: blur });
 	}
 </script>
 

@@ -16,6 +16,35 @@
 	const bio = $derived(profile?.bio || '');
 	const bioFontSize = $derived(headerStyle.bioSize === 'sm' ? '0.875rem' : headerStyle.bioSize === 'lg' ? '1.125rem' : '1rem');
 	
+	// Helper to get alignment classes
+	const getAlignClass = $derived(headerStyle.bioAlign === 'left' ? 'text-left' : headerStyle.bioAlign === 'right' ? 'text-right' : 'text-center');
+	const getJustifyClass = $derived(headerStyle.bioAlign === 'left' ? 'justify-start' : headerStyle.bioAlign === 'right' ? 'justify-end' : 'justify-center');
+	
+	// Helper to get avatar shape classes and styles
+	const avatarShape = $derived(headerStyle.avatarShape || 'circle');
+	const getAvatarClass = $derived(
+		avatarShape === 'circle' ? 'rounded-full' :
+		avatarShape === 'square' ? 'rounded-none' :
+		avatarShape === 'rounded' ? 'rounded-2xl' :
+		'rounded-lg'
+	);
+	const getAvatarStyle = $derived(() => {
+		const size = headerStyle.avatarSize;
+		const border = headerStyle.avatarBorder;
+		const borderColor = headerStyle.avatarBorderColor;
+		let sizeStyle = '';
+		
+		if (avatarShape === 'vertical') {
+			sizeStyle = `width: ${size}px !important; height: ${size * 1.4}px !important;`;
+		} else if (avatarShape === 'horizontal') {
+			sizeStyle = `width: ${size * 1.4}px !important; height: ${size}px !important;`;
+		} else {
+			sizeStyle = `width: ${size}px !important; height: ${size}px !important;`;
+		}
+		
+		return `${sizeStyle} border: ${border}px solid ${borderColor};`;
+	});
+	
 	const socialIcons: Record<string, string> = {
 		twitter: 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z',
 		facebook: 'M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z',
@@ -37,7 +66,7 @@
 		{/if}
 		<div class="px-6 pb-6" style="padding-top: {headerStyle.showCover ? '20px' : '80px'};">
 			<div class="flex justify-center" style="margin-top: {headerStyle.showCover ? `-${headerStyle.avatarSize/2}px` : '0'};">
-				<img src={avatarSrc} alt="Avatar" class="rounded-full object-cover shadow-xl" style="width: {headerStyle.avatarSize}px !important; height: {headerStyle.avatarSize}px !important; border: {headerStyle.avatarBorder}px solid {headerStyle.avatarBorderColor};" />
+				<img src={avatarSrc} alt="Avatar" class="{getAvatarClass} object-cover shadow-xl" style={getAvatarStyle()} />
 			</div>
 			<div class="mt-3" style="text-align: {headerStyle.bioAlign};">
 				<h2 class="text-xl font-bold" style="color: {textColor};">@{username}</h2>
@@ -62,13 +91,13 @@
 			<div style="height: {headerStyle.coverHeight}px; background: {headerStyle.coverType === 'gradient' ? `linear-gradient(135deg, ${headerStyle.coverGradientFrom}, ${headerStyle.coverGradientTo})` : headerStyle.coverColor};"></div>
 		{/if}
 		<div class="px-6" style="margin-top: {headerStyle.showCover ? `-${headerStyle.avatarSize/2 + 10}px` : '80px'};">
-			<div class="flex justify-center">
-				<img src={avatarSrc} alt="Avatar" class="rounded-full object-cover shadow-2xl" style="width: {headerStyle.avatarSize}px !important; height: {headerStyle.avatarSize}px !important; border: {headerStyle.avatarBorder}px solid {headerStyle.avatarBorderColor};" />
+			<div class="flex {getJustifyClass}">
+				<img src={avatarSrc} alt="Avatar" class="{getAvatarClass} object-cover shadow-2xl" style={getAvatarStyle()} />
 			</div>
-			<div class="mt-4 text-center">
-				<h2 class="text-xl font-bold" style="color: {textColor};">@{username}</h2>
+			<div class="mt-4 {getAlignClass}">
+				<h2 class="text-xl font-bold" style="color: {textColor}; font-size: {bioFontSize};">@{username}</h2>
 				{#if socialLinks.length > 0}
-					<div class="flex gap-2 mt-2 justify-center">
+					<div class="flex gap-2 mt-2 {getJustifyClass}">
 						{#each socialLinks as link}
 							<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110" title={link.platform}>
 								<svg class="w-3.5 h-3.5" style="color: {textColor};" fill="currentColor" viewBox="0 0 24 24">
@@ -78,7 +107,7 @@
 						{/each}
 					</div>
 				{/if}
-				{#if bio}<p class="text-sm mt-1" style="color: {textSecondaryColor};">{bio}</p>{/if}
+				{#if bio}<p class="mt-1" style="color: {textSecondaryColor}; font-size: {bioFontSize};">{bio}</p>{/if}
 			</div>
 		</div>
 	</div>
@@ -89,7 +118,7 @@
 				<div class="rounded-xl mb-4" style="height: {headerStyle.coverHeight}px; background: {headerStyle.coverType === 'gradient' ? `linear-gradient(135deg, ${headerStyle.coverGradientFrom}, ${headerStyle.coverGradientTo})` : headerStyle.coverColor};"></div>
 			{/if}
 			<div class="flex justify-center" style="margin-top: {headerStyle.showCover ? `-${headerStyle.avatarSize/2 + 16}px` : '0'};">
-				<img src={avatarSrc} alt="Avatar" class="rounded-full object-cover shadow-lg" style="width: {headerStyle.avatarSize}px !important; height: {headerStyle.avatarSize}px !important; border: {headerStyle.avatarBorder}px solid {headerStyle.avatarBorderColor};" />
+				<img src={avatarSrc} alt="Avatar" class="{getAvatarClass} object-cover shadow-lg" style={getAvatarStyle()} />
 			</div>
 			<div class="mt-3 text-center">
 				<h2 class="text-lg font-bold text-gray-900">@{username}</h2>
@@ -116,7 +145,7 @@
 		<div class="px-6" style="margin-top: {headerStyle.showCover ? `-${headerStyle.avatarSize/2 + 20}px` : '80px'};">
 			<div class="bg-white/20 backdrop-blur-xl rounded-2xl p-5 border border-white/30 shadow-2xl">
 				<div class="flex justify-center">
-					<img src={avatarSrc} alt="Avatar" class="rounded-full object-cover shadow-xl ring-2 ring-white/50" style="width: {headerStyle.avatarSize}px !important; height: {headerStyle.avatarSize}px !important; border: {headerStyle.avatarBorder}px solid {headerStyle.avatarBorderColor};" />
+					<img src={avatarSrc} alt="Avatar" class="{getAvatarClass} object-cover shadow-xl ring-2 ring-white/50" style={getAvatarStyle()} />
 				</div>
 				<div class="mt-4 text-center">
 					<h2 class="text-xl font-bold text-white drop-shadow-lg">@{username}</h2>
@@ -147,7 +176,7 @@
 			<div class="flex justify-center">
 				<div class="relative">
 					<div class="absolute inset-0 rounded-full" style="background: linear-gradient(135deg, {headerStyle.coverGradientFrom}, {headerStyle.coverGradientTo}); filter: blur(8px); opacity: 0.6;"></div>
-					<img src={avatarSrc} alt="Avatar" class="relative rounded-full object-cover shadow-2xl" style="width: {headerStyle.avatarSize}px !important; height: {headerStyle.avatarSize}px !important; border: {headerStyle.avatarBorder}px solid {headerStyle.avatarBorderColor};" />
+					<img src={avatarSrc} alt="Avatar" class="relative {getAvatarClass} object-cover shadow-2xl" style={getAvatarStyle()} />
 				</div>
 			</div>
 			<div class="mt-4 text-center">
@@ -170,7 +199,7 @@
 {:else if headerStyle.layout === 'minimal'}
 	<div class="px-6 pt-20 pb-6">
 		<div class="flex items-center gap-3">
-			<img src={avatarSrc} alt="Avatar" class="rounded-full object-cover" style="width: {headerStyle.avatarSize}px !important; height: {headerStyle.avatarSize}px !important; border: {headerStyle.avatarBorder}px solid {headerStyle.avatarBorderColor};" />
+			<img src={avatarSrc} alt="Avatar" class="{getAvatarClass} object-cover" style={getAvatarStyle()} />
 			<div class="flex-1">
 				<h2 class="text-lg font-bold" style="color: {textColor};">@{username}</h2>
 				{#if socialLinks.length > 0}
@@ -193,7 +222,7 @@
 		{#if headerStyle.showCover}
 			<div class="flex items-center justify-center" style="height: {headerStyle.coverHeight}px; background: {headerStyle.coverType === 'gradient' ? `linear-gradient(135deg, ${headerStyle.coverGradientFrom}, ${headerStyle.coverGradientTo})` : headerStyle.coverColor};">
 				<div class="text-center">
-					<img src={avatarSrc} alt="Avatar" class="mx-auto rounded-full object-cover shadow-2xl" style="width: {headerStyle.avatarSize}px !important; height: {headerStyle.avatarSize}px !important; border: {headerStyle.avatarBorder}px solid {headerStyle.avatarBorderColor};" />
+					<img src={avatarSrc} alt="Avatar" class="mx-auto {getAvatarClass} object-cover shadow-2xl" style={getAvatarStyle()} />
 					<h2 class="text-2xl font-bold text-white mt-4 drop-shadow-lg">@{username}</h2>
 					{#if socialLinks.length > 0}
 						<div class="flex gap-2 mt-3 justify-center">
@@ -215,7 +244,7 @@
 {:else if headerStyle.layout === 'side'}
 	<div class="px-6 pt-20 pb-6">
 		<div class="flex items-start gap-4">
-			<img src={avatarSrc} alt="Avatar" class="flex-shrink-0 rounded-full object-cover" style="width: {headerStyle.avatarSize}px !important; height: {headerStyle.avatarSize}px !important; border: {headerStyle.avatarBorder}px solid {headerStyle.avatarBorderColor};" />
+			<img src={avatarSrc} alt="Avatar" class="flex-shrink-0 {getAvatarClass} object-cover" style={getAvatarStyle()} />
 			<div class="flex-1 pt-1">
 				<h2 class="text-lg font-bold" style="color: {textColor};">@{username}</h2>
 				{#if socialLinks.length > 0}
@@ -243,7 +272,7 @@
 		{/if}
 		<div class="px-6" style="margin-top: {headerStyle.showCover ? `-${headerStyle.avatarSize/2}px` : '80px'};">
 			<div class="flex justify-center">
-				<img src={avatarSrc} alt="Avatar" class="rounded-full object-cover shadow-2xl" style="width: {headerStyle.avatarSize}px !important; height: {headerStyle.avatarSize}px !important; border: {headerStyle.avatarBorder}px solid {headerStyle.avatarBorderColor};" />
+				<img src={avatarSrc} alt="Avatar" class="{getAvatarClass} object-cover shadow-2xl" style={getAvatarStyle()} />
 			</div>
 			<div class="mt-4 text-center">
 				<h2 class="text-xl font-bold" style="color: {textColor};">@{username}</h2>
@@ -271,7 +300,7 @@
 		{/if}
 		<div class="px-6" style="margin-top: {headerStyle.showCover ? `-${headerStyle.avatarSize/2 + 20}px` : '80px'};">
 			<div class="flex items-end gap-4">
-				<img src={avatarSrc} alt="Avatar" class="rounded-full object-cover shadow-2xl" style="width: {headerStyle.avatarSize}px !important; height: {headerStyle.avatarSize}px !important; border: {headerStyle.avatarBorder}px solid {headerStyle.avatarBorderColor};" />
+				<img src={avatarSrc} alt="Avatar" class="{getAvatarClass} object-cover shadow-2xl" style={getAvatarStyle()} />
 				<div class="flex-1 pb-2">
 					<h2 class="text-2xl font-bold" style="color: {textColor};">@{username}</h2>
 					{#if socialLinks.length > 0}
