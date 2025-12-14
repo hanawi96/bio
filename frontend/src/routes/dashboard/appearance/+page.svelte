@@ -12,6 +12,7 @@
 		applyCardStylesToGroup,
 		applyTextStylesToGroup
 	} from '$lib/stores/theme';
+	import { previewStyles } from '$lib/stores/previewStyles';
 	import type { CardStyles, TextStyles, ThemePreset } from '$lib/stores/theme';
 	import { profileApi } from '$lib/api/profile';
 	import { linksApi } from '$lib/api/links';
@@ -23,6 +24,14 @@
 	import ProfilePreview from '$lib/components/dashboard/preview/ProfilePreview.svelte';
 	import HeaderStyleEditor from '$lib/components/dashboard/appearance/HeaderStyleEditor.svelte';
 	import BackgroundSelector from '$lib/components/dashboard/appearance/BackgroundSelector.svelte';
+	import SocialLinksEditor from '$lib/components/dashboard/appearance/SocialLinksEditor.svelte';
+	import PageSettingsEditor from '$lib/components/dashboard/appearance/PageSettingsEditor.svelte';
+	import CardStyleEditor from '$lib/components/dashboard/appearance/CardStyleEditor.svelte';
+	import TypographyEditor from '$lib/components/dashboard/appearance/TypographyEditor.svelte';
+	import ImageStyleEditor from '$lib/components/dashboard/appearance/ImageStyleEditor.svelte';
+	import SpacingEditor from '$lib/components/dashboard/appearance/SpacingEditor.svelte';
+	import ShadowEditor from '$lib/components/dashboard/appearance/ShadowEditor.svelte';
+	import BorderEditor from '$lib/components/dashboard/appearance/BorderEditor.svelte';
 
 	let profile = $state<Profile | null>(null);
 	let links = $state<Link[]>([]);
@@ -39,6 +48,16 @@
 	let uploadingAvatar = $state(false);
 	let savingProfile = $state(false);
 	let showProfileModal = $state(false);
+	let socialLinks = $state<Array<{ platform: string; url: string }>>([]);
+	
+	// Page settings - use object for better reactivity
+	let pageSettings = $state({
+		showShareButton: true,
+		showSubscribeButton: true,
+		hideBranding: false
+	});
+	
+
 
 	// Memoize preset colors for performance
 	const presetColorsCache = new Map<string, ReturnType<typeof getPresetColors>>();
@@ -49,6 +68,30 @@
 		{ id: 'cozy', label: 'Cozy' },
 		{ id: 'bold', label: 'Bold' }
 	];
+
+	// Helper to sync previewStyles from links data
+	function syncPreviewStyles(linksData: Link[]) {
+		const firstGroup = linksData?.find(l => l.is_group);
+		if (firstGroup) {
+			previewStyles.update({
+				text_alignment: firstGroup.text_alignment,
+				text_size: firstGroup.text_size,
+				card_text_color: firstGroup.card_text_color,
+				image_shape: firstGroup.image_shape,
+				show_shadow: firstGroup.show_shadow,
+				shadow_x: firstGroup.shadow_x,
+				shadow_y: firstGroup.shadow_y,
+				shadow_blur: firstGroup.shadow_blur,
+				card_border_radius: firstGroup.card_border_radius,
+				has_card_border: firstGroup.has_card_border,
+				card_border_color: firstGroup.card_border_color,
+				card_border_width: firstGroup.card_border_width,
+				card_background_color: firstGroup.card_background_color,
+				card_background_opacity: firstGroup.card_background_opacity,
+				style: firstGroup.style
+			});
+		}
+	}
 
 	const themes: Record<string, Array<{ id: string; name: string; preset: string }>> = {
 		classic: [
@@ -68,6 +111,33 @@
 		]
 	};
 
+	async function loadProfile() {
+		const token = get(auth).token;
+		const profileData = await profileApi.getMyProfile(token!);
+		
+		profile = profileData;
+		bio = profileData?.bio || '';
+		avatarPreview = profileData?.avatar_url || '';
+		
+		// Load social links
+		if (profileData?.social_links) {
+			try {
+				socialLinks = typeof profileData.social_links === 'string' 
+					? JSON.parse(profileData.social_links) 
+					: profileData.social_links;
+			} catch {
+				socialLinks = [];
+			}
+		} else {
+			socialLinks = [];
+		}
+		
+		// Load page settings
+		pageSettings.showShareButton = profileData?.show_share_button ?? true;
+		pageSettings.showSubscribeButton = profileData?.show_subscribe_button ?? true;
+		pageSettings.hideBranding = profileData?.hide_branding ?? false;
+	}
+
 	onMount(async () => {
 		try {
 			const token = get(auth).token;
@@ -82,6 +152,25 @@
 			blocks = blocksData || [];
 			bio = profileData?.bio || '';
 			avatarPreview = profileData?.avatar_url || '';
+			
+			// Load social links
+			if (profileData?.social_links) {
+				try {
+					socialLinks = typeof profileData.social_links === 'string' 
+						? JSON.parse(profileData.social_links) 
+						: profileData.social_links;
+				} catch {
+					socialLinks = [];
+				}
+			}
+			
+			// Load page settings
+			pageSettings.showShareButton = profileData?.show_share_button ?? true;
+			pageSettings.showSubscribeButton = profileData?.show_subscribe_button ?? true;
+			pageSettings.hideBranding = profileData?.hide_branding ?? false;
+			
+			// Sync previewStyles from links data
+			syncPreviewStyles(linksData || []);
 			
 			// Load theme from profile
 			if (profileData?.theme_config) {
@@ -147,6 +236,9 @@
 		const preset = themePresets[presetName];
 		if (!preset) return;
 
+		// Reset previewStyles to clear any custom overrides
+		previewStyles.reset();
+
 		// Optimistic update - reset everything to theme preset
 		const oldTheme = currentTheme;
 		currentTheme = themeId;
@@ -171,14 +263,23 @@
 		// API call
 		applying = true;
 		try {
+			const cardStyles = cardStylesToLinkFields(preset.card, preset.text);
+			
 			const result = await profileApi.applyTheme({
 				theme_config: { ...preset.page, ...preset.card },
-				card_styles: cardStylesToLinkFields(preset.card),
+				card_styles: cardStyles,
 				text_styles: textStylesToBlockStyle(preset.text),
 				header_config: preset.header
 			}, get(auth).token!);
 
-			// Only update profile, not links/blocks (already updated optimistically)
+			// Reload links to get fresh data from server
+			const token = get(auth).token;
+			const freshLinks = await linksApi.getLinks(token!);
+			links = freshLinks || [];
+			
+			// Sync previewStyles from fresh data
+			syncPreviewStyles(freshLinks || []);
+
 			profile = result.profile;
 			toast.success('Theme applied!');
 		} catch (e: any) {
@@ -433,12 +534,79 @@
 				<div class="bg-white rounded-2xl border border-gray-200 p-6">
 					<HeaderStyleEditor />
 				</div>
+
+				<!-- Card Colors Section -->
+				<div class="bg-white rounded-2xl border border-gray-200 p-6">
+					<CardStyleEditor onUpdate={async () => {
+						const token = get(auth).token;
+						links = await linksApi.getLinks(token!);
+					}} />
+				</div>
+
+				<!-- Typography Section -->
+				<div class="bg-white rounded-2xl border border-gray-200 p-6">
+					<TypographyEditor {links} onUpdate={async () => {
+						const token = get(auth).token;
+						links = await linksApi.getLinks(token!);
+					}} />
+				</div>
+
+				<!-- Image Shape Section -->
+				<div class="bg-white rounded-2xl border border-gray-200 p-6">
+					<ImageStyleEditor {links} onUpdate={async () => {
+						const token = get(auth).token;
+						links = await linksApi.getLinks(token!);
+					}} />
+				</div>
+
+				<!-- Shadow Section -->
+				<div class="bg-white rounded-2xl border border-gray-200 p-6">
+					<ShadowEditor {links} onUpdate={async () => {
+						const token = get(auth).token;
+						links = await linksApi.getLinks(token!);
+					}} />
+				</div>
+
+				<!-- Border & Radius Section -->
+				<div class="bg-white rounded-2xl border border-gray-200 p-6">
+					<BorderEditor {links} onUpdate={async () => {
+						const token = get(auth).token;
+						links = await linksApi.getLinks(token!);
+					}} />
+				</div>
+
+				<!-- Spacing Section -->
+				<div class="bg-white rounded-2xl border border-gray-200 p-6">
+					<SpacingEditor {links} onUpdate={async () => {
+						const token = get(auth).token;
+						links = await linksApi.getLinks(token!);
+					}} />
+				</div>
+
+				<!-- Social Links Section -->
+				<div class="bg-white rounded-2xl border border-gray-200 p-6">
+					<SocialLinksEditor {socialLinks} onUpdate={loadProfile} />
+				</div>
+
+				<!-- Page Settings Section -->
+				<div class="bg-white rounded-2xl border border-gray-200 p-6">
+					<PageSettingsEditor settings={pageSettings} />
+				</div>
 			</div>
 
 			<!-- Preview Panel (1/3) -->
 			<div class="lg:col-span-1">
 				<div class="sticky top-24">
-					<ProfilePreview {profile} {links} {blocks} showInactive={true} />
+					<ProfilePreview 
+						{profile} 
+						{links} 
+						{blocks} 
+						{socialLinks} 
+						showShareButton={pageSettings.showShareButton}
+						showSubscribeButton={pageSettings.showSubscribeButton}
+						hideBranding={pageSettings.hideBranding}
+						showInactive={true} 
+					/>
 				</div>
 			</div>
 		</div>

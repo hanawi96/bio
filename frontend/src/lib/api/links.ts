@@ -106,5 +106,9 @@ export const linksApi = {
 	duplicateGroup: (groupId: string, token: string) =>
 		api.post<Link>(`/links/groups/${groupId}/duplicate`, {}, token),
 	reorderGroupLinks: (groupId: string, linkIds: string[], token: string) =>
-		api.put(`/links/groups/${groupId}/reorder`, { link_ids: linkIds }, token)
+		api.put(`/links/groups/${groupId}/reorder`, { link_ids: linkIds }, token),
+	
+	// Update all groups with same styles
+	updateAllGroupStyles: (styles: Record<string, any>, token: string) =>
+		api.put('/links/groups/styles', styles, token)
 };

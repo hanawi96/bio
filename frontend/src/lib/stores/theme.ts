@@ -87,7 +87,7 @@ export const defaultTextStyles: TextStyles = {
 };
 
 export const defaultHeaderStyles: HeaderStyles = {
-	layout: 'centered', coverType: 'gradient', coverColor: '#6366f1', 
+	layout: 'centered', coverType: 'gradient', coverColor: '#6366f1',
 	coverGradientFrom: '#8b5cf6', coverGradientTo: '#ec4899',
 	coverHeight: 140, avatarSize: 110, avatarBorder: 4, avatarBorderColor: '#ffffff',
 	showCover: true, bioAlign: 'center', bioSize: 'md'
@@ -142,12 +142,20 @@ export function hexToRgba(hex: string, opacity: number): string {
 	return `rgba(${r}, ${g}, ${b}, ${opacity / 100})`;
 }
 
-export function cardStylesToLinkFields(card: CardStyles): Record<string, any> {
+export function cardStylesToLinkFields(card: CardStyles, text?: TextStyles): Record<string, any> {
+	// Map text block alignment to link alignment
+	const textAlign = text?.textAlign || 'center';
+	const alignment = textAlign === 'left' ? 'left' : textAlign === 'right' ? 'right' : 'center';
+
 	return {
 		card_background_color: card.cardBackground, card_background_opacity: card.cardBackgroundOpacity,
 		card_text_color: card.cardTextColor, card_border_radius: card.cardBorderRadius,
 		show_shadow: card.cardShadow, shadow_x: card.cardShadowX, shadow_y: card.cardShadowY, shadow_blur: card.cardShadowBlur,
-		has_card_border: card.cardBorder, card_border_color: card.cardBorderColor, card_border_width: card.cardBorderWidth, has_card_background: true
+		has_card_border: card.cardBorder, card_border_color: card.cardBorderColor, card_border_width: card.cardBorderWidth, has_card_background: true,
+		// Apply typography from theme
+		text_alignment: alignment,
+		text_size: 'M',
+		image_shape: 'square'
 	};
 }
 
@@ -201,7 +209,7 @@ export const currentHeaderStyle = writable<HeaderStyles>(defaultHeaderStyles);
 
 export const themeStyles = derived(globalTheme, ($theme) => {
 	let pageBackground = $theme.pageBackground;
-	
+
 	if ($theme.pageBackgroundType === 'gradient') {
 		pageBackground = `linear-gradient(to bottom right, ${$theme.pageGradientFrom}, ${$theme.pageGradientTo})`;
 	} else if ($theme.pageBackgroundType === 'image' && $theme.pageBackgroundImage) {
@@ -209,7 +217,7 @@ export const themeStyles = derived(globalTheme, ($theme) => {
 	} else if ($theme.pageBackgroundType === 'video' && $theme.pageBackgroundVideo) {
 		pageBackground = $theme.pageBackground; // Fallback color for video
 	}
-	
+
 	return {
 		pageBackground,
 		pageBackgroundType: $theme.pageBackgroundType,

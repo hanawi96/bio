@@ -81,3 +81,7 @@ func (s *LinkService) DuplicateGroup(userID string, groupID string) (*repository
 func (s *LinkService) ReorderGroupLinks(userID string, groupID string, linkIDs []string) error {
 	return s.linkRepo.ReorderGroupLinks(userID, groupID, linkIDs)
 }
+
+func (s *LinkService) UpdateAllGroupStyles(userID string, styles map[string]interface{}) error {
+	return s.linkRepo.UpdateAllGroupStyles(userID, styles)
+}

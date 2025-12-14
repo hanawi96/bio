@@ -7,32 +7,56 @@
 	import type { Block } from '$lib/api/blocks';
 	import { onMount, onDestroy } from 'svelte';
 	import { globalTheme, themeStyles, currentHeaderStyle } from '$lib/stores/theme';
+	import { previewStyles } from '$lib/stores/previewStyles';
 
-	let { profile = {}, links = [], blocks = [], showInactive = true }: {
+	let { 
+		profile = {}, 
+		links = [], 
+		blocks = [], 
+		showInactive = true, 
+		socialLinks = [],
+		showShareButton = true,
+		showSubscribeButton = true,
+		hideBranding = false
+	}: {
 		profile?: Partial<Profile>;
 		links?: Link[];
 		blocks?: Block[];
 		showInactive?: boolean;
+		socialLinks?: Array<{ platform: string; url: string }>;
+		showShareButton?: boolean;
+		showSubscribeButton?: boolean;
+		hideBranding?: boolean;
 	} = $props();
 	
-	// Subscribe to theme - direct access without state
+
+	
+	// Subscribe to theme and preview styles
 	const currentTheme = $derived($globalTheme);
 	const styles = $derived($themeStyles);
+	const preview = $derived($previewStyles);
 	
 	// Get header style from store
 	const headerStyle = $derived($currentHeaderStyle);
 	
-	// Helper to get card style from theme (with link override)
+	// Apply preview styles to links
+	const previewLinks = $derived(links.map(link => {
+		if (!link.is_group) return link;
+		return { ...link, ...preview };
+	}));
+	
+	// Helper to get card style from theme (with link override + preview)
 	function getCardStyle(link: any) {
 		const t = currentTheme;
+		const p = preview;
 		const hasCustomBg = link?.has_card_background ?? true;
-		const bgColor = link?.card_background_color || t.cardBackground;
-		const bgOpacity = link?.card_background_opacity ?? t.cardBackgroundOpacity;
-		const borderRadius = link?.card_border_radius ?? t.cardBorderRadius;
-		const textColor = link?.card_text_color || t.cardTextColor;
-		const showShadow = link?.show_shadow ?? t.cardShadow;
-		const shadowX = link?.shadow_x ?? t.cardShadowX;
-		const shadowY = link?.shadow_y ?? t.cardShadowY;
+		const bgColor = p.card_background_color || link?.card_background_color || t.cardBackground;
+		const bgOpacity = p.card_background_opacity ?? link?.card_background_opacity ?? t.cardBackgroundOpacity;
+		const borderRadius = p.card_border_radius ?? link?.card_border_radius ?? t.cardBorderRadius;
+		const textColor = p.card_text_color || link?.card_text_color || t.cardTextColor;
+		const showShadow = p.show_shadow ?? link?.show_shadow ?? t.cardShadow;
+		const shadowX = p.shadow_x ?? link?.shadow_x ?? t.cardShadowX;
+		const shadowY = p.shadow_y ?? link?.shadow_y ?? t.cardShadowY;
 		const shadowBlur = link?.shadow_blur ?? t.cardShadowBlur;
 		const hasBorder = link?.has_card_border ?? t.cardBorder;
 		const borderColor = link?.card_border_color || t.cardBorderColor;
@@ -169,7 +193,7 @@
 	// Filter out links that are:
 	// 1. Hidden by inactive blocks (hiddenLinkIds)
 	// 2. Inactive themselves (when showInactive is false)
-	const visibleLinks = $derived((links || []).filter(link => 
+	const visibleLinks = $derived((previewLinks || []).filter(link => 
 		!hiddenLinkIds.has(link.id) && (showInactive || link.is_active)
 	));
 
@@ -204,31 +228,39 @@
 				<div class="absolute inset-0 bg-black/20 z-0"></div>
 			{/if}
 			<!-- Fixed Action Buttons -->
-			<div class="absolute top-4 left-4 right-4 flex justify-between items-center z-20">
-				<button 
-					class="flex items-center gap-2 px-5 py-2.5 bg-white/90 backdrop-blur-sm hover:bg-white rounded-full shadow-lg transition-all hover:shadow-xl border border-gray-200"
-					onclick={() => alert('Subscribe functionality')}
-				>
-					<svg class="w-5 h-5 text-gray-700" fill="currentColor" viewBox="0 0 20 20">
-						<path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-					</svg>
-					<span class="text-sm font-semibold text-gray-800">Subscribe</span>
-				</button>
-				
-				<button 
-					class="flex items-center justify-center w-10 h-10 bg-white/90 backdrop-blur-sm hover:bg-white rounded-full shadow-lg transition-all hover:shadow-xl border border-gray-200 mr-1"
-					onclick={() => alert('Share functionality')}
-					title="Share"
-				>
-					<svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
-					</svg>
-				</button>
-			</div>
+			{#if showSubscribeButton || showShareButton}
+				<div class="absolute top-4 left-4 right-4 flex justify-between items-center z-20">
+					{#if showSubscribeButton}
+						<button 
+							class="flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white rounded-full shadow-lg transition-all hover:shadow-xl border border-gray-200"
+							onclick={() => alert('Subscribe functionality')}
+						>
+							<svg class="w-3.5 h-3.5 text-gray-700" fill="currentColor" viewBox="0 0 20 20">
+								<path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+							</svg>
+							<span class="text-xs font-semibold text-gray-800">Subscribe</span>
+						</button>
+					{:else}
+						<div></div>
+					{/if}
+					
+					{#if showShareButton}
+						<button 
+							class="flex items-center justify-center w-8 h-8 bg-white/90 backdrop-blur-sm hover:bg-white rounded-full shadow-lg transition-all hover:shadow-xl border border-gray-200"
+							onclick={() => alert('Share functionality')}
+							title="Share"
+						>
+							<svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+							</svg>
+						</button>
+					{/if}
+				</div>
+			{/if}
 			
 			<div class="h-full overflow-y-auto relative z-10">
 				<!-- Profile Header with Dynamic Styles -->
-				<ProfileHeader {profile} {headerStyle} textColor={currentTheme.textColor} textSecondaryColor={currentTheme.textSecondaryColor} />
+				<ProfileHeader {profile} {headerStyle} {socialLinks} textColor={currentTheme.textColor} textSecondaryColor={currentTheme.textSecondaryColor} />
 				
 				<!-- Links & Blocks -->
 				<div class="px-6 space-y-3 pb-6">
@@ -663,11 +695,13 @@
 				</div>
 
 				<!-- Footer -->
-				<div class="text-center pt-4">
-					<Badge variant="secondary" class="text-xs">
-						Made with LinkBio
-					</Badge>
-				</div>
+				{#if !hideBranding}
+					<div class="text-center pt-4 pb-2">
+						<Badge variant="secondary" class="text-xs">
+							Made with LinkBio
+						</Badge>
+					</div>
+				{/if}
 			</div>
 		</div>
 	</div>

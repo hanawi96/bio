@@ -170,6 +170,30 @@ func main() {
 		log.Println("✅ Migration: theme_config index ready")
 	}
 
+	// Add social_links column to profiles (safe - uses IF NOT EXISTS)
+	_, err = db.Exec(`
+		ALTER TABLE profiles 
+		ADD COLUMN IF NOT EXISTS social_links TEXT
+	`)
+	if err != nil {
+		log.Println("⚠️ Social links migration warning:", err)
+	} else {
+		log.Println("✅ Migration: social_links column ready")
+	}
+
+	// Page settings migration
+	_, err = db.Exec(`
+		ALTER TABLE profiles 
+		ADD COLUMN IF NOT EXISTS show_share_button BOOLEAN DEFAULT true,
+		ADD COLUMN IF NOT EXISTS show_subscribe_button BOOLEAN DEFAULT true,
+		ADD COLUMN IF NOT EXISTS hide_branding BOOLEAN DEFAULT false
+	`)
+	if err != nil {
+		log.Println("⚠️ Page settings migration warning:", err)
+	} else {
+		log.Println("✅ Migration: page settings columns ready")
+	}
+
 	// Create Fiber app
 	app := fiber.New(fiber.Config{
 		AppName:      "LinkBio API",

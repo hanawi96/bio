@@ -1006,6 +1006,10 @@ func (r *LinkRepository) UpdateAllGroupsCardStyles(userID string, cardStyles map
 			card_border_color = COALESCE($11, card_border_color),
 			card_border_width = COALESCE($12, card_border_width),
 			has_card_background = COALESCE($13, has_card_background),
+			text_alignment = COALESCE($14, text_alignment),
+			text_size = COALESCE($15, text_size),
+			image_shape = COALESCE($16, image_shape),
+			style = COALESCE($17, style),
 			updated_at = CURRENT_TIMESTAMP
 		FROM profiles p
 		WHERE l.profile_id = p.id 
@@ -1027,7 +1031,16 @@ func (r *LinkRepository) UpdateAllGroupsCardStyles(userID string, cardStyles map
 		cardStyles["card_border_color"],
 		cardStyles["card_border_width"],
 		cardStyles["has_card_background"],
+		cardStyles["text_alignment"],
+		cardStyles["text_size"],
+		cardStyles["image_shape"],
+		cardStyles["style"],
 	)
 
 	return err
+}
+
+// UpdateAllGroupStyles is an alias for UpdateAllGroupsCardStyles
+func (r *LinkRepository) UpdateAllGroupStyles(userID string, styles map[string]interface{}) error {
+	return r.UpdateAllGroupsCardStyles(userID, styles)
 }

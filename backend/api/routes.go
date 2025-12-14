@@ -61,6 +61,7 @@ func SetupRoutes(api fiber.Router, db *sql.DB, cfg *config.Config) {
 
 	// Link group management (MUST be before /:id routes)
 	protected.Post("/links/groups", linkHandler.CreateGroup)
+	protected.Put("/links/groups/styles", linkHandler.UpdateAllGroupStyles)
 	protected.Post("/links/groups/:groupId/items", linkHandler.AddToGroup)
 	protected.Post("/links/groups/:groupId/duplicate", linkHandler.DuplicateGroup)
 	protected.Put("/links/groups/:groupId/reorder", linkHandler.ReorderGroupLinks)
