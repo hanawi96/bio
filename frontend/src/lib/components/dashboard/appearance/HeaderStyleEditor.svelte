@@ -3,20 +3,29 @@
 	import { pendingChanges } from '$lib/stores/pendingChanges';
 	import { onDestroy } from 'svelte';
 	
-	// Use derived to always sync with store
+	type CustomPreset = { id: string; name: string; layout: HeaderStyles['layout']; preview: { cover: string; avatar: string }; settings: Partial<HeaderStyles> };
+	
 	const headerStyle = $derived($currentHeaderStyle);
-	let selectedCategory = $state<string>('classic');
+	let selectedCategory = $state<string>('all');
 	let applying = $state(false);
 	let manuallySelected = $state<string | null>(null);
 	let expandedPreset = $state<string | null>(null);
-	let customizedPresets = $state<Set<string>>(new Set());
+	let customPresets = $state<CustomPreset[]>([]);
 	let saveTimer: ReturnType<typeof setTimeout> | null = null;
+	
+	// Load custom presets from localStorage
+	if (typeof window !== 'undefined') {
+		const saved = localStorage.getItem('customHeaderPresets');
+		if (saved) customPresets = JSON.parse(saved);
+	}
 
 	const categories = [
+		{ id: 'all', label: 'All' },
 		{ id: 'classic', label: 'Classic' },
 		{ id: 'modern', label: 'Modern' },
 		{ id: 'creative', label: 'Creative' },
-		{ id: 'minimal', label: 'Minimal' }
+		{ id: 'minimal', label: 'Minimal' },
+		{ id: 'custom', label: 'Custom' }
 	];
 
 	const headerPresets: Record<string, Array<{ id: string; name: string; layout: HeaderStyles['layout']; preview: { cover: string; avatar: string } }>> = {
@@ -40,9 +49,16 @@
 		]
 	};
 
-	// Layouts that support cover
 	const layoutsWithCover = ['centered', 'overlap', 'card', 'glass', 'gradient', 'full', 'split', 'asymmetric'];
 	const supportsCover = $derived(layoutsWithCover.includes(headerStyle.layout));
+
+	const allPresets = $derived([...Object.values(headerPresets).flat(), ...customPresets]);
+	
+	const displayedPresets = $derived.by(() => {
+		if (selectedCategory === 'all') return allPresets;
+		if (selectedCategory === 'custom') return customPresets;
+		return headerPresets[selectedCategory] || [];
+	});
 
 	const presetMap: Record<HeaderStyles['layout'], Partial<HeaderStyles>> = {
 		centered: { layout: 'centered', coverType: 'gradient', coverGradientFrom: '#667eea', coverGradientTo: '#764ba2', coverHeight: 160, avatarSize: 120, avatarBorder: 4, avatarShape: 'circle', showCover: true, bioAlign: 'center', bioSize: 'md' },
@@ -57,25 +73,23 @@
 		asymmetric: { layout: 'asymmetric', coverType: 'gradient', coverGradientFrom: '#ffecd2', coverGradientTo: '#fcb69f', coverHeight: 220, avatarSize: 140, avatarBorder: 5, avatarShape: 'circle', showCover: true, bioAlign: 'left', bioSize: 'lg' }
 	};
 
-	function selectLayout(layout: HeaderStyles['layout']) {
+	function selectLayout(layout: HeaderStyles['layout'], customSettings?: Partial<HeaderStyles>, customId?: string) {
 		if (applying) return;
 		
-		const newStyle = { ...headerStyle, ...presetMap[layout], avatarBorderColor: headerStyle.avatarBorderColor || '#ffffff' };
+		const settings = customSettings || presetMap[layout];
+		const newStyle = { ...headerStyle, ...settings, avatarBorderColor: headerStyle.avatarBorderColor || '#ffffff' };
 		
-		manuallySelected = layout;
+		manuallySelected = customId || layout;
 		expandedPreset = null;
 		currentHeaderStyle.set(newStyle);
 		pendingChanges.updateHeader(newStyle);
 	}
 
-	function toggleCustomize(layout: HeaderStyles['layout']) {
-		if (expandedPreset === layout) {
+	function toggleCustomize(id: string) {
+		if (expandedPreset === id) {
 			expandedPreset = null;
 		} else {
-			expandedPreset = layout;
-			if (manuallySelected !== layout) {
-				selectLayout(layout);
-			}
+			expandedPreset = id;
 		}
 	}
 
@@ -83,9 +97,33 @@
 		const newStyle = { ...headerStyle, ...updates };
 		currentHeaderStyle.set(newStyle);
 		pendingChanges.updateHeader(newStyle);
+	}
+
+	function saveAsCustom() {
+		const id = `custom-${Date.now()}`;
+		const basePreset = allPresets.find(p => p.layout === headerStyle.layout);
 		
-		if (manuallySelected) {
-			customizedPresets.add(manuallySelected);
+		const customPreset: CustomPreset = {
+			id,
+			name: `Custom ${customPresets.length + 1}`,
+			layout: headerStyle.layout,
+			preview: basePreset?.preview || { cover: headerStyle.coverGradientFrom || '#667eea', avatar: '#ffffff' },
+			settings: { ...headerStyle }
+		};
+		
+		customPresets = [...customPresets, customPreset];
+		manuallySelected = id as any;
+		expandedPreset = null;
+		
+		if (typeof window !== 'undefined') {
+			localStorage.setItem('customHeaderPresets', JSON.stringify(customPresets));
+		}
+	}
+
+	function deleteCustom(id: string) {
+		customPresets = customPresets.filter(p => p.id !== id);
+		if (typeof window !== 'undefined') {
+			localStorage.setItem('customHeaderPresets', JSON.stringify(customPresets));
 		}
 	}
 
@@ -96,17 +134,13 @@
 		const newStyle = { ...headerStyle, ...presetSettings, avatarBorderColor: '#ffffff' };
 		currentHeaderStyle.set(newStyle);
 		pendingChanges.updateHeader(newStyle);
-		customizedPresets.delete(layout);
 	}
-	
-	// Cleanup timer on unmount
 	onDestroy(() => {
 		if (saveTimer) clearTimeout(saveTimer);
 	});
 	
-	// Sync manuallySelected from store when layout changes
 	$effect(() => {
-		if (headerStyle.layout) {
+		if (headerStyle.layout && !manuallySelected) {
 			manuallySelected = headerStyle.layout;
 		}
 	});
@@ -143,10 +177,11 @@
 
 		<!-- Header Presets Grid -->
 		<div class="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-2">
-			{#each headerPresets[selectedCategory] || [] as preset}
+			{#each displayedPresets as preset}
+				{@const isCustom = 'settings' in preset}
 				<div class="relative">
 					<button
-						onclick={() => selectLayout(preset.layout)}
+						onclick={() => isCustom ? selectLayout(preset.layout, preset.settings, preset.id) : selectLayout(preset.layout)}
 						class="group relative w-full"
 					>
 						<div class="aspect-[9/16] rounded-lg overflow-hidden border-2 transition-all {manuallySelected === preset.layout ? 'border-indigo-600 shadow-md ring-2 ring-indigo-200' : 'border-gray-200 hover:border-gray-300'}"
@@ -158,37 +193,59 @@
 								<div class="mt-0.5 w-4 h-0.5 rounded" style="background: {preset.preview.avatar}; opacity: 0.5;"></div>
 								
 								<!-- Customize Button - only show when selected -->
-								{#if manuallySelected === preset.layout}
+								{#if manuallySelected === (isCustom ? preset.id : preset.layout)}
 									<button
-										onclick={(e) => { e.stopPropagation(); toggleCustomize(preset.layout); }}
-										class="absolute bottom-1 left-1 right-1 px-1.5 py-1 text-[9px] font-medium rounded transition-all flex items-center justify-center gap-1 backdrop-blur-sm {expandedPreset === preset.layout ? 'bg-white/95 text-indigo-600 border border-indigo-600' : 'bg-white/90 text-gray-700 border border-white/50 hover:bg-white'}"
+										onclick={(e) => { e.stopPropagation(); toggleCustomize(isCustom ? preset.id : preset.layout); }}
+										class="absolute bottom-1 left-1 right-1 px-1.5 py-1 text-[9px] font-medium rounded transition-all flex items-center justify-center gap-1 backdrop-blur-sm {expandedPreset === (isCustom ? preset.id : preset.layout) ? 'bg-white/95 text-indigo-600 border border-indigo-600' : 'bg-white/90 text-gray-700 border border-white/50 hover:bg-white'}"
 									>
 										<svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
 										</svg>
-										{expandedPreset === preset.layout ? 'Hide' : 'Edit'}
+										{expandedPreset === (isCustom ? preset.id : preset.layout) ? 'Hide' : 'Edit'}
 									</button>
 								{/if}
 							</div>
 						</div>
-						{#if manuallySelected === preset.layout}
+						{#if manuallySelected === (isCustom ? preset.id : preset.layout)}
 							<div class="absolute top-1 right-1 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center z-10">
 								<svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
 								</svg>
 							</div>
 						{/if}
-						{#if customizedPresets.has(preset.layout)}
-							<div class="absolute top-1 left-1 px-1.5 py-0.5 bg-indigo-600 text-white text-[8px] font-medium rounded-full z-10">
-								Custom
-							</div>
+						{#if isCustom}
+							<button
+								onclick={(e) => { e.stopPropagation(); deleteCustom(preset.id); }}
+								class="absolute top-1 left-1 w-4 h-4 bg-red-600 rounded-full flex items-center justify-center z-10 hover:bg-red-700"
+							>
+								<svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+								</svg>
+							</button>
 						{/if}
 						<p class="mt-1 text-[10px] font-medium text-gray-600 text-center truncate">{preset.name}</p>
 					</button>
-
-					<!-- Expand Section (OUTSIDE button) -->
-					{#if expandedPreset === preset.layout}
-						<div class="mt-3 p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-4">
+				</div>
+			{/each}
+		</div>
+		
+		<!-- Close button for expanded section -->
+		{#if expandedPreset}
+			<div class="mt-3 flex justify-end">
+				<button
+					onclick={() => expandedPreset = null}
+					class="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all"
+				>
+					Close Customization
+				</button>
+			</div>
+		{/if}
+		
+		<!-- Expand Section (FULL WIDTH BELOW GRID) -->
+		{#if expandedPreset}
+			{@const preset = allPresets.find(p => ('settings' in p ? p.id : p.layout) === expandedPreset)}
+			{#if preset}
+				<div class="mt-4 p-6 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border-2 border-indigo-200 space-y-4">
 							{#if supportsCover}
 								<!-- Show Cover Toggle -->
 								<div class="flex items-center justify-between p-2 bg-white rounded-lg">
@@ -307,17 +364,22 @@
 								</div>
 							</div>
 
-							<!-- Reset Button -->
-							<button
-								onclick={() => resetToPreset(preset.layout)}
-								class="w-full px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all"
-							>
-								Reset to Preset
-							</button>
-						</div>
-					{/if}
+					<div class="flex gap-2">
+						<button
+							onclick={() => resetToPreset(expandedPreset)}
+							class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all"
+						>
+							Reset
+						</button>
+						<button
+							onclick={saveAsCustom}
+							class="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-all"
+						>
+							Save as Custom
+						</button>
+					</div>
 				</div>
-			{/each}
-		</div>
+			{/if}
+		{/if}
 	</div>
 </div>

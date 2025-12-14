@@ -475,7 +475,7 @@
 
 <div class="h-full bg-gray-50">
 	<!-- Page Header -->
-	<div class="bg-white/80 backdrop-blur-xl border-b border-gray-200/50 px-8 h-16 sticky top-0 z-10">
+	<div class="bg-white/80 backdrop-blur-xl border-b border-gray-200/50 px-8 h-16 sticky top-0 z-50">
 		<div class="flex items-center justify-between h-full">
 			<div>
 				<h1 class="text-xl font-bold text-gray-900">Appearance</h1>
