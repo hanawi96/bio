@@ -30,9 +30,20 @@
 	let showCustomSpacing = $state(false);
 
 	async function updatePadding(value: number) {
-		const styleStr = JSON.stringify({
+		// Parse current style to preserve margin
+		let currentStyle: any = {};
+		if (firstGroup?.style) {
+			try {
+				currentStyle = JSON.parse(firstGroup.style);
+			} catch {}
+		}
+		
+		// Merge: keep margin, update padding
+		const newStyle = {
+			...currentStyle,
 			padding: { top: value, right: value, bottom: value, left: value }
-		});
+		};
+		const styleStr = JSON.stringify(newStyle);
 		previewStyles.update({ style: styleStr });
 		
 		try {
@@ -47,9 +58,20 @@
 	}
 
 	async function updateSpacing(value: number) {
-		const styleStr = JSON.stringify({
+		// Parse current style to preserve padding
+		let currentStyle: any = {};
+		if (firstGroup?.style) {
+			try {
+				currentStyle = JSON.parse(firstGroup.style);
+			} catch {}
+		}
+		
+		// Merge: keep padding, update margin
+		const newStyle = {
+			...currentStyle,
 			margin: { top: 0, bottom: value }
-		});
+		};
+		const styleStr = JSON.stringify(newStyle);
 		previewStyles.update({ style: styleStr });
 		
 		try {

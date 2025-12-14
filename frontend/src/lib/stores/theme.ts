@@ -146,6 +146,9 @@ export function cardStylesToLinkFields(card: CardStyles, text?: TextStyles): Rec
 	// Map text block alignment to link alignment
 	const textAlign = text?.textAlign || 'center';
 	const alignment = textAlign === 'left' ? 'left' : textAlign === 'right' ? 'right' : 'center';
+	
+	// Get padding from text block (default 16)
+	const padding = text?.padding || 16;
 
 	return {
 		card_background_color: card.cardBackground, card_background_opacity: card.cardBackgroundOpacity,
@@ -155,7 +158,12 @@ export function cardStylesToLinkFields(card: CardStyles, text?: TextStyles): Rec
 		// Apply typography from theme
 		text_alignment: alignment,
 		text_size: 'M',
-		image_shape: 'square'
+		image_shape: 'square',
+		// Apply spacing from theme
+		style: JSON.stringify({
+			padding: { top: padding, right: padding, bottom: padding, left: padding },
+			margin: { top: 0, bottom: 8 }
+		})
 	};
 }
 

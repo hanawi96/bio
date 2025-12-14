@@ -30,10 +30,7 @@
 	
 	let showCustomShadow = $state(false);
 
-	// Log for debugging
-	$effect(() => {
-		console.log('🔍 [Shadow] Values:', { shadowX, shadowY, shadowBlur, currentPreset, showShadow });
-	});
+
 
 	async function updateShadow(enabled: boolean, preset?: 'subtle' | 'medium' | 'strong') {
 		let x = shadowX, y = shadowY, blur = shadowBlur;
@@ -44,7 +41,6 @@
 			blur = shadow.blur;
 		}
 		
-		console.log('🔧 [Shadow] Updating:', { enabled, preset, x, y, blur });
 		previewStyles.update({ show_shadow: enabled, shadow_x: x, shadow_y: y, shadow_blur: blur });
 		
 		try {
