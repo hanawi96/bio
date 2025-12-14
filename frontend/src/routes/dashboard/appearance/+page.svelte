@@ -100,12 +100,29 @@
 			const changes = pendingChanges.getAll();
 			const token = get(auth).token!;
 			
+			console.log('[SAVE] saveAllChanges called:', {
+				currentTheme,
+				hasThemeChanges: !!changes.theme,
+				themeConfig: globalTheme.getCurrent()
+			});
+			
 			// Save theme changes
 			if (changes.theme) {
-				const updatedTheme = globalTheme.getCurrent();
-				await profileApi.updateProfile({ 
-					theme_config: JSON.stringify(updatedTheme) 
-				}, token);
+				// Only save theme config if it's custom theme
+				// For preset themes, just save the theme name
+				if (currentTheme === 'custom') {
+					const updatedTheme = globalTheme.getCurrent();
+					console.log('[SAVE] Saving CUSTOM theme config:', updatedTheme);
+					await profileApi.updateProfile({ 
+						theme_config: JSON.stringify(updatedTheme),
+						theme_name: 'custom'
+					}, token);
+				} else {
+					console.log('[SAVE] Saving PRESET theme name only:', currentTheme);
+					await profileApi.updateProfile({ 
+						theme_name: currentTheme
+					}, token);
+				}
 			}
 			
 			// Save header changes
@@ -254,7 +271,41 @@
 			syncPreviewStyles(linksData || []);
 			
 			// Load theme from profile
-			if (profileData?.theme_config) {
+			const savedThemeName = profileData?.theme_name || 'default';
+			console.log('[LOAD] Loading theme:', {
+				theme_name: savedThemeName,
+				has_theme_config: !!profileData?.theme_config,
+				profileData_keys: Object.keys(profileData || {})
+			});
+			
+			if (savedThemeName && savedThemeName !== 'custom') {
+				// Load preset theme
+				console.log('[LOAD] Loading PRESET theme:', savedThemeName);
+				const preset = themePresets[savedThemeName];
+				console.log('[LOAD] Preset found:', !!preset, preset?.page);
+				if (preset) {
+					globalTheme.setPreset(savedThemeName);
+					currentTheme = savedThemeName;
+					
+					// Find category
+					for (const [categoryId, categoryThemes] of Object.entries(themes)) {
+						const found = categoryThemes.find(t => t.id === savedThemeName);
+						if (found) {
+							selectedCategory = categoryId;
+							break;
+						}
+					}
+					console.log('[LOAD] Preset theme loaded:', { 
+						currentTheme, 
+						selectedCategory,
+						themeConfig: globalTheme.getCurrent()
+					});
+				} else {
+					console.error('[LOAD] Preset not found for:', savedThemeName);
+				}
+			} else if (savedThemeName === 'custom' && profileData?.theme_config) {
+				// Load custom theme
+				console.log('[LOAD] Loading CUSTOM theme');
 				try {
 					const themeStr = typeof profileData.theme_config === 'string' 
 						? profileData.theme_config 
@@ -262,39 +313,12 @@
 					
 					if (themeStr && themeStr !== '{}' && themeStr !== 'null') {
 						globalTheme.loadFromJSON(themeStr);
-						
-						// Detect which theme preset is active
-						const loadedTheme = JSON.parse(themeStr);
-						let themeFound = false;
-						
-						for (const [presetName, preset] of Object.entries(themePresets)) {
-							const match = 
-								preset.page.pageBackground === loadedTheme.pageBackground &&
-								preset.page.textColor === loadedTheme.textColor &&
-								preset.card.cardBackground === loadedTheme.cardBackground;
-							if (match) {
-								// Find theme ID from themes object
-								for (const [categoryId, categoryThemes] of Object.entries(themes)) {
-									const found = categoryThemes.find(t => t.preset === presetName);
-									if (found) {
-										currentTheme = found.id;
-										selectedCategory = categoryId;
-										themeFound = true;
-										break;
-									}
-								}
-								break;
-							}
-						}
-						
-						// If no preset matches, it's a custom theme
-						if (!themeFound) {
-							currentTheme = 'custom';
-							selectedCategory = 'custom';
-						}
+						currentTheme = 'custom';
+						selectedCategory = 'custom';
+						console.log('[LOAD] Custom theme loaded:', globalTheme.getCurrent());
 					}
 				} catch (themeError) {
-					console.warn('Failed to load theme:', themeError);
+					console.warn('[LOAD] Failed to load custom theme:', themeError);
 				}
 			}
 			

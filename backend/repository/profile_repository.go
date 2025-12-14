@@ -17,7 +17,7 @@ func (r *ProfileRepository) GetByUsername(username string) (*Profile, error) {
 	var profile Profile
 	var themeJSON, headerJSON sql.NullString
 	query := `
-		SELECT p.id, p.user_id, u.username, p.avatar_url, p.bio, 
+		SELECT p.id, p.user_id, u.username, p.avatar_url, p.bio, p.theme_name,
 		       p.theme_config, p.header_config, p.social_links, p.custom_css,
 		       COALESCE(p.show_share_button, true), COALESCE(p.show_subscribe_button, true), COALESCE(p.hide_branding, false),
 		       p.created_at, p.updated_at
@@ -27,7 +27,7 @@ func (r *ProfileRepository) GetByUsername(username string) (*Profile, error) {
 	`
 	err := r.db.QueryRow(query, username).Scan(
 		&profile.ID, &profile.UserID, &profile.Username, &profile.AvatarURL,
-		&profile.Bio, &themeJSON, &headerJSON, &profile.SocialLinks, &profile.CustomCSS,
+		&profile.Bio, &profile.ThemeName, &themeJSON, &headerJSON, &profile.SocialLinks, &profile.CustomCSS,
 		&profile.ShowShareButton, &profile.ShowSubscribeButton, &profile.HideBranding,
 		&profile.CreatedAt, &profile.UpdatedAt,
 	)
@@ -47,7 +47,7 @@ func (r *ProfileRepository) GetByUserID(userID string) (*Profile, error) {
 	var profile Profile
 	var themeJSON, headerJSON sql.NullString
 	query := `
-		SELECT p.id, p.user_id, u.username, p.avatar_url, p.bio,
+		SELECT p.id, p.user_id, u.username, p.avatar_url, p.bio, p.theme_name,
 		       p.theme_config, p.header_config, p.social_links, p.custom_css,
 		       COALESCE(p.show_share_button, true), COALESCE(p.show_subscribe_button, true), COALESCE(p.hide_branding, false),
 		       p.created_at, p.updated_at
@@ -57,7 +57,7 @@ func (r *ProfileRepository) GetByUserID(userID string) (*Profile, error) {
 	`
 	err := r.db.QueryRow(query, userID).Scan(
 		&profile.ID, &profile.UserID, &profile.Username, &profile.AvatarURL,
-		&profile.Bio, &themeJSON, &headerJSON, &profile.SocialLinks, &profile.CustomCSS,
+		&profile.Bio, &profile.ThemeName, &themeJSON, &headerJSON, &profile.SocialLinks, &profile.CustomCSS,
 		&profile.ShowShareButton, &profile.ShowSubscribeButton, &profile.HideBranding,
 		&profile.CreatedAt, &profile.UpdatedAt,
 	)
@@ -92,12 +92,13 @@ func (r *ProfileRepository) Update(userID string, data map[string]interface{}) (
 		UPDATE profiles
 		SET bio = COALESCE($2, bio),
 		    avatar_url = COALESCE($3, avatar_url),
-		    theme_config = COALESCE($4, theme_config),
-		    header_config = COALESCE($5, header_config),
-		    social_links = COALESCE($6, social_links),
-		    show_share_button = COALESCE($7, show_share_button),
-		    show_subscribe_button = COALESCE($8, show_subscribe_button),
-		    hide_branding = COALESCE($9, hide_branding),
+		    theme_name = COALESCE($4, theme_name),
+		    theme_config = COALESCE($5, theme_config),
+		    header_config = COALESCE($6, header_config),
+		    social_links = COALESCE($7, social_links),
+		    show_share_button = COALESCE($8, show_share_button),
+		    show_subscribe_button = COALESCE($9, show_subscribe_button),
+		    hide_branding = COALESCE($10, hide_branding),
 		    updated_at = CURRENT_TIMESTAMP
 		WHERE user_id = $1
 	`
@@ -122,7 +123,7 @@ func (r *ProfileRepository) Update(userID string, data map[string]interface{}) (
 		}
 	}
 	
-	_, err := r.db.Exec(query, userID, data["bio"], data["avatar_url"], themeConfig, headerConfig, data["social_links"],
+	_, err := r.db.Exec(query, userID, data["bio"], data["avatar_url"], data["theme_name"], themeConfig, headerConfig, data["social_links"],
 		data["show_share_button"], data["show_subscribe_button"], data["hide_branding"])
 	if err != nil {
 		return nil, err

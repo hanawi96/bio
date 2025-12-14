@@ -19,39 +19,25 @@
 		return `#${color}`.toUpperCase();
 	}
 
-	let isInitialized = false;
+	let isSyncing = false;
 
-	// Load initial values from store once
+	// Sync from theme store (when theme preset changes)
 	$effect(() => {
 		const theme = $globalTheme;
-		console.log('[BG] Effect 1 - Load from store:', { 
-			isInitialized, 
-			themeType: theme.pageBackgroundType,
-			currentSelectedType: selectedType 
-		});
-		if (!isInitialized) {
-			selectedType = theme.pageBackgroundType || 'solid';
-			solidColor = normalizeHex(theme.pageBackground || '#ffffff');
-			gradientFrom = normalizeHex(theme.pageGradientFrom || '#faf5ff');
-			gradientTo = normalizeHex(theme.pageGradientTo || '#eff6ff');
-			gradientDirection = theme.pageGradientDirection || 'up';
-			imageUrl = theme.pageBackgroundImage || '';
-			videoUrl = theme.pageBackgroundVideo || '';
-			isInitialized = true;
-			console.log('[BG] Initialized with type:', selectedType);
-		}
+		isSyncing = true;
+		selectedType = theme.pageBackgroundType || 'solid';
+		solidColor = normalizeHex(theme.pageBackground || '#ffffff');
+		gradientFrom = normalizeHex(theme.pageGradientFrom || '#faf5ff');
+		gradientTo = normalizeHex(theme.pageGradientTo || '#eff6ff');
+		gradientDirection = theme.pageGradientDirection || 'up';
+		imageUrl = theme.pageBackgroundImage || '';
+		videoUrl = theme.pageBackgroundVideo || '';
+		setTimeout(() => isSyncing = false, 0);
 	});
 
-	// Auto-update theme on user changes
-	$effect(() => {
-		console.log('[BG] Effect 2 - Auto update:', { 
-			isInitialized, 
-			selectedType, 
-			solidColor, 
-			gradientFrom, 
-			gradientTo 
-		});
-		if (isInitialized) {
+	// Update theme on user changes only
+	function updateTheme() {
+		if (!isSyncing) {
 			const updates: any = {
 				pageBackgroundType: selectedType,
 				pageBackground: solidColor,
@@ -61,10 +47,20 @@
 				pageBackgroundImage: imageUrl,
 				pageBackgroundVideo: videoUrl
 			};
-			console.log('[BG] Updating theme with:', updates);
 			globalTheme.update(updates);
 			pendingChanges.updateTheme(updates);
 		}
+	}
+
+	$effect(() => {
+		selectedType;
+		solidColor;
+		gradientFrom;
+		gradientTo;
+		gradientDirection;
+		imageUrl;
+		videoUrl;
+		updateTheme();
 	});
 
 	async function uploadFile(e: Event, type: 'image' | 'video') {

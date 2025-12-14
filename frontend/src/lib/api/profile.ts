@@ -8,6 +8,7 @@ export interface Profile {
 	username: string;
 	avatar_url?: string;
 	bio?: string;
+	theme_name?: string;
 	theme_config?: string | object;
 	header_config?: string | object;
 	custom_css?: string;
@@ -27,7 +28,14 @@ export interface ApplyThemeResponse {
 }
 
 export const profileApi = {
-	getMyProfile: (token: string) => api.get<Profile>('/profile', token),
+	getMyProfile: async (token: string) => {
+		const profile = await api.get<Profile>('/profile', token);
+		console.log('[API] getMyProfile response:', {
+			theme_name: profile.theme_name,
+			has_theme_config: !!profile.theme_config
+		});
+		return profile;
+	},
 	getPublicProfile: (username: string) => api.get<Profile>(`/p/${username}`),
 	updateProfile: (data: Partial<Profile>, token: string) =>
 		api.put<Profile>('/profile', data, token),

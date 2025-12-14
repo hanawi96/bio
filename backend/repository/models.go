@@ -8,6 +8,7 @@ type Profile struct {
 	Username              string                 `json:"username"`
 	AvatarURL             *string                `json:"avatar_url"`
 	Bio                   *string                `json:"bio"`
+	ThemeName             *string                `json:"theme_name"`
 	ThemeConfig           map[string]interface{} `json:"theme_config"`
 	HeaderConfig          map[string]interface{} `json:"header_config"`
 	SocialLinks           *string                `json:"social_links"`
