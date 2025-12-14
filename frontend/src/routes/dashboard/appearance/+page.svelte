@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { fade } from 'svelte/transition';
 	import { auth } from '$lib/stores/auth';
 	import { get } from 'svelte/store';
 	import { 
@@ -7,6 +8,7 @@
 		themePresets, 
 		themeStyles,
 		currentHeaderStyle,
+		defaultHeaderStyles,
 		cardStylesToLinkFields,
 		textStylesToBlockStyle,
 		applyCardStylesToGroup,
@@ -41,6 +43,7 @@
 	let currentTheme = $state<string>('default');
 	let saving = $state(false);
 	let applying = $state(false);
+	let loading = $state(true);
 	
 	const hasUnsavedChanges = $derived($pendingChanges.hasChanges);
 	
@@ -64,33 +67,7 @@
 
 	const presetColorsCache = new Map<string, ReturnType<typeof getPresetColors>>();
 
-	// Check if current theme is customized
-	function isThemeCustomized(): boolean {
-		if (!currentTheme || currentTheme.startsWith('custom-')) return false;
-		
-		const currentConfig = globalTheme.getCurrent();
-		const preset = themePresets[currentTheme];
-		
-		if (!preset) return false;
-		
-		// Compare key properties
-		const isModified = 
-			currentConfig.pageBackground !== preset.page.pageBackground ||
-			currentConfig.pageBackgroundType !== preset.page.pageBackgroundType ||
-			currentConfig.cardBackground !== preset.card.cardBackground ||
-			currentConfig.cardTextColor !== preset.card.cardTextColor ||
-			currentConfig.cardBorderRadius !== preset.card.cardBorderRadius;
-		
-		return isModified;
-	}
 
-	// Auto-switch to custom when user modifies theme
-	$effect(() => {
-		if (hasUnsavedChanges && isThemeCustomized() && currentTheme !== 'custom') {
-			selectedCategory = 'custom';
-			currentTheme = 'custom';
-		}
-	});
 
 	async function saveAllChanges() {
 		if (saving || !hasUnsavedChanges) return;
@@ -100,51 +77,52 @@
 			const changes = pendingChanges.getAll();
 			const token = get(auth).token!;
 			
-			console.log('[SAVE] saveAllChanges called:', {
-				currentTheme,
-				hasThemeChanges: !!changes.theme,
-				themeConfig: globalTheme.getCurrent()
-			});
-			
 			// Save theme changes
-			if (changes.theme) {
-				// Only save theme config if it's custom theme
-				// For preset themes, just save the theme name
+			if (changes.theme || changes.header || changes.linkStyles) {
+				const updatedTheme = globalTheme.getCurrent();
+				const updatedHeader = get(currentHeaderStyle);
+				
 				if (currentTheme === 'custom') {
-					const updatedTheme = globalTheme.getCurrent();
-					console.log('[SAVE] Saving CUSTOM theme config:', updatedTheme);
+					// Save COMPLETE custom theme (page + card + header)
+					// Build complete custom theme config
+					const customThemeData = {
+						...updatedTheme,
+						header: updatedHeader
+					};
+					
 					await profileApi.updateProfile({ 
-						theme_config: JSON.stringify(updatedTheme),
+						custom_theme_config: JSON.stringify(customThemeData),
 						theme_name: 'custom'
 					}, token);
+					
+					// Save link styles if changed
+					if (changes.linkStyles) {
+						await linksApi.updateAllGroupStyles(changes.linkStyles, token);
+					}
 				} else {
-					console.log('[SAVE] Saving PRESET theme name only:', currentTheme);
+					// Save preset theme
 					await profileApi.updateProfile({ 
-						theme_name: currentTheme
+						theme_name: currentTheme,
+						theme_config: JSON.stringify(updatedTheme)
 					}, token);
+					
+					// Save header separately for preset
+					if (changes.header) {
+						await profileApi.updateProfile({ 
+							header_config: JSON.stringify(updatedHeader) 
+						}, token);
+					}
+					
+					// Save link styles
+					if (changes.linkStyles) {
+						await linksApi.updateAllGroupStyles(changes.linkStyles, token);
+					}
 				}
-			}
-			
-			// Save header changes
-			if (changes.header) {
-				await profileApi.updateProfile({ 
-					header_config: JSON.stringify(get(currentHeaderStyle)) 
-				}, token);
-			}
-			
-			// Save link styles
-			if (changes.linkStyles) {
-				await linksApi.updateAllGroupStyles(changes.linkStyles, token);
 			}
 			
 			// Reload data
 			links = await linksApi.getLinks(token);
 			syncPreviewStyles(links);
-			
-			// If currently on custom theme, keep it selected after save
-			if (currentTheme === 'custom') {
-				selectedCategory = 'custom';
-			}
 			
 			pendingChanges.reset();
 			toast.success('All changes saved!');
@@ -239,8 +217,98 @@
 	onMount(async () => {
 		try {
 			const token = get(auth).token;
-			const [profileData, linksData, blocksData] = await Promise.all([
-				profileApi.getMyProfile(token!).catch(() => null),
+			
+			// Load profile first to get theme config
+			const profileData = await profileApi.getMyProfile(token!).catch(() => null);
+			
+			// Load theme IMMEDIATELY before other data
+			const savedThemeName = profileData?.theme_name || 'default';
+			
+			if (savedThemeName === 'custom') {
+				// Load COMPLETE custom theme (page + card + header)
+				if (profileData?.custom_theme_config) {
+					try {
+						const customConfig = typeof profileData.custom_theme_config === 'string' 
+							? JSON.parse(profileData.custom_theme_config)
+							: profileData.custom_theme_config;
+						
+						if (customConfig && Object.keys(customConfig).length > 0) {
+							// Load page + card styles
+							const { header, ...themeConfig } = customConfig;
+							globalTheme.loadFromJSON(JSON.stringify(themeConfig));
+							
+							// Load header if exists in custom config
+							if (header) {
+								currentHeaderStyle.set(header);
+							}
+							
+							currentTheme = 'custom';
+							selectedCategory = 'custom';
+						} else {
+							globalTheme.setPreset('default');
+							currentTheme = 'default';
+							selectedCategory = 'cozy';
+						}
+					} catch (themeError) {
+						console.warn('Failed to parse custom theme:', themeError);
+						globalTheme.setPreset('default');
+						currentTheme = 'default';
+						selectedCategory = 'cozy';
+					}
+				} else {
+					globalTheme.setPreset('default');
+					currentTheme = 'default';
+					selectedCategory = 'cozy';
+				}
+			} else if (savedThemeName) {
+				// Load preset theme: check theme_config first, then use preset default
+				if (profileData?.theme_config) {
+					try {
+						const themeStr = typeof profileData.theme_config === 'string' 
+							? profileData.theme_config 
+							: JSON.stringify(profileData.theme_config);
+						
+						if (themeStr && themeStr !== '{}' && themeStr !== 'null' && themeStr !== 'undefined') {
+							globalTheme.loadFromJSON(themeStr);
+						} else {
+							globalTheme.setPreset(savedThemeName);
+						}
+					} catch {
+						globalTheme.setPreset(savedThemeName);
+					}
+				} else {
+					globalTheme.setPreset(savedThemeName);
+				}
+				
+				currentTheme = savedThemeName;
+				
+				// Find category
+				for (const [categoryId, categoryThemes] of Object.entries(themes)) {
+					const found = categoryThemes.find(t => t.id === savedThemeName);
+					if (found) {
+						selectedCategory = categoryId;
+						break;
+					}
+				}
+			}
+			
+			// Load header config from profile
+			if (profileData?.header_config) {
+				try {
+					const headerConfig = typeof profileData.header_config === 'string' 
+						? JSON.parse(profileData.header_config) 
+						: profileData.header_config;
+					
+					if (headerConfig && Object.keys(headerConfig).length > 0) {
+						currentHeaderStyle.set(headerConfig);
+					}
+				} catch (headerError) {
+					console.warn('Failed to load header config:', headerError);
+				}
+			}
+			
+			// Load other data after theme is set
+			const [linksData, blocksData] = await Promise.all([
 				linksApi.getLinks(token!).catch(() => []),
 				blocksApi.getBlocks(token!).catch(() => [])
 			]);
@@ -270,119 +338,78 @@
 			// Sync previewStyles from links data
 			syncPreviewStyles(linksData || []);
 			
-			// Load theme from profile
-			const savedThemeName = profileData?.theme_name || 'default';
-			console.log('[LOAD] Loading theme:', {
-				theme_name: savedThemeName,
-				has_theme_config: !!profileData?.theme_config,
-				profileData_keys: Object.keys(profileData || {})
-			});
-			
-			if (savedThemeName && savedThemeName !== 'custom') {
-				// Load preset theme
-				console.log('[LOAD] Loading PRESET theme:', savedThemeName);
-				const preset = themePresets[savedThemeName];
-				console.log('[LOAD] Preset found:', !!preset, preset?.page);
-				if (preset) {
-					globalTheme.setPreset(savedThemeName);
-					currentTheme = savedThemeName;
-					
-					// Find category
-					for (const [categoryId, categoryThemes] of Object.entries(themes)) {
-						const found = categoryThemes.find(t => t.id === savedThemeName);
-						if (found) {
-							selectedCategory = categoryId;
-							break;
-						}
-					}
-					console.log('[LOAD] Preset theme loaded:', { 
-						currentTheme, 
-						selectedCategory,
-						themeConfig: globalTheme.getCurrent()
-					});
-				} else {
-					console.error('[LOAD] Preset not found for:', savedThemeName);
-				}
-			} else if (savedThemeName === 'custom' && profileData?.theme_config) {
-				// Load custom theme
-				console.log('[LOAD] Loading CUSTOM theme');
-				try {
-					const themeStr = typeof profileData.theme_config === 'string' 
-						? profileData.theme_config 
-						: JSON.stringify(profileData.theme_config);
-					
-					if (themeStr && themeStr !== '{}' && themeStr !== 'null') {
-						globalTheme.loadFromJSON(themeStr);
-						currentTheme = 'custom';
-						selectedCategory = 'custom';
-						console.log('[LOAD] Custom theme loaded:', globalTheme.getCurrent());
-					}
-				} catch (themeError) {
-					console.warn('[LOAD] Failed to load custom theme:', themeError);
-				}
-			}
-			
-			// Load header config from profile
-			if (profileData?.header_config) {
-				try {
-					const headerConfig = typeof profileData.header_config === 'string' 
-						? JSON.parse(profileData.header_config) 
-						: profileData.header_config;
-					
-					if (headerConfig && Object.keys(headerConfig).length > 0) {
-						currentHeaderStyle.set(headerConfig);
-					}
-				} catch (headerError) {
-					console.warn('Failed to load header config:', headerError);
-				}
-			}
 		} catch (e: any) {
 			console.error('Failed to load data:', e);
+		} finally {
+			loading = false;
 		}
 	});
 
-	/**
-	 * Apply theme preset or load custom theme
-	 */
 	async function selectTheme(themeId: string, presetName: string) {
 		if (applying) return;
 		
-		console.log('🎨 selectTheme called:', { themeId, presetName });
-		
-		// If selecting custom, reload saved config from profile
+		// If selecting custom, reload ALL saved data from database
 		if (themeId === 'custom') {
-			console.log('📦 Loading custom theme from DB...');
 			currentTheme = 'custom';
 			selectedCategory = 'custom';
 			
-			// Reload theme config from profile (DB)
 			try {
 				const token = get(auth).token;
-				const profileData = await profileApi.getMyProfile(token!);
 				
-				if (profileData?.theme_config) {
-					const themeStr = typeof profileData.theme_config === 'string' 
-						? profileData.theme_config 
-						: JSON.stringify(profileData.theme_config);
+				// Reload ALL data from database to reset any preview changes
+				const [profileData, linksData, blocksData] = await Promise.all([
+					profileApi.getMyProfile(token!),
+					linksApi.getLinks(token!),
+					blocksApi.getBlocks(token!)
+				]);
+				
+				// Load COMPLETE custom theme (page + card + header)
+				if (profileData?.custom_theme_config) {
+					const customConfig = typeof profileData.custom_theme_config === 'string' 
+						? JSON.parse(profileData.custom_theme_config)
+						: profileData.custom_theme_config;
 					
-					console.log('✅ Custom theme loaded from DB:', JSON.parse(themeStr));
-					globalTheme.loadFromJSON(themeStr);
-					
-					// Reload header config
-					if (profileData?.header_config) {
-						const headerConfig = typeof profileData.header_config === 'string' 
-							? JSON.parse(profileData.header_config) 
-							: profileData.header_config;
-						currentHeaderStyle.set(headerConfig);
+					if (customConfig && Object.keys(customConfig).length > 0) {
+						// Load page + card styles
+						const { header, ...themeConfig } = customConfig;
+						globalTheme.loadFromJSON(JSON.stringify(themeConfig));
+						
+						// Load header if exists in custom config
+						if (header) {
+							currentHeaderStyle.set(header);
+						} else {
+							currentHeaderStyle.set(defaultHeaderStyles);
+						}
+					} else {
+						globalTheme.setPreset('default');
+						currentHeaderStyle.set(defaultHeaderStyles);
 					}
-					
-					// Reload links to sync preview
-					const freshLinks = await linksApi.getLinks(token!);
-					links = freshLinks || [];
-					syncPreviewStyles(freshLinks || []);
+				} else {
+					globalTheme.setPreset('default');
+					currentHeaderStyle.set(defaultHeaderStyles);
 				}
+				
+				// Reset links and blocks to database state
+				links = linksData || [];
+				blocks = blocksData || [];
+				
+				// Apply custom theme card styles to preview
+				const customTheme = globalTheme.getCurrent();
+				previewStyles.update({
+					card_background_color: customTheme.cardBackground,
+					card_background_opacity: customTheme.cardBackgroundOpacity,
+					card_text_color: customTheme.cardTextColor,
+					card_border_radius: customTheme.cardBorderRadius,
+					show_shadow: customTheme.cardShadow,
+					shadow_x: customTheme.cardShadowX,
+					shadow_y: customTheme.cardShadowY,
+					shadow_blur: customTheme.cardShadowBlur,
+					has_card_border: customTheme.cardBorder,
+					card_border_color: customTheme.cardBorderColor,
+					card_border_width: customTheme.cardBorderWidth
+				});
 			} catch (e: any) {
-				console.error('❌ Failed to load custom theme:', e);
+				console.error('Failed to load custom theme:', e);
 				toast.error('Failed to load custom theme');
 			}
 			
@@ -390,29 +417,18 @@
 			return;
 		}
 		
+		// Apply preset theme
 		const preset = themePresets[presetName];
-		if (!preset) {
-			console.warn('⚠️ Preset not found:', presetName);
-			return;
-		}
+		if (!preset) return;
 
-		console.log('🎭 Applying preset:', presetName);
-
-		// Reset previewStyles to clear any custom overrides
 		previewStyles.reset();
-
-		// Optimistic update - reset everything to theme preset
-		const oldTheme = currentTheme;
 		currentTheme = themeId;
 		globalTheme.setPreset(presetName);
-		console.log('✅ Theme set to:', themeId);
 		
-		// Update header style
 		if (preset.header) {
 			currentHeaderStyle.set(preset.header);
 		}
 		
-		// Update groups only if they exist
 		const hasLinkGroups = links?.some(l => l.is_group);
 		const hasBlockGroups = blocks?.some(b => b.is_group);
 		
@@ -423,14 +439,12 @@
 			blocks = blocks.map(block => block.is_group ? applyTextStylesToGroup(block, preset.text) : block);
 		}
 
-		// Mark as having changes (will need to save)
 		pendingChanges.updateTheme({ ...preset.page, ...preset.card });
 		pendingChanges.updateHeader(preset.header);
 		
 		const cardStyles = cardStylesToLinkFields(preset.card, preset.text);
 		pendingChanges.updateLinkStyles(cardStyles);
 		
-		console.log('⚠️ Theme changed - need to Save All to persist');
 		toast.info('Theme preview applied. Click "Save All" to keep changes.');
 	}
 
@@ -498,6 +512,19 @@
 </script>
 
 <div class="h-full bg-gray-50">
+	{#if loading}
+		<!-- Loading State -->
+		<div class="h-full flex items-center justify-center">
+			<div class="text-center">
+				<svg class="w-12 h-12 animate-spin text-indigo-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
+					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+					<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+				</svg>
+				<p class="text-sm text-gray-600">Loading appearance settings...</p>
+			</div>
+		</div>
+	{:else}
+	<div in:fade={{ duration: 200 }}>
 	<!-- Page Header -->
 	<div class="bg-white/80 backdrop-blur-xl border-b border-gray-200/50 px-8 h-16 sticky top-0 z-50">
 		<div class="flex items-center justify-between h-full">
@@ -750,6 +777,8 @@
 			</div>
 		</div>
 	</div>
+	</div>
+{/if}
 </div>
 
 
@@ -923,3 +952,4 @@
 		</div>
 	</div>
 {/if}
+

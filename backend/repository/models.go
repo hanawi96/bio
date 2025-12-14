@@ -10,6 +10,7 @@ type Profile struct {
 	Bio                   *string                `json:"bio"`
 	ThemeName             *string                `json:"theme_name"`
 	ThemeConfig           map[string]interface{} `json:"theme_config"`
+	CustomThemeConfig     map[string]interface{} `json:"custom_theme_config"`
 	HeaderConfig          map[string]interface{} `json:"header_config"`
 	SocialLinks           *string                `json:"social_links"`
 	CustomCSS             *string                `json:"custom_css"`
