@@ -56,18 +56,79 @@
 		const _ = $globalTheme;
 	});
 	
-	// Auto-switch to custom when modifying preset
+	// Auto-switch to custom when modifying preset (or back to preset if values match)
 	function checkAndSwitchToCustom() {
-		// Skip check during initial load or if already custom
-		if (isInitialLoad || currentTheme === 'custom') return;
+		// Skip check during initial load
+		if (isInitialLoad) return;
 		
 		const current = globalTheme.getCurrent();
 		const currentHeader = get(currentHeaderStyle);
-		const preset = themePresets[currentTheme];
 		
+		// If already custom, check if we can switch back to any preset
+		if (currentTheme === 'custom') {
+			// Check all presets to see if current values match any
+			for (const [presetName, preset] of Object.entries(themePresets)) {
+				const textAlign = preset.text.textAlign === 'left' ? 'left' : preset.text.textAlign === 'right' ? 'right' : 'center';
+				const presetConfig = { 
+					...preset.page, 
+					...preset.card,
+					textAlignment: textAlign,
+					textSize: 'M',
+					imageShape: 'square'
+				};
+				
+				const themeMatches = 
+					current.textAlignment === presetConfig.textAlignment &&
+					current.textSize === presetConfig.textSize &&
+					current.imageShape === presetConfig.imageShape &&
+					current.cardBackground === presetConfig.cardBackground &&
+					current.cardBackgroundOpacity === presetConfig.cardBackgroundOpacity &&
+					current.cardTextColor === presetConfig.cardTextColor &&
+					current.cardBorderRadius === presetConfig.cardBorderRadius &&
+					current.pageBackground === presetConfig.pageBackground &&
+					current.pageBackgroundType === presetConfig.pageBackgroundType;
+				
+				const headerMatches = !preset.header || (
+					currentHeader.layout === preset.header.layout &&
+					currentHeader.coverType === preset.header.coverType &&
+					currentHeader.coverColor === preset.header.coverColor &&
+					currentHeader.coverGradientFrom === preset.header.coverGradientFrom &&
+					currentHeader.coverGradientTo === preset.header.coverGradientTo &&
+					currentHeader.coverHeight === preset.header.coverHeight &&
+					currentHeader.avatarSize === preset.header.avatarSize &&
+					currentHeader.avatarBorder === preset.header.avatarBorder &&
+					currentHeader.avatarShape === preset.header.avatarShape &&
+					currentHeader.showCover === preset.header.showCover &&
+					currentHeader.bioAlign === preset.header.bioAlign &&
+					currentHeader.bioSize === preset.header.bioSize
+				);
+				
+				if (themeMatches && headerMatches) {
+					// Found matching preset! Switch back
+					const wasCustom = currentTheme === 'custom';
+					currentTheme = presetName;
+					selectedCategory = Object.entries(themes).find(([_, items]) => 
+						items.some(item => item.id === presetName)
+					)?.[0] || 'all';
+					
+					// Clear pending changes since we're back to a saved preset
+					if (savedThemeName === presetName) {
+						pendingChanges.reset();
+						if (wasCustom) {
+							toast.info(`Switched back to ${themes[selectedCategory]?.find(t => t.id === presetName)?.name || presetName} theme`);
+						}
+					}
+					return;
+				}
+			}
+			// Still custom, no matching preset found
+			return;
+		}
+		
+		// Currently on a preset, check if modified
+		const preset = themePresets[currentTheme];
 		if (!preset) return;
 		
-		// Build preset config with typography
 		const textAlign = preset.text.textAlign === 'left' ? 'left' : preset.text.textAlign === 'right' ? 'right' : 'center';
 		const presetConfig = { 
 			...preset.page, 
@@ -77,7 +138,6 @@
 			imageShape: 'square'
 		};
 		
-		// Compare theme fields
 		const themeChanged = 
 			current.textAlignment !== presetConfig.textAlignment ||
 			current.textSize !== presetConfig.textSize ||
@@ -89,7 +149,6 @@
 			current.pageBackground !== presetConfig.pageBackground ||
 			current.pageBackgroundType !== presetConfig.pageBackgroundType;
 		
-		// Compare header fields (only if preset has header)
 		let headerChanged = false;
 		if (preset.header) {
 			headerChanged = 
@@ -108,9 +167,15 @@
 		}
 		
 		if (themeChanged || headerChanged) {
+			// Modified from preset, switch to custom
 			currentTheme = 'custom';
 			selectedCategory = 'custom';
 			toast.info('Switched to Custom theme');
+		} else {
+			// Back to preset values, clear pending if this preset is saved
+			if (savedThemeName === currentTheme) {
+				pendingChanges.reset();
+			}
 		}
 	}
 	
