@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { previewStyles } from '$lib/stores/previewStyles';
+	import { globalTheme } from '$lib/stores/theme';
 	import { pendingChanges } from '$lib/stores/pendingChanges';
-
-	let { links = [] }: { links?: any[] } = $props();
 
 	const shadowPresets = {
 		subtle: { x: 0, y: 2, blur: 4 },
@@ -10,25 +9,21 @@
 		strong: { x: 0, y: 8, blur: 20 }
 	};
 
-	// Sync from first group in links
-	const firstGroup = $derived(links.find(l => l.is_group));
-	// Read from previewStyles first, fallback to firstGroup
-	const showShadow = $derived($previewStyles.show_shadow ?? firstGroup?.show_shadow ?? false);
-	const shadowX = $derived($previewStyles.shadow_x ?? firstGroup?.shadow_x ?? 0);
-	const shadowY = $derived($previewStyles.shadow_y ?? firstGroup?.shadow_y ?? 4);
-	const shadowBlur = $derived($previewStyles.shadow_blur ?? firstGroup?.shadow_blur ?? 10);
+	// Read from previewStyles first, fallback to globalTheme (NOT from links!)
+	const showShadow = $derived($previewStyles.show_shadow ?? $globalTheme.cardShadow ?? false);
+	const shadowX = $derived(Number($previewStyles.shadow_x ?? $globalTheme.cardShadowX ?? 0));
+	const shadowY = $derived(Number($previewStyles.shadow_y ?? $globalTheme.cardShadowY ?? 4));
+	const shadowBlur = $derived(Number($previewStyles.shadow_blur ?? $globalTheme.cardShadowBlur ?? 10));
 	
-	// Detect which preset matches current shadow values
+	// Detect which preset matches current shadow values (flexible comparison)
 	const currentPreset = $derived<'subtle' | 'medium' | 'strong' | 'custom'>(
-		shadowX === 0 && shadowY === 2 && shadowBlur === 4 ? 'subtle' :
-		shadowX === 0 && shadowY === 4 && shadowBlur === 10 ? 'medium' :
-		shadowX === 0 && shadowY === 8 && shadowBlur === 20 ? 'strong' :
+		Math.round(shadowX) === 0 && Math.round(shadowY) === 2 && Math.round(shadowBlur) === 4 ? 'subtle' :
+		Math.round(shadowX) === 0 && Math.round(shadowY) === 4 && Math.round(shadowBlur) === 10 ? 'medium' :
+		Math.round(shadowX) === 0 && Math.round(shadowY) === 8 && Math.round(shadowBlur) === 20 ? 'strong' :
 		'custom'
 	);
 	
-	let showCustomShadow = $state(false);
-
-
+	let showCustomPanel = $state(false);
 
 	function updateShadow(enabled: boolean, preset?: 'subtle' | 'medium' | 'strong') {
 		let x = shadowX, y = shadowY, blur = shadowBlur;
@@ -39,13 +34,45 @@
 			blur = shadow.blur;
 		}
 		
+		// Update theme config (single source of truth)
+		globalTheme.update({ 
+			cardShadow: enabled, 
+			cardShadowX: x, 
+			cardShadowY: y, 
+			cardShadowBlur: blur 
+		});
+		
+		// Update preview
 		previewStyles.update({ show_shadow: enabled, shadow_x: x, shadow_y: y, shadow_blur: blur });
-		pendingChanges.updateLinkStyles({ show_shadow: enabled, shadow_x: x, shadow_y: y, shadow_blur: blur });
+		
+		// Mark as pending
+		pendingChanges.updateTheme({ 
+			cardShadow: enabled, 
+			cardShadowX: x, 
+			cardShadowY: y, 
+			cardShadowBlur: blur 
+		});
 	}
 
 	function updateCustomShadow(x: number, y: number, blur: number) {
+		// Update theme config
+		globalTheme.update({ 
+			cardShadow: true, 
+			cardShadowX: x, 
+			cardShadowY: y, 
+			cardShadowBlur: blur 
+		});
+		
+		// Update preview
 		previewStyles.update({ show_shadow: true, shadow_x: x, shadow_y: y, shadow_blur: blur });
-		pendingChanges.updateLinkStyles({ show_shadow: true, shadow_x: x, shadow_y: y, shadow_blur: blur });
+		
+		// Mark as pending
+		pendingChanges.updateTheme({ 
+			cardShadow: true, 
+			cardShadowX: x, 
+			cardShadowY: y, 
+			cardShadowBlur: blur 
+		});
 	}
 </script>
 
@@ -73,52 +100,52 @@
 		<div class="flex gap-2">
 			<button 
 				onclick={() => {
-					showCustomShadow = false;
+					showCustomPanel = false;
 					updateShadow(true, 'subtle');
 				}}
 				class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
-				class:border-indigo-600={!showCustomShadow && currentPreset === 'subtle'}
-				class:bg-indigo-50={!showCustomShadow && currentPreset === 'subtle'}
-				class:border-gray-200={showCustomShadow || currentPreset !== 'subtle'}
+				class:border-indigo-600={currentPreset === 'subtle'}
+				class:bg-indigo-50={currentPreset === 'subtle'}
+				class:border-gray-200={currentPreset !== 'subtle'}
 			>
 				Subtle
 			</button>
 			<button 
 				onclick={() => {
-					showCustomShadow = false;
+					showCustomPanel = false;
 					updateShadow(true, 'medium');
 				}}
 				class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
-				class:border-indigo-600={!showCustomShadow && currentPreset === 'medium'}
-				class:bg-indigo-50={!showCustomShadow && currentPreset === 'medium'}
-				class:border-gray-200={showCustomShadow || currentPreset !== 'medium'}
+				class:border-indigo-600={currentPreset === 'medium'}
+				class:bg-indigo-50={currentPreset === 'medium'}
+				class:border-gray-200={currentPreset !== 'medium'}
 			>
 				Medium
 			</button>
 			<button 
 				onclick={() => {
-					showCustomShadow = false;
+					showCustomPanel = false;
 					updateShadow(true, 'strong');
 				}}
 				class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
-				class:border-indigo-600={!showCustomShadow && currentPreset === 'strong'}
-				class:bg-indigo-50={!showCustomShadow && currentPreset === 'strong'}
-				class:border-gray-200={showCustomShadow || currentPreset !== 'strong'}
+				class:border-indigo-600={currentPreset === 'strong'}
+				class:bg-indigo-50={currentPreset === 'strong'}
+				class:border-gray-200={currentPreset !== 'strong'}
 			>
 				Strong
 			</button>
 			<button 
-				onclick={() => showCustomShadow = !showCustomShadow}
+				onclick={() => showCustomPanel = !showCustomPanel}
 				class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
-				class:border-indigo-600={currentPreset === 'custom' || showCustomShadow}
-				class:bg-indigo-50={currentPreset === 'custom' || showCustomShadow}
-				class:border-gray-200={currentPreset !== 'custom' && !showCustomShadow}
+				class:border-indigo-600={showCustomPanel || currentPreset === 'custom'}
+				class:bg-indigo-50={showCustomPanel || currentPreset === 'custom'}
+				class:border-gray-200={!showCustomPanel && currentPreset !== 'custom'}
 			>
 				Custom
 			</button>
 		</div>
 
-		{#if showCustomShadow}
+		{#if showCustomPanel}
 			<div class="p-3 bg-indigo-50 rounded-lg border border-indigo-200 space-y-3">
 				<!-- Shadow X -->
 				<div>

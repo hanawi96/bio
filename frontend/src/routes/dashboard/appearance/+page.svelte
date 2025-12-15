@@ -251,6 +251,7 @@
 			const token = get(auth).token!;
 			const updatedTheme = globalTheme.getCurrent();
 			const updatedHeader = get(currentHeaderStyle);
+			const changes = pendingChanges.getAll();
 			
 			if (currentTheme === 'custom') {
 				// Save custom theme with header included in custom_theme_config
@@ -271,6 +272,11 @@
 					header_config: JSON.stringify(updatedHeader)
 				}, token);
 				savedThemeName = currentTheme;
+			}
+			
+			// Save link styles if there are any changes
+			if (changes.linkStyles && Object.keys(changes.linkStyles).length > 0) {
+				await linksApi.updateAllGroupStyles(changes.linkStyles, token);
 			}
 			
 			// Reload links
