@@ -16,9 +16,23 @@
 	const bio = $derived(profile?.bio || '');
 	const bioFontSize = $derived(headerStyle.bioSize === 'sm' ? '0.875rem' : headerStyle.bioSize === 'lg' ? '1.125rem' : '1rem');
 	
-	// Helper to get alignment classes
+	// Debug logs
+	$effect(() => {
+		console.log('[ProfileHeader] headerStyle:', {
+			bioAlign: headerStyle.bioAlign,
+			avatarAlign: headerStyle.avatarAlign,
+			layout: headerStyle.layout,
+			bioSize: headerStyle.bioSize,
+			bioTextColor: headerStyle.bioTextColor
+		});
+	});
+	
+	// Helper to get alignment classes for BIO
 	const getAlignClass = $derived(headerStyle.bioAlign === 'left' ? 'text-left' : headerStyle.bioAlign === 'right' ? 'text-right' : 'text-center');
 	const getJustifyClass = $derived(headerStyle.bioAlign === 'left' ? 'justify-start' : headerStyle.bioAlign === 'right' ? 'justify-end' : 'justify-center');
+	
+	// Helper to get alignment classes for AVATAR
+	const getAvatarJustifyClass = $derived(headerStyle.avatarAlign === 'left' ? 'justify-start' : headerStyle.avatarAlign === 'right' ? 'justify-end' : 'justify-center');
 	
 	// Helper to get avatar shape classes and styles
 	const avatarShape = $derived(headerStyle.avatarShape || 'circle');
@@ -65,13 +79,13 @@
 			<div style="height: {headerStyle.coverHeight}px; background: {headerStyle.coverType === 'gradient' ? `linear-gradient(135deg, ${headerStyle.coverGradientFrom}, ${headerStyle.coverGradientTo})` : headerStyle.coverColor};"></div>
 		{/if}
 		<div class="px-6 pb-6" style="padding-top: {headerStyle.showCover ? '20px' : '80px'};">
-			<div class="flex justify-center" style="margin-top: {headerStyle.showCover ? `-${headerStyle.avatarSize/2}px` : '0'};">
+			<div class="flex {getAvatarJustifyClass}" style="margin-top: {headerStyle.showCover ? `-${headerStyle.avatarSize/2}px` : '0'};">
 				<img src={avatarSrc} alt="Avatar" class="{getAvatarClass} object-cover shadow-xl" style={getAvatarStyle()} />
 			</div>
-			<div class="mt-3" style="text-align: {headerStyle.bioAlign};">
+			<div class="mt-3 flex flex-col {getAvatarJustifyClass}" style="text-align: {headerStyle.avatarAlign};">
 				<h2 class="text-xl font-bold" style="color: {textColor};">@{username}</h2>
 				{#if socialLinks.length > 0}
-					<div class="flex gap-2 mt-2" style="justify-content: {headerStyle.bioAlign};">
+					<div class="flex gap-2 mt-2" style="justify-content: {headerStyle.avatarAlign};">
 						{#each socialLinks as link}
 							<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110" title={link.platform}>
 								<svg class="w-3.5 h-3.5" style="color: {textColor};" fill="currentColor" viewBox="0 0 24 24">
@@ -81,8 +95,8 @@
 						{/each}
 					</div>
 				{/if}
-				{#if bio}<p class="mt-1" style="color: {textSecondaryColor}; font-size: {bioFontSize};">{bio}</p>{/if}
 			</div>
+			{#if bio}<p class="mt-1" style="color: {textSecondaryColor}; font-size: {bioFontSize}; text-align: {headerStyle.bioAlign};">{bio}</p>{/if}
 		</div>
 	</div>
 {:else if headerStyle.layout === 'overlap'}
@@ -91,13 +105,13 @@
 			<div style="height: {headerStyle.coverHeight}px; background: {headerStyle.coverType === 'gradient' ? `linear-gradient(135deg, ${headerStyle.coverGradientFrom}, ${headerStyle.coverGradientTo})` : headerStyle.coverColor};"></div>
 		{/if}
 		<div class="px-6" style="margin-top: {headerStyle.showCover ? `-${headerStyle.avatarSize/2 + 10}px` : '80px'};">
-			<div class="flex {getJustifyClass}">
+			<div class="flex {getAvatarJustifyClass}">
 				<img src={avatarSrc} alt="Avatar" class="{getAvatarClass} object-cover shadow-2xl" style={getAvatarStyle()} />
 			</div>
-			<div class="mt-4 {getAlignClass}">
+			<div class="mt-4 flex flex-col {getAvatarJustifyClass}" style="text-align: {headerStyle.avatarAlign};">
 				<h2 class="text-xl font-bold" style="color: {textColor}; font-size: {bioFontSize};">@{username}</h2>
 				{#if socialLinks.length > 0}
-					<div class="flex gap-2 mt-2 {getJustifyClass}">
+					<div class="flex gap-2 mt-2" style="justify-content: {headerStyle.avatarAlign};">
 						{#each socialLinks as link}
 							<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110" title={link.platform}>
 								<svg class="w-3.5 h-3.5" style="color: {textColor};" fill="currentColor" viewBox="0 0 24 24">
@@ -107,8 +121,8 @@
 						{/each}
 					</div>
 				{/if}
-				{#if bio}<p class="mt-1" style="color: {textSecondaryColor}; font-size: {bioFontSize};">{bio}</p>{/if}
 			</div>
+			{#if bio}<p class="mt-1" style="color: {textSecondaryColor}; font-size: {bioFontSize}; text-align: {headerStyle.bioAlign};">{bio}</p>{/if}
 		</div>
 	</div>
 {:else if headerStyle.layout === 'card'}
@@ -117,13 +131,13 @@
 			{#if headerStyle.showCover}
 				<div class="rounded-xl mb-4" style="height: {headerStyle.coverHeight}px; background: {headerStyle.coverType === 'gradient' ? `linear-gradient(135deg, ${headerStyle.coverGradientFrom}, ${headerStyle.coverGradientTo})` : headerStyle.coverColor};"></div>
 			{/if}
-			<div class="flex justify-center" style="margin-top: {headerStyle.showCover ? `-${headerStyle.avatarSize/2 + 16}px` : '0'};">
+			<div class="flex {getAvatarJustifyClass}" style="margin-top: {headerStyle.showCover ? `-${headerStyle.avatarSize/2 + 16}px` : '0'};">
 				<img src={avatarSrc} alt="Avatar" class="{getAvatarClass} object-cover shadow-lg" style={getAvatarStyle()} />
 			</div>
-			<div class="mt-3 text-center">
+			<div class="mt-3 flex flex-col {getAvatarJustifyClass}" style="text-align: {headerStyle.avatarAlign};">
 				<h2 class="text-lg font-bold text-gray-900">@{username}</h2>
 				{#if socialLinks.length > 0}
-					<div class="flex gap-2 mt-2 justify-center">
+					<div class="flex gap-2 mt-2" style="justify-content: {headerStyle.avatarAlign};">
 						{#each socialLinks as link}
 							<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-5 h-5 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all hover:scale-110" title={link.platform}>
 								<svg class="w-3 h-3 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
@@ -133,8 +147,8 @@
 						{/each}
 					</div>
 				{/if}
-				{#if bio}<p class="text-sm mt-1 text-gray-600">{bio}</p>{/if}
 			</div>
+			{#if bio}<p class="text-sm mt-1 text-gray-600" style="text-align: {headerStyle.bioAlign};">{bio}</p>{/if}
 		</div>
 	</div>
 {:else if headerStyle.layout === 'glass'}
@@ -144,13 +158,13 @@
 		{/if}
 		<div class="px-6" style="margin-top: {headerStyle.showCover ? `-${headerStyle.avatarSize/2 + 20}px` : '80px'};">
 			<div class="bg-white/20 backdrop-blur-xl rounded-2xl p-5 border border-white/30 shadow-2xl">
-				<div class="flex justify-center">
+				<div class="flex {getAvatarJustifyClass}">
 					<img src={avatarSrc} alt="Avatar" class="{getAvatarClass} object-cover shadow-xl ring-2 ring-white/50" style={getAvatarStyle()} />
 				</div>
-				<div class="mt-4 text-center">
+				<div class="mt-4 flex flex-col {getAvatarJustifyClass}" style="text-align: {headerStyle.avatarAlign};">
 					<h2 class="text-xl font-bold text-white drop-shadow-lg">@{username}</h2>
 					{#if socialLinks.length > 0}
-						<div class="flex gap-2 mt-2 justify-center">
+						<div class="flex gap-2 mt-2" style="justify-content: {headerStyle.avatarAlign};">
 							{#each socialLinks as link}
 								<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110" title={link.platform}>
 									<svg class="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -160,8 +174,8 @@
 							{/each}
 						</div>
 					{/if}
-					{#if bio}<p class="text-sm mt-1 text-white/90 drop-shadow">{bio}</p>{/if}
 				</div>
+				{#if bio}<p class="text-sm mt-1 text-white/90 drop-shadow" style="text-align: {headerStyle.bioAlign};">{bio}</p>{/if}
 			</div>
 		</div>
 	</div>
@@ -173,16 +187,16 @@
 			</div>
 		{/if}
 		<div class="px-6" style="margin-top: {headerStyle.showCover ? `-${headerStyle.avatarSize/2}px` : '80px'};">
-			<div class="flex justify-center">
+			<div class="flex {getAvatarJustifyClass}">
 				<div class="relative">
 					<div class="absolute inset-0 rounded-full" style="background: linear-gradient(135deg, {headerStyle.coverGradientFrom}, {headerStyle.coverGradientTo}); filter: blur(8px); opacity: 0.6;"></div>
 					<img src={avatarSrc} alt="Avatar" class="relative {getAvatarClass} object-cover shadow-2xl" style={getAvatarStyle()} />
 				</div>
 			</div>
-			<div class="mt-4 text-center">
+			<div class="mt-4 flex flex-col {getAvatarJustifyClass}" style="text-align: {headerStyle.avatarAlign};">
 				<h2 class="text-2xl font-bold" style="color: {textColor};">@{username}</h2>
 				{#if socialLinks.length > 0}
-					<div class="flex gap-2 mt-2 justify-center">
+					<div class="flex gap-2 mt-2" style="justify-content: {headerStyle.avatarAlign};">
 						{#each socialLinks as link}
 							<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110" title={link.platform}>
 								<svg class="w-3.5 h-3.5" style="color: {textColor};" fill="currentColor" viewBox="0 0 24 24">
@@ -192,18 +206,18 @@
 						{/each}
 					</div>
 				{/if}
-				{#if bio}<p class="text-base mt-2" style="color: {textSecondaryColor};">{bio}</p>{/if}
 			</div>
+			{#if bio}<p class="text-base mt-2" style="color: {textSecondaryColor}; text-align: {headerStyle.bioAlign};">{bio}</p>{/if}
 		</div>
 	</div>
 {:else if headerStyle.layout === 'minimal'}
 	<div class="px-6 pt-20 pb-6">
-		<div class="flex items-center gap-3">
+		<div class="flex {getAvatarJustifyClass} gap-3">
 			<img src={avatarSrc} alt="Avatar" class="{getAvatarClass} object-cover" style={getAvatarStyle()} />
-			<div class="flex-1">
+			<div class="flex-1" style="text-align: {headerStyle.avatarAlign};">
 				<h2 class="text-lg font-bold" style="color: {textColor};">@{username}</h2>
 				{#if socialLinks.length > 0}
-					<div class="flex gap-2 mt-1">
+					<div class="flex gap-2 mt-1" style="justify-content: {headerStyle.avatarAlign};">
 						{#each socialLinks as link}
 							<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-5 h-5 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110" title={link.platform}>
 								<svg class="w-3 h-3" style="color: {textColor};" fill="currentColor" viewBox="0 0 24 24">
@@ -213,19 +227,19 @@
 						{/each}
 					</div>
 				{/if}
-				{#if bio}<p class="text-xs mt-0.5" style="color: {textSecondaryColor};">{bio}</p>{/if}
 			</div>
 		</div>
+		{#if bio}<p class="text-xs mt-0.5" style="color: {textSecondaryColor}; text-align: {headerStyle.bioAlign};">{bio}</p>{/if}
 	</div>
 {:else if headerStyle.layout === 'full'}
 	<div class="relative">
 		{#if headerStyle.showCover}
-			<div class="flex items-center justify-center" style="height: {headerStyle.coverHeight}px; background: {headerStyle.coverType === 'gradient' ? `linear-gradient(135deg, ${headerStyle.coverGradientFrom}, ${headerStyle.coverGradientTo})` : headerStyle.coverColor};">
-				<div class="text-center">
-					<img src={avatarSrc} alt="Avatar" class="mx-auto {getAvatarClass} object-cover shadow-2xl" style={getAvatarStyle()} />
+			<div class="flex items-center {getAvatarJustifyClass}" style="height: {headerStyle.coverHeight}px; background: {headerStyle.coverType === 'gradient' ? `linear-gradient(135deg, ${headerStyle.coverGradientFrom}, ${headerStyle.coverGradientTo})` : headerStyle.coverColor};">
+				<div style="text-align: {headerStyle.avatarAlign};">
+					<img src={avatarSrc} alt="Avatar" class="{getAvatarClass} object-cover shadow-2xl" style={getAvatarStyle()} />
 					<h2 class="text-2xl font-bold text-white mt-4 drop-shadow-lg">@{username}</h2>
 					{#if socialLinks.length > 0}
-						<div class="flex gap-2 mt-3 justify-center">
+						<div class="flex gap-2 mt-3" style="justify-content: {headerStyle.avatarAlign};">
 							{#each socialLinks as link}
 								<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110" title={link.platform}>
 									<svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -235,7 +249,7 @@
 							{/each}
 						</div>
 					{/if}
-					{#if bio}<p class="text-base text-white/90 mt-2 drop-shadow">{bio}</p>{/if}
+					{#if bio}<p class="text-base text-white/90 mt-2 drop-shadow" style="text-align: {headerStyle.bioAlign};">{bio}</p>{/if}
 				</div>
 			</div>
 		{/if}
@@ -243,12 +257,12 @@
 	</div>
 {:else if headerStyle.layout === 'side'}
 	<div class="px-6 pt-20 pb-6">
-		<div class="flex items-start gap-4">
+		<div class="flex {getAvatarJustifyClass} gap-4">
 			<img src={avatarSrc} alt="Avatar" class="flex-shrink-0 {getAvatarClass} object-cover" style={getAvatarStyle()} />
-			<div class="flex-1 pt-1">
+			<div class="flex-1 pt-1" style="text-align: {headerStyle.avatarAlign};">
 				<h2 class="text-lg font-bold" style="color: {textColor};">@{username}</h2>
 				{#if socialLinks.length > 0}
-					<div class="flex gap-2 mt-2">
+					<div class="flex gap-2 mt-2" style="justify-content: {headerStyle.avatarAlign};">
 						{#each socialLinks as link}
 							<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-5 h-5 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110" title={link.platform}>
 								<svg class="w-3 h-3" style="color: {textColor};" fill="currentColor" viewBox="0 0 24 24">
@@ -271,13 +285,13 @@
 			</div>
 		{/if}
 		<div class="px-6" style="margin-top: {headerStyle.showCover ? `-${headerStyle.avatarSize/2}px` : '80px'};">
-			<div class="flex justify-center">
+			<div class="flex {getAvatarJustifyClass}">
 				<img src={avatarSrc} alt="Avatar" class="{getAvatarClass} object-cover shadow-2xl" style={getAvatarStyle()} />
 			</div>
-			<div class="mt-4 text-center">
+			<div class="mt-4 flex flex-col {getAvatarJustifyClass}" style="text-align: {headerStyle.avatarAlign};">
 				<h2 class="text-xl font-bold" style="color: {textColor};">@{username}</h2>
 				{#if socialLinks.length > 0}
-					<div class="flex gap-2 mt-2 justify-center">
+					<div class="flex gap-2 mt-2" style="justify-content: {headerStyle.avatarAlign};">
 						{#each socialLinks as link}
 							<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110" title={link.platform}>
 								<svg class="w-3.5 h-3.5" style="color: {textColor};" fill="currentColor" viewBox="0 0 24 24">
@@ -299,12 +313,12 @@
 			</div>
 		{/if}
 		<div class="px-6" style="margin-top: {headerStyle.showCover ? `-${headerStyle.avatarSize/2 + 20}px` : '80px'};">
-			<div class="flex items-end gap-4">
+			<div class="flex {getAvatarJustifyClass} gap-4">
 				<img src={avatarSrc} alt="Avatar" class="{getAvatarClass} object-cover shadow-2xl" style={getAvatarStyle()} />
-				<div class="flex-1 pb-2">
+				<div class="flex-1" style="text-align: {headerStyle.avatarAlign};">
 					<h2 class="text-2xl font-bold" style="color: {textColor};">@{username}</h2>
 					{#if socialLinks.length > 0}
-						<div class="flex gap-2 mt-2">
+						<div class="flex gap-2 mt-2" style="justify-content: {headerStyle.avatarAlign};">
 							{#each socialLinks as link}
 								<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110" title={link.platform}>
 									<svg class="w-3.5 h-3.5" style="color: {textColor};" fill="currentColor" viewBox="0 0 24 24">

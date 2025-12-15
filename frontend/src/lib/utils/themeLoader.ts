@@ -21,20 +21,20 @@ export function loadThemeFromProfile(profileData: Profile | null) {
 		// Load custom theme from custom_theme_config (includes header)
 		if (profileData.custom_theme_config) {
 			try {
-				const customConfig = typeof profileData.custom_theme_config === 'string' 
+				const customConfig = typeof profileData.custom_theme_config === 'string'
 					? JSON.parse(profileData.custom_theme_config)
 					: profileData.custom_theme_config;
-				
+
 				if (customConfig && Object.keys(customConfig).length > 0) {
 					// Extract header from custom config
 					const { header, ...themeConfig } = customConfig;
-					
+
 					// Load theme config
 					globalTheme.loadFromJSON(JSON.stringify(themeConfig));
-					
-					// Load header from custom config
+
+					// Load header from custom config, merge with defaults to fill missing fields
 					if (header && Object.keys(header).length > 0) {
-						currentHeaderStyle.set(header);
+						currentHeaderStyle.set({ ...defaultHeaderStyles, ...header });
 					} else {
 						currentHeaderStyle.set(defaultHeaderStyles);
 					}
@@ -53,22 +53,25 @@ export function loadThemeFromProfile(profileData: Profile | null) {
 			globalTheme.setPreset('default');
 			currentHeaderStyle.set(defaultHeaderStyles);
 		}
-		
+
 		syncPreviewStylesFromTheme(); // Sync preview styles
 		return { themeName: 'custom', category: 'custom' };
 	} else {
 		// Load preset theme
 		globalTheme.setPreset(themeName);
-		
+
 		// Load header config from header_config for preset themes
 		if (profileData.header_config) {
 			try {
-				const headerConfig = typeof profileData.header_config === 'string' 
-					? JSON.parse(profileData.header_config) 
+				const headerConfig = typeof profileData.header_config === 'string'
+					? JSON.parse(profileData.header_config)
 					: profileData.header_config;
-				
+
 				if (headerConfig && Object.keys(headerConfig).length > 0) {
-					currentHeaderStyle.set(headerConfig);
+					// Merge with defaults to fill missing fields (like avatarAlign)
+					const preset = themePresets[themeName];
+					const presetHeader = preset?.header || defaultHeaderStyles;
+					currentHeaderStyle.set({ ...presetHeader, ...headerConfig });
 				} else {
 					// Use preset's default header
 					const preset = themePresets[themeName];
@@ -97,7 +100,7 @@ export function loadThemeFromProfile(profileData: Profile | null) {
 				currentHeaderStyle.set(defaultHeaderStyles);
 			}
 		}
-		
+
 		// Find category for preset
 		const themes = {
 			classic: ['mcalpine', 'yoga', 'jerry'],
@@ -105,7 +108,7 @@ export function loadThemeFromProfile(profileData: Profile | null) {
 			cozy: ['minimal', 'default'],
 			bold: ['dark']
 		};
-		
+
 		let category = 'cozy';
 		for (const [cat, themeList] of Object.entries(themes)) {
 			if (themeList.includes(themeName)) {
@@ -113,7 +116,7 @@ export function loadThemeFromProfile(profileData: Profile | null) {
 				break;
 			}
 		}
-		
+
 		syncPreviewStylesFromTheme(); // Sync preview styles
 		return { themeName, category };
 	}

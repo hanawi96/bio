@@ -886,7 +886,14 @@
 
 			<!-- Preview Panel (1/3) -->
 			<div class="lg:col-span-1">
-				<div class="sticky top-24">
+				<div class="sticky top-24 space-y-4">
+					<!-- Preview Header -->
+					<div class="text-center">
+						<h2 class="text-2xl font-bold text-gray-900 mb-2">Live Preview</h2>
+						<p class="text-sm text-gray-500">See how your profile looks</p>
+					</div>
+					
+					<!-- Preview Mockup -->
 					<ProfilePreview 
 						{profile} 
 						{links} 

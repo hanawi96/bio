@@ -61,16 +61,16 @@
 	});
 
 	const presetMap: Record<HeaderStyles['layout'], Partial<HeaderStyles>> = {
-		centered: { layout: 'centered', coverType: 'gradient', coverGradientFrom: '#667eea', coverGradientTo: '#764ba2', coverHeight: 160, avatarSize: 120, avatarBorder: 4, avatarShape: 'circle', showCover: true, bioAlign: 'center', bioSize: 'md' },
-		overlap: { layout: 'overlap', coverType: 'gradient', coverGradientFrom: '#f093fb', coverGradientTo: '#f5576c', coverHeight: 180, avatarSize: 130, avatarBorder: 4, avatarShape: 'circle', showCover: true, bioAlign: 'center', bioSize: 'md' },
-		card: { layout: 'card', coverType: 'gradient', coverGradientFrom: '#4facfe', coverGradientTo: '#00f2fe', coverHeight: 140, avatarSize: 110, avatarBorder: 4, avatarShape: 'circle', showCover: true, bioAlign: 'center', bioSize: 'md' },
-		glass: { layout: 'glass', coverType: 'gradient', coverGradientFrom: '#fa709a', coverGradientTo: '#fee140', coverHeight: 170, avatarSize: 120, avatarBorder: 4, avatarBorderColor: 'rgba(255,255,255,0.2)', avatarShape: 'circle', showCover: true, bioAlign: 'center', bioSize: 'md' },
-		gradient: { layout: 'gradient', coverType: 'gradient', coverGradientFrom: '#30cfd0', coverGradientTo: '#330867', coverHeight: 190, avatarSize: 130, avatarBorder: 5, avatarShape: 'circle', showCover: true, bioAlign: 'center', bioSize: 'lg' },
-		minimal: { layout: 'minimal', coverType: 'color', coverColor: '#f5f5f5', coverHeight: 0, avatarSize: 90, avatarBorder: 2, avatarBorderColor: '#000000', avatarShape: 'circle', showCover: false, bioAlign: 'left', bioSize: 'sm' },
-		full: { layout: 'full', coverType: 'gradient', coverGradientFrom: '#a8edea', coverGradientTo: '#fed6e3', coverHeight: 240, avatarSize: 150, avatarBorder: 6, avatarShape: 'circle', showCover: true, bioAlign: 'center', bioSize: 'lg' },
-		side: { layout: 'side', coverType: 'color', coverColor: '#ffffff', coverHeight: 0, avatarSize: 90, avatarBorder: 2, avatarBorderColor: '#6366f1', avatarShape: 'circle', showCover: false, bioAlign: 'left', bioSize: 'sm' },
-		split: { layout: 'split', coverType: 'gradient', coverGradientFrom: '#ff9a9e', coverGradientTo: '#fecfef', coverHeight: 200, avatarSize: 120, avatarBorder: 4, avatarShape: 'circle', showCover: true, bioAlign: 'center', bioSize: 'md' },
-		asymmetric: { layout: 'asymmetric', coverType: 'gradient', coverGradientFrom: '#ffecd2', coverGradientTo: '#fcb69f', coverHeight: 220, avatarSize: 140, avatarBorder: 5, avatarShape: 'circle', showCover: true, bioAlign: 'left', bioSize: 'lg' }
+		centered: { layout: 'centered', coverType: 'gradient', coverGradientFrom: '#667eea', coverGradientTo: '#764ba2', coverHeight: 160, avatarSize: 120, avatarBorder: 4, avatarShape: 'circle', avatarAlign: 'center', showCover: true, bioAlign: 'center', bioSize: 'md', bioTextColor: '#6b7280' },
+		overlap: { layout: 'overlap', coverType: 'gradient', coverGradientFrom: '#f093fb', coverGradientTo: '#f5576c', coverHeight: 180, avatarSize: 130, avatarBorder: 4, avatarShape: 'circle', avatarAlign: 'center', showCover: true, bioAlign: 'center', bioSize: 'md', bioTextColor: '#6b7280' },
+		card: { layout: 'card', coverType: 'gradient', coverGradientFrom: '#4facfe', coverGradientTo: '#00f2fe', coverHeight: 140, avatarSize: 110, avatarBorder: 4, avatarShape: 'circle', avatarAlign: 'center', showCover: true, bioAlign: 'center', bioSize: 'md', bioTextColor: '#6b7280' },
+		glass: { layout: 'glass', coverType: 'gradient', coverGradientFrom: '#fa709a', coverGradientTo: '#fee140', coverHeight: 170, avatarSize: 120, avatarBorder: 4, avatarBorderColor: 'rgba(255,255,255,0.2)', avatarShape: 'circle', avatarAlign: 'center', showCover: true, bioAlign: 'center', bioSize: 'md', bioTextColor: '#ffffff' },
+		gradient: { layout: 'gradient', coverType: 'gradient', coverGradientFrom: '#30cfd0', coverGradientTo: '#330867', coverHeight: 190, avatarSize: 130, avatarBorder: 5, avatarShape: 'circle', avatarAlign: 'center', showCover: true, bioAlign: 'center', bioSize: 'lg', bioTextColor: '#ffffff' },
+		minimal: { layout: 'minimal', coverType: 'color', coverColor: '#f5f5f5', coverHeight: 0, avatarSize: 90, avatarBorder: 2, avatarBorderColor: '#000000', avatarShape: 'circle', avatarAlign: 'left', showCover: false, bioAlign: 'left', bioSize: 'sm', bioTextColor: '#000000' },
+		full: { layout: 'full', coverType: 'gradient', coverGradientFrom: '#a8edea', coverGradientTo: '#fed6e3', coverHeight: 240, avatarSize: 150, avatarBorder: 6, avatarShape: 'circle', avatarAlign: 'center', showCover: true, bioAlign: 'center', bioSize: 'lg', bioTextColor: '#6b7280' },
+		side: { layout: 'side', coverType: 'color', coverColor: '#ffffff', coverHeight: 0, avatarSize: 90, avatarBorder: 2, avatarBorderColor: '#6366f1', avatarShape: 'circle', avatarAlign: 'left', showCover: false, bioAlign: 'left', bioSize: 'sm', bioTextColor: '#000000' },
+		split: { layout: 'split', coverType: 'gradient', coverGradientFrom: '#ff9a9e', coverGradientTo: '#fecfef', coverHeight: 200, avatarSize: 120, avatarBorder: 4, avatarShape: 'circle', avatarAlign: 'center', showCover: true, bioAlign: 'center', bioSize: 'md', bioTextColor: '#6b7280' },
+		asymmetric: { layout: 'asymmetric', coverType: 'gradient', coverGradientFrom: '#ffecd2', coverGradientTo: '#fcb69f', coverHeight: 220, avatarSize: 140, avatarBorder: 5, avatarShape: 'circle', avatarAlign: 'left', showCover: true, bioAlign: 'left', bioSize: 'lg', bioTextColor: '#6b7280' }
 	};
 
 	function selectLayout(layout: HeaderStyles['layout'], customSettings?: Partial<HeaderStyles>, customId?: string) {
@@ -95,6 +95,14 @@
 
 	function updateHeaderSetting(updates: Partial<HeaderStyles>) {
 		const newStyle = { ...headerStyle, ...updates };
+		console.log('[HeaderStyleEditor] updateHeaderSetting:', {
+			updates,
+			newStyle: {
+				bioAlign: newStyle.bioAlign,
+				avatarAlign: newStyle.avatarAlign,
+				layout: newStyle.layout
+			}
+		});
 		currentHeaderStyle.set(newStyle);
 		pendingChanges.updateHeader(newStyle);
 	}
@@ -334,6 +342,21 @@
 								</div>
 							</div>
 
+							<!-- Avatar Alignment -->
+							<div>
+								<label class="text-xs font-semibold text-gray-900 mb-2 block">Avatar Alignment</label>
+								<div class="flex gap-1.5">
+									{#each ['left', 'center', 'right'] as align}
+										<button
+											onclick={() => updateHeaderSetting({ avatarAlign: align as any })}
+											class="flex-1 px-2 py-1.5 text-xs border rounded transition-all {headerStyle.avatarAlign === align ? 'border-indigo-600 bg-indigo-50 text-indigo-600' : 'border-gray-200 text-gray-700 hover:bg-gray-100'}"
+										>
+											{align === 'left' ? 'Left' : align === 'center' ? 'Center' : 'Right'}
+										</button>
+									{/each}
+								</div>
+							</div>
+
 							<!-- Bio Alignment -->
 							<div>
 								<label class="text-xs font-semibold text-gray-900 mb-2 block">Bio Alignment</label>
@@ -361,6 +384,29 @@
 											{size.toUpperCase()}
 										</button>
 									{/each}
+								</div>
+							</div>
+
+							<!-- Bio Text Color -->
+							<div>
+								<label class="text-xs font-semibold text-gray-900 mb-2 block">Bio Text Color</label>
+								<div class="flex gap-2 items-center">
+									<input 
+										type="color" 
+										value={headerStyle.bioTextColor || '#6b7280'}
+										onchange={(e) => updateHeaderSetting({ bioTextColor: e.currentTarget.value })}
+										class="w-10 h-10 rounded-lg border-2 border-gray-200 cursor-pointer" 
+									/>
+									<div class="flex-1 flex gap-1 flex-wrap">
+										{#each ['#000000', '#ffffff', '#6b7280', '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'] as color}
+											<button 
+												onclick={() => updateHeaderSetting({ bioTextColor: color })}
+												class="w-6 h-6 rounded-md border-2 hover:scale-110 transition-transform {headerStyle.bioTextColor === color ? 'border-indigo-600 ring-2 ring-indigo-200' : 'border-gray-200'}" 
+												style="background-color: {color};"
+												title={color}
+											></button>
+										{/each}
+									</div>
 								</div>
 							</div>
 
