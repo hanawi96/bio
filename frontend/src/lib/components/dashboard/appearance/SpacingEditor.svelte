@@ -43,13 +43,19 @@
 	let showCustomSpacing = $state(false);
 
 	function updatePadding(value: number) {
+		// Get current style from previewStyles first, fallback to firstGroup
 		let currentStyle: any = {};
-		if (firstGroup?.style) {
+		if ($previewStyles.style) {
+			try {
+				currentStyle = JSON.parse($previewStyles.style);
+			} catch {}
+		} else if (firstGroup?.style) {
 			try {
 				currentStyle = JSON.parse(firstGroup.style);
 			} catch {}
 		}
 		
+		// Only update padding, keep margin intact
 		const newStyle = {
 			...currentStyle,
 			padding: { top: value, right: value, bottom: value, left: value }
@@ -60,13 +66,19 @@
 	}
 
 	function updateSpacing(value: number) {
+		// Get current style from previewStyles first, fallback to firstGroup
 		let currentStyle: any = {};
-		if (firstGroup?.style) {
+		if ($previewStyles.style) {
+			try {
+				currentStyle = JSON.parse($previewStyles.style);
+			} catch {}
+		} else if (firstGroup?.style) {
 			try {
 				currentStyle = JSON.parse(firstGroup.style);
 			} catch {}
 		}
 		
+		// Only update margin, keep padding intact
 		const newStyle = {
 			...currentStyle,
 			margin: { top: 0, bottom: value }
