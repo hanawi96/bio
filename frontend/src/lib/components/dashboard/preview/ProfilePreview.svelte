@@ -424,7 +424,7 @@
 										{@const shadowStyle = cardProps.showShadow ? `box-shadow: ${cardProps.shadowX}px ${cardProps.shadowY}px ${cardProps.shadowBlur}px rgba(0,0,0,0.2);` : ''}
 										{@const borderStyle = cardProps.hasBorder ? `border: ${cardProps.borderWidth}px solid ${cardProps.borderColor};` : ''}
 										{@const cardSpacing = getCardSpacing(link)}
-										{@const bgStyle = cardProps.hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${cardProps.bgOpacity / 100}); border-radius: ${cardProps.borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}` : `padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}`}
+										{@const bgStyle = cardProps.hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${cardProps.bgOpacity / 100}); border-radius: ${cardProps.borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}` : `border-radius: ${cardProps.borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}`}
 										{@const getAspectStyle = (ratio) => {
 											const map = { '1:1': '1/1', '3:2': '3/2', '16:9': '16/9', '3:1': '3/1', '2:3': '2/3' };
 											return `aspect-ratio: ${map[ratio] || '3/2'}`;
@@ -468,7 +468,7 @@
 										{@const b = parseInt(cardProps.bgColor.slice(5,7), 16)}
 										{@const shadowStyle = cardProps.showShadow ? `box-shadow: ${cardProps.shadowX}px ${cardProps.shadowY}px ${cardProps.shadowBlur}px rgba(0,0,0,0.2);` : ''}
 										{@const borderStyle = cardProps.hasBorder ? `border: ${cardProps.borderWidth}px solid ${cardProps.borderColor};` : ''}
-										{@const bgStyle = cardProps.hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${cardProps.bgOpacity / 100}); border-radius: ${cardProps.borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}` : `padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}`}
+										{@const bgStyle = cardProps.hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${cardProps.bgOpacity / 100}); border-radius: ${cardProps.borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}` : `border-radius: ${cardProps.borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}`}
 										{@const getAspectStyle = (ratio) => {
 											const map = { '1:1': '1/1', '3:2': '3/2', '16:9': '16/9', '3:1': '3/1', '2:3': '2/3' };
 											return `aspect-ratio: ${map[ratio] || '3/2'}`;
@@ -563,7 +563,7 @@
 										{@const b = parseInt(cardProps.bgColor.slice(5,7), 16)}
 										{@const shadowStyle = cardProps.showShadow ? `box-shadow: ${cardProps.shadowX}px ${cardProps.shadowY}px ${cardProps.shadowBlur}px rgba(0,0,0,0.2);` : ''}
 										{@const borderStyle = cardProps.hasBorder ? `border: ${cardProps.borderWidth}px solid ${cardProps.borderColor};` : ''}
-										{@const bgStyle = cardProps.hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${cardProps.bgOpacity / 100}); border-radius: ${cardProps.borderRadius}px; ${shadowStyle} ${borderStyle}` : `${shadowStyle} ${borderStyle}`}
+										{@const bgStyle = cardProps.hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${cardProps.bgOpacity / 100}); border-radius: ${cardProps.borderRadius}px; ${shadowStyle} ${borderStyle}` : `border-radius: ${cardProps.borderRadius}px; ${shadowStyle} ${borderStyle}`}
 										<div style="display: flex; flex-direction: column; gap: {cardSpacing ?? 12}px;">
 											{#each sortedChildren as child, index}
 												{@const shouldReverse = imagePlacement === 'right' || (imagePlacement === 'alternating' && index % 2 === 0)}
@@ -608,7 +608,7 @@
 										{@const b = parseInt(cardProps.bgColor.slice(5,7), 16)}
 										{@const shadowStyle = cardProps.showShadow ? `box-shadow: ${cardProps.shadowX}px ${cardProps.shadowY}px ${cardProps.shadowBlur}px rgba(0,0,0,0.2);` : ''}
 										{@const borderStyle = cardProps.hasBorder ? `border: ${cardProps.borderWidth}px solid ${cardProps.borderColor};` : ''}
-										{@const bgStyle = cardProps.hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${cardProps.bgOpacity / 100}); border-radius: ${cardProps.borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}` : `padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}`}
+										{@const bgStyle = cardProps.hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${cardProps.bgOpacity / 100}); border-radius: ${cardProps.borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}` : `border-radius: ${cardProps.borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}`}
 										<div style="display: flex; flex-direction: column; gap: {cardSpacing ?? 12}px;">
 											{#each sortedChildren as child}
 												<a

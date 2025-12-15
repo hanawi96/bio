@@ -73,7 +73,7 @@
 		<div>
 			<label class="text-sm font-semibold text-gray-900 mb-3 block">Background opacity</label>
 			<div class="flex gap-2">
-				{#each [50, 75, 100] as opacity}
+				{#each [25, 50, 75, 100] as opacity}
 					<button 
 						onclick={() => {
 							showCustomOpacity = false;
