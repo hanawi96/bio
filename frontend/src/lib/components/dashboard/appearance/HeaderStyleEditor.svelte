@@ -18,10 +18,29 @@
 	
 	// Helper to check if current headerStyle matches a custom preset
 	function findMatchingCustomPreset(): string | null {
-		if (!customPresets || customPresets.length === 0) return null;
+		console.log('🔍 [MATCH] Finding matching custom preset...');
+		console.log('🔍 [MATCH] customPresets count:', customPresets?.length || 0);
+		console.log('🔍 [MATCH] Current headerStyle:', {
+			layout: headerStyle.layout,
+			avatarSize: headerStyle.avatarSize,
+			avatarShape: headerStyle.avatarShape,
+			coverHeight: headerStyle.coverHeight
+		});
+		
+		if (!customPresets || customPresets.length === 0) {
+			console.log('🔍 [MATCH] No custom presets available');
+			return null;
+		}
 		
 		for (const preset of customPresets) {
 			if (!preset.settings) continue;
+			
+			console.log('🔍 [MATCH] Checking preset:', preset.id, {
+				layout: preset.settings.layout,
+				avatarSize: preset.settings.avatarSize,
+				avatarShape: preset.settings.avatarShape,
+				coverHeight: preset.settings.coverHeight
+			});
 			
 			// Check if all key settings match
 			const matches = 
@@ -30,8 +49,15 @@
 				preset.settings.avatarShape === headerStyle.avatarShape &&
 				preset.settings.coverHeight === headerStyle.coverHeight;
 			
-			if (matches) return preset.id;
+			console.log('🔍 [MATCH] Match result:', matches);
+			
+			if (matches) {
+				console.log('✅ [MATCH] Found matching preset:', preset.id);
+				return preset.id;
+			}
 		}
+		
+		console.log('❌ [MATCH] No matching custom preset found');
 		return null;
 	}
 
@@ -162,16 +188,20 @@
 	
 	// Auto-detect which preset is selected (custom or built-in)
 	$effect(() => {
+		console.log('🔄 [EFFECT-1] Running auto-detect...');
+		console.log('🔄 [EFFECT-1] manuallySelected:', manuallySelected);
+		console.log('🔄 [EFFECT-1] headerStyle.layout:', headerStyle.layout);
+		
 		if (!manuallySelected && headerStyle.layout) {
 			// First check if it matches a custom preset
 			const matchingCustomId = findMatchingCustomPreset();
 			if (matchingCustomId) {
 				manuallySelected = matchingCustomId;
-				console.log('🟣 [HEADER] Auto-selected custom preset:', matchingCustomId);
+				console.log('✅ [EFFECT-1] Auto-selected custom preset:', matchingCustomId);
 			} else {
 				// Otherwise use the layout name
 				manuallySelected = headerStyle.layout;
-				console.log('🟣 [HEADER] Auto-selected built-in preset:', headerStyle.layout);
+				console.log('✅ [EFFECT-1] Auto-selected built-in preset:', headerStyle.layout);
 			}
 			isModifiedFromPreset = false;
 		}
@@ -179,11 +209,17 @@
 	
 	// Re-check when customPresets changes (after load)
 	$effect(() => {
+		console.log('🔄 [EFFECT-2] Checking after customPresets change...');
+		console.log('🔄 [EFFECT-2] customPresets.length:', customPresets.length);
+		console.log('🔄 [EFFECT-2] manuallySelected:', manuallySelected);
+		
 		if (customPresets.length > 0 && headerStyle.layout) {
 			const matchingCustomId = findMatchingCustomPreset();
+			console.log('🔄 [EFFECT-2] matchingCustomId:', matchingCustomId);
+			
 			if (matchingCustomId && manuallySelected !== matchingCustomId) {
 				manuallySelected = matchingCustomId;
-				console.log('🟣 [HEADER] Switched to custom preset after load:', matchingCustomId);
+				console.log('✅ [EFFECT-2] Switched to custom preset:', matchingCustomId);
 			}
 		}
 	});
@@ -211,14 +247,28 @@
 
 		<!-- Header Presets Grid -->
 		<div class="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-2">
-			{#each displayedPresets as preset}
+			{#each displayedPresets as preset, index}
 				{@const isCustom = 'settings' in preset}
+				{@const isSelected = isCustom ? manuallySelected === preset.id : manuallySelected === preset.layout}
+				{#if index === 0}
+					{console.log('🎨 [RENDER] manuallySelected:', manuallySelected)}
+					{console.log('🎨 [RENDER] displayedPresets count:', displayedPresets.length)}
+				{/if}
+				{console.log(`🎨 [RENDER] Preset ${isCustom ? preset.id : preset.layout}:`, {
+					isCustom,
+					isSelected,
+					manuallySelected,
+					presetId: isCustom ? preset.id : preset.layout
+				})}
 				<div class="relative">
 					<button
-						onclick={() => isCustom ? selectLayout(preset.layout, preset.settings, preset.id) : selectLayout(preset.layout)}
+						onclick={() => {
+							console.log('🖱️ [CLICK] Preset clicked:', isCustom ? preset.id : preset.layout);
+							isCustom ? selectLayout(preset.layout, preset.settings, preset.id) : selectLayout(preset.layout);
+						}}
 						class="group relative w-full"
 					>
-						<div class="aspect-[9/16] rounded-lg overflow-hidden border-2 transition-all {(isCustom ? manuallySelected === preset.id : headerStyle.layout === preset.layout) ? 'border-indigo-600 shadow-md ring-2 ring-indigo-200' : 'border-gray-200 hover:border-gray-300'}"
+						<div class="aspect-[9/16] rounded-lg overflow-hidden border-2 transition-all {isSelected ? 'border-indigo-600 shadow-md ring-2 ring-indigo-200' : 'border-gray-200 hover:border-gray-300'}"
 							style="background: {preset.preview.cover};"
 						>
 							<div class="h-full flex flex-col items-center justify-center p-1.5 relative">
@@ -227,7 +277,7 @@
 								<div class="mt-0.5 w-4 h-0.5 rounded" style="background: {preset.preview.avatar}; opacity: 0.5;"></div>
 								
 								<!-- Customize Button - only show when selected -->
-								{#if (isCustom ? manuallySelected === preset.id : headerStyle.layout === preset.layout)}
+								{#if isSelected}
 									<button
 										onclick={(e) => { e.stopPropagation(); toggleCustomize(isCustom ? preset.id : preset.layout); }}
 										class="absolute bottom-1 left-1 right-1 px-1.5 py-1 text-[9px] font-medium rounded transition-all flex items-center justify-center gap-1 backdrop-blur-sm {expandedPreset === (isCustom ? preset.id : preset.layout) ? 'bg-white/95 text-indigo-600 border border-indigo-600' : 'bg-white/90 text-gray-700 border border-white/50 hover:bg-white'}"
@@ -240,7 +290,7 @@
 								{/if}
 							</div>
 						</div>
-						{#if (isCustom ? manuallySelected === preset.id : headerStyle.layout === preset.layout)}
+						{#if isSelected}
 							<div class="absolute top-1 right-1 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center z-10">
 								<svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
