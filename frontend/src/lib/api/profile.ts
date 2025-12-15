@@ -10,8 +10,13 @@ export interface Profile {
 	bio?: string;
 	theme_name?: string;
 	theme_config?: string | object;
+	custom_theme_config?: string | object;
 	header_config?: string | object;
 	custom_css?: string;
+	social_links?: string | Array<{ platform: string; url: string }>;
+	show_share_button?: boolean;
+	show_subscribe_button?: boolean;
+	hide_branding?: boolean;
 }
 
 export interface ApplyThemeRequest {

@@ -2,12 +2,12 @@
 	import { onMount } from 'svelte';
 	import { dndzone } from 'svelte-dnd-action';
 	import { auth } from '$lib/stores/auth';
-	import { globalTheme } from '$lib/stores/theme';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { toast } from 'svelte-sonner';
+	import { loadThemeFromProfile } from '$lib/utils/themeLoader';
 	
 	import { LinkGroupCard, TextGroupCard, TextBlock, ImageBlock, VideoBlock, SocialBlock, DividerBlock, EmailCollectorBlock, EmbedBlock } from '$lib/components/dashboard/bio/blocks';
 	import { AddBlockDialog } from '$lib/components/dashboard/bio/dialogs';
@@ -107,15 +107,8 @@
 			
 			try {
 				profileData = await profileApi.getMyProfile($auth.token!);
-				// Load theme if exists
-				if (profileData?.theme_config) {
-					const themeStr = typeof profileData.theme_config === 'string' 
-						? profileData.theme_config 
-						: JSON.stringify(profileData.theme_config);
-					if (themeStr && themeStr !== '{}' && themeStr !== 'null') {
-						globalTheme.loadFromJSON(themeStr);
-					}
-				}
+				// Load theme using shared utility (same as appearance page)
+				loadThemeFromProfile(profileData);
 			} catch (profileError: any) {
 				console.warn('Profile not found, will be created automatically:', profileError);
 			}
