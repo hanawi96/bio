@@ -253,7 +253,7 @@
 		
 		<!-- Screen -->
 		<div 
-			class="relative rounded-[2.5rem] overflow-hidden h-[650px] transition-colors duration-300"
+			class="relative rounded-[2.5rem] overflow-hidden h-[650px]"
 			style="{
 				styles.pageBackgroundType === 'image' && styles.pageBackgroundImage
 					? `background: url(${styles.pageBackgroundImage}) center/cover no-repeat;`
