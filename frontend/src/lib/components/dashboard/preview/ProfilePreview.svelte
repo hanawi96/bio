@@ -59,7 +59,7 @@
 		const t = currentTheme;
 		const p = preview;
 		return {
-			hasCustomBg: link?.has_card_background ?? true,
+			hasCustomBg: p.enableCardBackground ?? link?.has_card_background ?? t.enableCardBackground ?? true,
 			bgColor: p.card_background_color || link?.card_background_color || t.cardBackground,
 			bgOpacity: p.card_background_opacity ?? link?.card_background_opacity ?? t.cardBackgroundOpacity,
 			borderRadius: p.card_border_radius ?? link?.card_border_radius ?? t.cardBorderRadius,
