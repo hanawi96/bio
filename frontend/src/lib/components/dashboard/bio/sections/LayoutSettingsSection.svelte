@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
 	import type { Link } from '$lib/api/links';
-	import { themePresets, defaultCardStyles } from '$lib/stores/theme';
+	import { themePresets, defaultCardStyles, globalTheme } from '$lib/stores/theme';
+	import { previewStyles } from '$lib/stores/previewStyles';
 	
 	export let group: Link;
 	
@@ -62,8 +63,28 @@
 	// Use group properties directly - no local state needed
 	$: layout = group.group_layout || 'list';
 	$: textAlignment = group.text_alignment || 'center';
-	$: showShadow = group.show_shadow || false;
+	// Shadow: Always use theme from previewStyles to match appearance page
+	// This ensures consistency when theme changes, until user explicitly customizes this group
+	// When user toggles shadow in this tab, it will save to DB and group will have its own value
+	$: showShadow = $previewStyles.show_shadow ?? group.show_shadow ?? false;
 	$: showText = group.show_text !== undefined ? group.show_text : true;
+	
+	// Shadow values from theme (previewStyles) for preset detection
+	$: shadowX = $previewStyles.shadow_x ?? group.shadow_x ?? 0;
+	$: shadowY = $previewStyles.shadow_y ?? group.shadow_y ?? 4;
+	$: shadowBlur = $previewStyles.shadow_blur ?? group.shadow_blur ?? 10;
+	
+	// Detect which preset matches current theme shadow values
+	$: currentShadowPreset = 
+		shadowX === 0 && shadowY === 2 && shadowBlur === 4 ? 'subtle' :
+		shadowX === 0 && shadowY === 4 && shadowBlur === 10 ? 'medium' :
+		shadowX === 0 && shadowY === 8 && shadowBlur === 20 ? 'strong' :
+		'custom';
+	
+	// Reset showCustomShadow when preset changes (when theme changes)
+	$: if (currentShadowPreset !== 'custom') {
+		showCustomShadow = false;
+	}
 	
 	// Reactive padding and margin values
 	$: currentPadding = getPadding();
@@ -687,10 +708,10 @@
 							updateShadowPreset(0, 2, 4);
 						}} 
 						class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
-						class:border-emerald-500={!showCustomShadow && group.shadow_x === 0 && group.shadow_y === 2 && group.shadow_blur === 4}
-						class:bg-emerald-50={!showCustomShadow && group.shadow_x === 0 && group.shadow_y === 2 && group.shadow_blur === 4}
-						class:border-gray-200={showCustomShadow || group.shadow_x !== 0 || group.shadow_y !== 2 || group.shadow_blur !== 4}
-						class:bg-white={showCustomShadow || group.shadow_x !== 0 || group.shadow_y !== 2 || group.shadow_blur !== 4}
+						class:border-emerald-500={!showCustomShadow && currentShadowPreset === 'subtle'}
+						class:bg-emerald-50={!showCustomShadow && currentShadowPreset === 'subtle'}
+						class:border-gray-200={showCustomShadow || currentShadowPreset !== 'subtle'}
+						class:bg-white={showCustomShadow || currentShadowPreset !== 'subtle'}
 					>
 						Subtle
 					</button>
@@ -700,10 +721,10 @@
 							updateShadowPreset(0, 4, 10);
 						}} 
 						class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
-						class:border-emerald-500={!showCustomShadow && group.shadow_x === 0 && group.shadow_y === 4 && group.shadow_blur === 10}
-						class:bg-emerald-50={!showCustomShadow && group.shadow_x === 0 && group.shadow_y === 4 && group.shadow_blur === 10}
-						class:border-gray-200={showCustomShadow || group.shadow_x !== 0 || group.shadow_y !== 4 || group.shadow_blur !== 10}
-						class:bg-white={showCustomShadow || group.shadow_x !== 0 || group.shadow_y !== 4 || group.shadow_blur !== 10}
+						class:border-emerald-500={!showCustomShadow && currentShadowPreset === 'medium'}
+						class:bg-emerald-50={!showCustomShadow && currentShadowPreset === 'medium'}
+						class:border-gray-200={showCustomShadow || currentShadowPreset !== 'medium'}
+						class:bg-white={showCustomShadow || currentShadowPreset !== 'medium'}
 					>
 						Medium
 					</button>
@@ -713,20 +734,20 @@
 							updateShadowPreset(0, 8, 20);
 						}} 
 						class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
-						class:border-emerald-500={!showCustomShadow && group.shadow_x === 0 && group.shadow_y === 8 && group.shadow_blur === 20}
-						class:bg-emerald-50={!showCustomShadow && group.shadow_x === 0 && group.shadow_y === 8 && group.shadow_blur === 20}
-						class:border-gray-200={showCustomShadow || group.shadow_x !== 0 || group.shadow_y !== 8 || group.shadow_blur !== 20}
-						class:bg-white={showCustomShadow || group.shadow_x !== 0 || group.shadow_y !== 8 || group.shadow_blur !== 20}
+						class:border-emerald-500={!showCustomShadow && currentShadowPreset === 'strong'}
+						class:bg-emerald-50={!showCustomShadow && currentShadowPreset === 'strong'}
+						class:border-gray-200={showCustomShadow || currentShadowPreset !== 'strong'}
+						class:bg-white={showCustomShadow || currentShadowPreset !== 'strong'}
 					>
 						Strong
 					</button>
 					<button 
 						onclick={() => showCustomShadow = !showCustomShadow} 
 						class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
-						class:border-emerald-500={showCustomShadow}
-						class:bg-emerald-50={showCustomShadow}
-						class:border-gray-200={!showCustomShadow}
-						class:bg-white={!showCustomShadow}
+						class:border-emerald-500={showCustomShadow || currentShadowPreset === 'custom'}
+						class:bg-emerald-50={showCustomShadow || currentShadowPreset === 'custom'}
+						class:border-gray-200={!showCustomShadow && currentShadowPreset !== 'custom'}
+						class:bg-white={!showCustomShadow && currentShadowPreset !== 'custom'}
 					>
 						Custom
 					</button>
