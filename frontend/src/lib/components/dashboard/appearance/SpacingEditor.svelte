@@ -17,71 +17,64 @@
 	
 	let showCustomPadding = $state(false);
 	let showCustomSpacing = $state(false);
+	
+	// Save last custom values to restore when clicking Custom button
+	let lastCustomPadding = $state(paddingValue);
+	let lastCustomSpacing = $state(spacingValue);
+	
+	// Track when value changes to save custom values
+	$effect(() => {
+		if (isCustomPadding) {
+			lastCustomPadding = paddingValue;
+		}
+	});
+	
+	$effect(() => {
+		if (isCustomSpacing) {
+			lastCustomSpacing = spacingValue;
+		}
+	});
 
 	function updatePadding(value: number) {
-		console.log('🔧 updatePadding called with value:', value);
-		
 		// Update theme
 		globalTheme.update({ cardPadding: value });
-		console.log('✅ Updated globalTheme.cardPadding to:', value);
 		
 		// Get current style and merge with new padding
 		let currentStyle: any = {};
 		if ($previewStyles.style) {
 			try {
 				currentStyle = JSON.parse($previewStyles.style);
-				console.log('📦 Current previewStyles.style:', currentStyle);
-			} catch (e) {
-				console.error('❌ Failed to parse previewStyles.style:', e);
-			}
-		} else {
-			console.log('⚠️ No previewStyles.style found');
+			} catch {}
 		}
 		
 		const newStyle = {
 			...currentStyle,
 			padding: { top: value, right: value, bottom: value, left: value }
 		};
-		console.log('🆕 New style after merge:', newStyle);
-		
 		const styleStr = JSON.stringify(newStyle);
 		previewStyles.update({ style: styleStr });
-		console.log('✅ Updated previewStyles.style to:', styleStr);
-		
 		pendingChanges.updateTheme({ cardPadding: value });
 		pendingChanges.updateLinkStyles({ style: styleStr });
 	}
 
 	function updateSpacing(value: number) {
-		console.log('🔧 updateSpacing called with value:', value);
-		
 		// Update theme
 		globalTheme.update({ cardSpacing: value });
-		console.log('✅ Updated globalTheme.cardSpacing to:', value);
 		
 		// Get current style and merge with new spacing
 		let currentStyle: any = {};
 		if ($previewStyles.style) {
 			try {
 				currentStyle = JSON.parse($previewStyles.style);
-				console.log('📦 Current previewStyles.style:', currentStyle);
-			} catch (e) {
-				console.error('❌ Failed to parse previewStyles.style:', e);
-			}
-		} else {
-			console.log('⚠️ No previewStyles.style found');
+			} catch {}
 		}
 		
 		const newStyle = {
 			...currentStyle,
 			margin: { top: 0, bottom: value }
 		};
-		console.log('🆕 New style after merge:', newStyle);
-		
 		const styleStr = JSON.stringify(newStyle);
 		previewStyles.update({ style: styleStr });
-		console.log('✅ Updated previewStyles.style to:', styleStr);
-		
 		pendingChanges.updateTheme({ cardSpacing: value });
 		pendingChanges.updateLinkStyles({ style: styleStr });
 	}
@@ -114,7 +107,13 @@
 				</button>
 			{/each}
 			<button 
-				onclick={() => showCustomPadding = !showCustomPadding}
+				onclick={() => {
+					showCustomPadding = !showCustomPadding;
+					// If opening custom and current value is a preset, restore last custom value
+					if (showCustomPadding && !isCustomPadding && lastCustomPadding !== paddingValue) {
+						updatePadding(lastCustomPadding);
+					}
+				}}
 				class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
 				class:border-indigo-600={showCustomPadding || isCustomPadding}
 				class:bg-indigo-50={showCustomPadding || isCustomPadding}
@@ -166,7 +165,13 @@
 				</button>
 			{/each}
 			<button 
-				onclick={() => showCustomSpacing = !showCustomSpacing}
+				onclick={() => {
+					showCustomSpacing = !showCustomSpacing;
+					// If opening custom and current value is a preset, restore last custom value
+					if (showCustomSpacing && !isCustomSpacing && lastCustomSpacing !== spacingValue) {
+						updateSpacing(lastCustomSpacing);
+					}
+				}}
 				class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
 				class:border-indigo-600={showCustomSpacing || isCustomSpacing}
 				class:bg-indigo-50={showCustomSpacing || isCustomSpacing}

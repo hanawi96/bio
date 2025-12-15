@@ -112,23 +112,20 @@
 
 	// Helper function to get card spacing (from theme or fallback to style)
 	function getCardSpacing(link: any): number {
-		// Priority: theme > preview > link.style
+		// Priority: theme > link.style
 		const themeSpacing = currentTheme.cardSpacing;
 		if (themeSpacing !== undefined && themeSpacing !== null) {
-			console.log('✅ Using theme spacing:', themeSpacing);
 			return themeSpacing;
 		}
 		
 		// Fallback to parsing from link.style
-		console.log('📏 Fallback: parsing spacing from link.style:', link.style);
 		try {
 			if (!link.style) return 8; // default
 			const parsed = JSON.parse(link.style);
 			const m = parsed.margin;
 			if (!m) return 8;
 			return m.bottom ?? 8;
-		} catch (e) {
-			console.error('❌ Failed to parse style:', e);
+		} catch {
 			return 8;
 		}
 	}
