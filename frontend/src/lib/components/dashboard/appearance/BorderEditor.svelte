@@ -7,9 +7,10 @@
 
 	const currentBorderRadius = $derived($globalTheme.cardBorderRadius);
 	const firstGroup = $derived(links.find(l => l.is_group));
-	const hasBorder = $derived(firstGroup?.has_card_border ?? false);
-	const borderColor = $derived(firstGroup?.card_border_color || '#e5e7eb');
-	const borderWidth = $derived(firstGroup?.card_border_width || 1);
+	// Read from previewStyles first, fallback to firstGroup
+	const hasBorder = $derived($previewStyles.has_card_border ?? firstGroup?.has_card_border ?? false);
+	const borderColor = $derived($previewStyles.card_border_color || firstGroup?.card_border_color || '#e5e7eb');
+	const borderWidth = $derived($previewStyles.card_border_width ?? firstGroup?.card_border_width ?? 1);
 	
 	let showCustomRadius = $state(false);
 

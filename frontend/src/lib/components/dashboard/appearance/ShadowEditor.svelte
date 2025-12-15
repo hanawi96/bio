@@ -12,10 +12,11 @@
 
 	// Sync from first group in links
 	const firstGroup = $derived(links.find(l => l.is_group));
-	const showShadow = $derived(firstGroup?.show_shadow ?? false);
-	const shadowX = $derived(firstGroup?.shadow_x ?? 0);
-	const shadowY = $derived(firstGroup?.shadow_y ?? 4);
-	const shadowBlur = $derived(firstGroup?.shadow_blur ?? 10);
+	// Read from previewStyles first, fallback to firstGroup
+	const showShadow = $derived($previewStyles.show_shadow ?? firstGroup?.show_shadow ?? false);
+	const shadowX = $derived($previewStyles.shadow_x ?? firstGroup?.shadow_x ?? 0);
+	const shadowY = $derived($previewStyles.shadow_y ?? firstGroup?.shadow_y ?? 4);
+	const shadowBlur = $derived($previewStyles.shadow_blur ?? firstGroup?.shadow_blur ?? 10);
 	
 	// Detect which preset matches current shadow values
 	const currentPreset = $derived<'subtle' | 'medium' | 'strong' | 'custom'>(

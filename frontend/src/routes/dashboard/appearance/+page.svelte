@@ -8,11 +8,7 @@
 		themePresets, 
 		themeStyles,
 		currentHeaderStyle,
-		defaultHeaderStyles,
-		cardStylesToLinkFields,
-		textStylesToBlockStyle,
-		applyCardStylesToGroup,
-		applyTextStylesToGroup
+		defaultHeaderStyles
 	} from '$lib/stores/theme';
 	import { previewStyles } from '$lib/stores/previewStyles';
 	import { pendingChanges } from '$lib/stores/pendingChanges';
@@ -41,11 +37,73 @@
 	let blocks = $state<Block[]>([]);
 	let selectedCategory = $state<string>('all');
 	let currentTheme = $state<string>('default');
+	let savedThemeName = $state<string>('default'); // Track what's saved in DB
 	let saving = $state(false);
 	let applying = $state(false);
 	let loading = $state(true);
+	let isInitialLoad = $state(true);
 	
 	const hasUnsavedChanges = $derived($pendingChanges.hasChanges);
+	
+	// Auto-switch to custom when modifying preset
+	function checkAndSwitchToCustom() {
+		// Skip check during initial load or if already custom
+		if (isInitialLoad || currentTheme === 'custom') return;
+		
+		const current = globalTheme.getCurrent();
+		const currentHeader = get(currentHeaderStyle);
+		const preset = themePresets[currentTheme];
+		
+		if (!preset) return;
+		
+		// Build preset config with typography
+		const textAlign = preset.text.textAlign === 'left' ? 'left' : preset.text.textAlign === 'right' ? 'right' : 'center';
+		const presetConfig = { 
+			...preset.page, 
+			...preset.card,
+			textAlignment: textAlign,
+			textSize: 'M',
+			imageShape: 'square'
+		};
+		
+		// Compare theme fields
+		const themeChanged = 
+			current.textAlignment !== presetConfig.textAlignment ||
+			current.textSize !== presetConfig.textSize ||
+			current.imageShape !== presetConfig.imageShape ||
+			current.cardBackground !== presetConfig.cardBackground ||
+			current.cardBackgroundOpacity !== presetConfig.cardBackgroundOpacity ||
+			current.cardTextColor !== presetConfig.cardTextColor ||
+			current.cardBorderRadius !== presetConfig.cardBorderRadius ||
+			current.pageBackground !== presetConfig.pageBackground ||
+			current.pageBackgroundType !== presetConfig.pageBackgroundType;
+		
+		// Compare header fields (only if preset has header)
+		let headerChanged = false;
+		if (preset.header) {
+			headerChanged = 
+				currentHeader.layout !== preset.header.layout ||
+				currentHeader.coverType !== preset.header.coverType ||
+				currentHeader.coverColor !== preset.header.coverColor ||
+				currentHeader.coverGradientFrom !== preset.header.coverGradientFrom ||
+				currentHeader.coverGradientTo !== preset.header.coverGradientTo ||
+				currentHeader.coverHeight !== preset.header.coverHeight ||
+				currentHeader.avatarSize !== preset.header.avatarSize ||
+				currentHeader.avatarBorder !== preset.header.avatarBorder ||
+				currentHeader.avatarShape !== preset.header.avatarShape ||
+				currentHeader.showCover !== preset.header.showCover ||
+				currentHeader.bioAlign !== preset.header.bioAlign ||
+				currentHeader.bioSize !== preset.header.bioSize;
+		}
+		
+		if (themeChanged || headerChanged) {
+			currentTheme = 'custom';
+			selectedCategory = 'custom';
+			toast.info('Switched to Custom theme');
+		}
+	}
+	
+
 	
 	// Profile edit
 	let bio = $state('');
@@ -74,55 +132,52 @@
 		
 		saving = true;
 		try {
-			const changes = pendingChanges.getAll();
 			const token = get(auth).token!;
+			const updatedTheme = globalTheme.getCurrent();
+			const updatedHeader = get(currentHeaderStyle);
 			
-			// Save theme changes
-			if (changes.theme || changes.header || changes.linkStyles) {
-				const updatedTheme = globalTheme.getCurrent();
-				const updatedHeader = get(currentHeaderStyle);
-				
-				if (currentTheme === 'custom') {
-					// Save COMPLETE custom theme (page + card + header)
-					// Build complete custom theme config
-					const customThemeData = {
-						...updatedTheme,
-						header: updatedHeader
-					};
-					
-					await profileApi.updateProfile({ 
-						custom_theme_config: JSON.stringify(customThemeData),
-						theme_name: 'custom'
-					}, token);
-					
-					// Save link styles if changed
-					if (changes.linkStyles) {
-						await linksApi.updateAllGroupStyles(changes.linkStyles, token);
-					}
-				} else {
-					// Save preset theme
-					await profileApi.updateProfile({ 
-						theme_name: currentTheme,
-						theme_config: JSON.stringify(updatedTheme)
-					}, token);
-					
-					// Save header separately for preset
-					if (changes.header) {
-						await profileApi.updateProfile({ 
-							header_config: JSON.stringify(updatedHeader) 
-						}, token);
-					}
-					
-					// Save link styles
-					if (changes.linkStyles) {
-						await linksApi.updateAllGroupStyles(changes.linkStyles, token);
-					}
-				}
+			if (currentTheme === 'custom') {
+				// Save custom theme with header included in custom_theme_config
+				const customThemeWithHeader = {
+					...updatedTheme,
+					header: updatedHeader
+				};
+				await profileApi.updateProfile({ 
+					theme_name: 'custom',
+					custom_theme_config: JSON.stringify(customThemeWithHeader)
+				}, token);
+				savedThemeName = 'custom';
+			} else {
+				// Save preset theme (only update header_config for preset)
+				await profileApi.updateProfile({ 
+					theme_name: currentTheme,
+					theme_config: null,
+					header_config: JSON.stringify(updatedHeader)
+				}, token);
+				savedThemeName = currentTheme;
 			}
 			
-			// Reload data
+			// Reload links
 			links = await linksApi.getLinks(token);
-			syncPreviewStyles(links);
+			
+			// Reset preview and sync from theme
+			previewStyles.reset();
+			previewStyles.update({
+				text_alignment: updatedTheme.textAlignment,
+				text_size: updatedTheme.textSize,
+				image_shape: updatedTheme.imageShape,
+				card_background_color: updatedTheme.cardBackground,
+				card_background_opacity: updatedTheme.cardBackgroundOpacity,
+				card_text_color: updatedTheme.cardTextColor,
+				card_border_radius: updatedTheme.cardBorderRadius,
+				show_shadow: updatedTheme.cardShadow,
+				shadow_x: updatedTheme.cardShadowX,
+				shadow_y: updatedTheme.cardShadowY,
+				shadow_blur: updatedTheme.cardShadowBlur,
+				has_card_border: updatedTheme.cardBorder,
+				card_border_color: updatedTheme.cardBorderColor,
+				card_border_width: updatedTheme.cardBorderWidth
+			});
 			
 			pendingChanges.reset();
 			toast.success('All changes saved!');
@@ -142,29 +197,7 @@
 		{ id: 'custom', label: 'Custom' }
 	];
 
-	// Helper to sync previewStyles from links data
-	function syncPreviewStyles(linksData: Link[]) {
-		const firstGroup = linksData?.find(l => l.is_group);
-		if (firstGroup) {
-			previewStyles.update({
-				text_alignment: firstGroup.text_alignment,
-				text_size: firstGroup.text_size,
-				card_text_color: firstGroup.card_text_color,
-				image_shape: firstGroup.image_shape,
-				show_shadow: firstGroup.show_shadow,
-				shadow_x: firstGroup.shadow_x,
-				shadow_y: firstGroup.shadow_y,
-				shadow_blur: firstGroup.shadow_blur,
-				card_border_radius: firstGroup.card_border_radius,
-				has_card_border: firstGroup.has_card_border,
-				card_border_color: firstGroup.card_border_color,
-				card_border_width: firstGroup.card_border_width,
-				card_background_color: firstGroup.card_background_color,
-				card_background_opacity: firstGroup.card_background_opacity,
-				style: firstGroup.style
-			});
-		}
-	}
+
 
 	const themes: Record<string, Array<{ id: string; name: string; preset: string; isCustom?: boolean }>> = {
 		classic: [
@@ -222,10 +255,10 @@
 			const profileData = await profileApi.getMyProfile(token!).catch(() => null);
 			
 			// Load theme IMMEDIATELY before other data
-			const savedThemeName = profileData?.theme_name || 'default';
+			savedThemeName = profileData?.theme_name || 'default';
 			
 			if (savedThemeName === 'custom') {
-				// Load COMPLETE custom theme (page + card + header)
+				// Load custom theme from custom_theme_config (includes header)
 				if (profileData?.custom_theme_config) {
 					try {
 						const customConfig = typeof profileData.custom_theme_config === 'string' 
@@ -233,17 +266,18 @@
 							: profileData.custom_theme_config;
 						
 						if (customConfig && Object.keys(customConfig).length > 0) {
-							// Load page + card styles
+							// Extract header from custom config
 							const { header, ...themeConfig } = customConfig;
+							
+							// Load theme config
 							globalTheme.loadFromJSON(JSON.stringify(themeConfig));
-							
-							// Load header if exists in custom config
-							if (header) {
-								currentHeaderStyle.set(header);
-							}
-							
 							currentTheme = 'custom';
 							selectedCategory = 'custom';
+							
+							// Load header from custom config
+							if (header && Object.keys(header).length > 0) {
+								currentHeaderStyle.set(header);
+							}
 						} else {
 							globalTheme.setPreset('default');
 							currentTheme = 'default';
@@ -261,25 +295,8 @@
 					selectedCategory = 'cozy';
 				}
 			} else if (savedThemeName) {
-				// Load preset theme: check theme_config first, then use preset default
-				if (profileData?.theme_config) {
-					try {
-						const themeStr = typeof profileData.theme_config === 'string' 
-							? profileData.theme_config 
-							: JSON.stringify(profileData.theme_config);
-						
-						if (themeStr && themeStr !== '{}' && themeStr !== 'null' && themeStr !== 'undefined') {
-							globalTheme.loadFromJSON(themeStr);
-						} else {
-							globalTheme.setPreset(savedThemeName);
-						}
-					} catch {
-						globalTheme.setPreset(savedThemeName);
-					}
-				} else {
-					globalTheme.setPreset(savedThemeName);
-				}
-				
+				// Load preset theme (always from code, immutable)
+				globalTheme.setPreset(savedThemeName);
 				currentTheme = savedThemeName;
 				
 				// Find category
@@ -290,20 +307,20 @@
 						break;
 					}
 				}
-			}
-			
-			// Load header config from profile
-			if (profileData?.header_config) {
-				try {
-					const headerConfig = typeof profileData.header_config === 'string' 
-						? JSON.parse(profileData.header_config) 
-						: profileData.header_config;
-					
-					if (headerConfig && Object.keys(headerConfig).length > 0) {
-						currentHeaderStyle.set(headerConfig);
+				
+				// Load header config from header_config for preset themes
+				if (profileData?.header_config) {
+					try {
+						const headerConfig = typeof profileData.header_config === 'string' 
+							? JSON.parse(profileData.header_config) 
+							: profileData.header_config;
+						
+						if (headerConfig && Object.keys(headerConfig).length > 0) {
+							currentHeaderStyle.set(headerConfig);
+						}
+					} catch (headerError) {
+						console.warn('Failed to load header config:', headerError);
 					}
-				} catch (headerError) {
-					console.warn('Failed to load header config:', headerError);
 				}
 			}
 			
@@ -335,47 +352,93 @@
 			pageSettings.showSubscribeButton = profileData?.show_subscribe_button ?? true;
 			pageSettings.hideBranding = profileData?.hide_branding ?? false;
 			
-			// Sync previewStyles from links data
-			syncPreviewStyles(linksData || []);
+			// Sync previewStyles from theme
+			const theme = globalTheme.getCurrent();
+			previewStyles.update({
+				text_alignment: theme.textAlignment,
+				text_size: theme.textSize,
+				image_shape: theme.imageShape,
+				card_background_color: theme.cardBackground,
+				card_background_opacity: theme.cardBackgroundOpacity,
+				card_text_color: theme.cardTextColor,
+				card_border_radius: theme.cardBorderRadius,
+				show_shadow: theme.cardShadow,
+				shadow_x: theme.cardShadowX,
+				shadow_y: theme.cardShadowY,
+				shadow_blur: theme.cardShadowBlur,
+				has_card_border: theme.cardBorder,
+				card_border_color: theme.cardBorderColor,
+				card_border_width: theme.cardBorderWidth
+			});
 			
 		} catch (e: any) {
 			console.error('Failed to load data:', e);
 		} finally {
 			loading = false;
+			// Allow auto-switch after initial load completes
+			setTimeout(() => {
+				isInitialLoad = false;
+			}, 500);
 		}
+		
+		// Listen for theme modifications
+		const handleThemeModified = () => {
+			console.log('🔔 Theme modified event received');
+			setTimeout(() => {
+				checkAndSwitchToCustom();
+			}, 0);
+		};
+		
+		window.addEventListener('theme-modified', handleThemeModified);
+		
+		// Watch for header style changes
+		const unsubscribeHeader = currentHeaderStyle.subscribe(() => {
+			if (!loading && !isInitialLoad) {
+				setTimeout(() => {
+					checkAndSwitchToCustom();
+				}, 0);
+			}
+		});
+		
+		return () => {
+			window.removeEventListener('theme-modified', handleThemeModified);
+			unsubscribeHeader();
+		};
 	});
 
 	async function selectTheme(themeId: string, presetName: string) {
 		if (applying) return;
 		
-		// If selecting custom, reload ALL saved data from database
+		// Temporarily disable auto-switch during theme selection
+		isInitialLoad = true;
+		
+		// Check if this theme is already saved in DB
+		const isAlreadySaved = savedThemeName === themeId;
+		
+		// If selecting custom, reload from database
 		if (themeId === 'custom') {
 			currentTheme = 'custom';
 			selectedCategory = 'custom';
 			
 			try {
 				const token = get(auth).token;
+				const profileData = await profileApi.getMyProfile(token!);
 				
-				// Reload ALL data from database to reset any preview changes
-				const [profileData, linksData, blocksData] = await Promise.all([
-					profileApi.getMyProfile(token!),
-					linksApi.getLinks(token!),
-					blocksApi.getBlocks(token!)
-				]);
-				
-				// Load COMPLETE custom theme (page + card + header)
+				// Load custom theme from custom_theme_config (includes header)
 				if (profileData?.custom_theme_config) {
 					const customConfig = typeof profileData.custom_theme_config === 'string' 
 						? JSON.parse(profileData.custom_theme_config)
 						: profileData.custom_theme_config;
 					
 					if (customConfig && Object.keys(customConfig).length > 0) {
-						// Load page + card styles
+						// Extract header from custom config
 						const { header, ...themeConfig } = customConfig;
+						
+						// Load theme config
 						globalTheme.loadFromJSON(JSON.stringify(themeConfig));
 						
-						// Load header if exists in custom config
-						if (header) {
+						// Load header from custom config (not from header_config)
+						if (header && Object.keys(header).length > 0) {
 							currentHeaderStyle.set(header);
 						} else {
 							currentHeaderStyle.set(defaultHeaderStyles);
@@ -389,13 +452,13 @@
 					currentHeaderStyle.set(defaultHeaderStyles);
 				}
 				
-				// Reset links and blocks to database state
-				links = linksData || [];
-				blocks = blocksData || [];
-				
-				// Apply custom theme card styles to preview
+				// Sync preview from theme
 				const customTheme = globalTheme.getCurrent();
+				const customHeader = get(currentHeaderStyle);
 				previewStyles.update({
+					text_alignment: customTheme.textAlignment,
+					text_size: customTheme.textSize,
+					image_shape: customTheme.imageShape,
 					card_background_color: customTheme.cardBackground,
 					card_background_opacity: customTheme.cardBackgroundOpacity,
 					card_text_color: customTheme.cardTextColor,
@@ -408,12 +471,26 @@
 					card_border_color: customTheme.cardBorderColor,
 					card_border_width: customTheme.cardBorderWidth
 				});
+				
+				// Only mark as changed if switching from a different theme
+				if (isAlreadySaved) {
+					pendingChanges.reset();
+					toast.info('Custom theme loaded');
+				} else {
+					pendingChanges.updateTheme(customTheme);
+					pendingChanges.updateHeader(customHeader);
+					toast.info('Custom theme loaded. Click "Save All" to apply.');
+				}
 			} catch (e: any) {
 				console.error('Failed to load custom theme:', e);
 				toast.error('Failed to load custom theme');
 			}
 			
-			pendingChanges.reset();
+			// Re-enable auto-switch after a delay
+			setTimeout(() => {
+				isInitialLoad = false;
+			}, 500);
+			
 			return;
 		}
 		
@@ -421,7 +498,6 @@
 		const preset = themePresets[presetName];
 		if (!preset) return;
 
-		previewStyles.reset();
 		currentTheme = themeId;
 		globalTheme.setPreset(presetName);
 		
@@ -429,23 +505,39 @@
 			currentHeaderStyle.set(preset.header);
 		}
 		
-		const hasLinkGroups = links?.some(l => l.is_group);
-		const hasBlockGroups = blocks?.some(b => b.is_group);
-		
-		if (hasLinkGroups) {
-			links = links.map(link => link.is_group ? applyCardStylesToGroup(link, preset.card) : link);
-		}
-		if (hasBlockGroups) {
-			blocks = blocks.map(block => block.is_group ? applyTextStylesToGroup(block, preset.text) : block);
-		}
+		// Sync preview styles from theme
+		const theme = globalTheme.getCurrent();
+		previewStyles.update({
+			text_alignment: theme.textAlignment,
+			text_size: theme.textSize,
+			image_shape: theme.imageShape,
+			card_background_color: theme.cardBackground,
+			card_background_opacity: theme.cardBackgroundOpacity,
+			card_text_color: theme.cardTextColor,
+			card_border_radius: theme.cardBorderRadius,
+			show_shadow: theme.cardShadow,
+			shadow_x: theme.cardShadowX,
+			shadow_y: theme.cardShadowY,
+			shadow_blur: theme.cardShadowBlur,
+			has_card_border: theme.cardBorder,
+			card_border_color: theme.cardBorderColor,
+			card_border_width: theme.cardBorderWidth
+		});
 
-		pendingChanges.updateTheme({ ...preset.page, ...preset.card });
-		pendingChanges.updateHeader(preset.header);
+		// Only mark as changed if switching from a different theme
+		if (isAlreadySaved) {
+			pendingChanges.reset();
+			toast.info('Theme loaded');
+		} else {
+			pendingChanges.updateTheme(theme);
+			pendingChanges.updateHeader(preset.header);
+			toast.info('Theme preview applied. Click "Save All" to keep changes.');
+		}
 		
-		const cardStyles = cardStylesToLinkFields(preset.card, preset.text);
-		pendingChanges.updateLinkStyles(cardStyles);
-		
-		toast.info('Theme preview applied. Click "Save All" to keep changes.');
+		// Re-enable auto-switch after a delay
+		setTimeout(() => {
+			isInitialLoad = false;
+		}, 500);
 	}
 
 	function handleAvatarChange(e: Event) {

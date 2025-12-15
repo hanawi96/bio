@@ -194,6 +194,31 @@ func main() {
 		log.Println("✅ Migration: page settings columns ready")
 	}
 
+	// Theme system refactor migration - Migrate link styles to theme_config
+	_, err = db.Exec(`
+		UPDATE profiles p
+		SET theme_config = COALESCE(p.theme_config, '{}'::jsonb) || jsonb_build_object(
+			'textAlignment', COALESCE(
+				(SELECT l.text_alignment FROM links l WHERE l.profile_id = p.id AND l.is_group = true LIMIT 1),
+				COALESCE(p.theme_config->>'textAlignment', 'center')
+			),
+			'textSize', COALESCE(
+				(SELECT l.text_size FROM links l WHERE l.profile_id = p.id AND l.is_group = true LIMIT 1),
+				COALESCE(p.theme_config->>'textSize', 'M')
+			),
+			'imageShape', COALESCE(
+				(SELECT l.image_shape FROM links l WHERE l.profile_id = p.id AND l.is_group = true LIMIT 1),
+				COALESCE(p.theme_config->>'imageShape', 'square')
+			)
+		)
+		WHERE EXISTS (SELECT 1 FROM links l WHERE l.profile_id = p.id AND l.is_group = true)
+	`)
+	if err != nil {
+		log.Println("⚠️ Theme refactor migration warning:", err)
+	} else {
+		log.Println("✅ Migration: Link styles migrated to theme_config")
+	}
+
 	// Create Fiber app
 	app := fiber.New(fiber.Config{
 		AppName:      "LinkBio API",

@@ -6,13 +6,27 @@
 	let { links = [] }: { links?: any[] } = $props();
 
 	const firstGroup = $derived(links.find(l => l.is_group));
-	const textAlignment = $derived<'left' | 'center' | 'right'>(firstGroup?.text_alignment || 'center');
-	const textSize = $derived<'S' | 'M' | 'L' | 'XL'>(firstGroup?.text_size || 'M');
+	// Read from previewStyles first, fallback to globalTheme (NOT from links!)
+	const textAlignment = $derived($previewStyles.text_alignment || $globalTheme.textAlignment || 'center');
+	const textSize = $derived($previewStyles.text_size || $globalTheme.textSize || 'M');
 	const currentTextColor = $derived($globalTheme.cardTextColor);
 
 	function updateTypography(field: string, value: any) {
+		// Update theme config (single source of truth)
+		if (field === 'text_alignment') {
+			globalTheme.update({ textAlignment: value });
+		} else if (field === 'text_size') {
+			globalTheme.update({ textSize: value });
+		}
+		
+		// Update preview
 		previewStyles.update({ [field]: value });
-		pendingChanges.updateLinkStyles({ [field]: value });
+		
+		// Mark as pending
+		pendingChanges.updateTheme({ [field]: value });
+		
+		// Trigger auto-switch check
+		window.dispatchEvent(new CustomEvent('theme-modified'));
 	}
 
 	function updateTextColor(color: string) {

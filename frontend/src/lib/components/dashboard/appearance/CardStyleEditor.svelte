@@ -13,10 +13,9 @@
 		globalTheme.update(updates);
 		previewStyles.update(updates);
 		pendingChanges.updateTheme(updates);
-		pendingChanges.updateLinkStyles({
-			has_card_background: updates.enableCardBackground ?? enableBg,
-			...updates
-		});
+		
+		// Trigger auto-switch check
+		window.dispatchEvent(new CustomEvent('theme-modified'));
 	}
 
 	const colorPresets = [

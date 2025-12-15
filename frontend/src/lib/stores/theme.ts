@@ -69,6 +69,10 @@ export interface ThemePreset { page: PageStyles; card: CardStyles; text: TextSty
 export interface ThemeConfig extends PageStyles, CardStyles {
 	pageBackgroundImage?: string;
 	pageBackgroundVideo?: string;
+	// Typography settings (moved from links table)
+	textAlignment?: 'left' | 'center' | 'right';
+	textSize?: 'S' | 'M' | 'L' | 'XL';
+	imageShape?: 'sharp' | 'square' | 'circle';
 }
 
 export const defaultPageStyles: PageStyles = {
@@ -97,17 +101,22 @@ export const defaultHeaderStyles: HeaderStyles = {
 };
 
 export const themePresets: Record<string, ThemePreset> = {
-	default: { page: { ...defaultPageStyles }, card: { ...defaultCardStyles }, text: { ...defaultTextStyles }, header: { ...defaultHeaderStyles } },
+	default: { 
+		page: { ...defaultPageStyles }, 
+		card: { ...defaultCardStyles }, 
+		text: { ...defaultTextStyles }, 
+		header: { ...defaultHeaderStyles } 
+	},
 	mcalpine: {
 		page: { pageBackground: '#1a1a1a', pageBackgroundType: 'solid', pageGradientFrom: '#1a1a1a', pageGradientTo: '#1a1a1a', pageGradientDirection: 'up', textColor: '#ffffff', textSecondaryColor: '#cccccc', accentColor: '#ffffff' },
 		card: { enableCardBackground: true, cardBackground: '#333333', cardBackgroundOpacity: 100, cardTextColor: '#ffffff', cardBorderRadius: 12, cardShadow: true, cardShadowX: 0, cardShadowY: 4, cardShadowBlur: 10, cardBorder: false, cardBorderColor: '#444444', cardBorderWidth: 1 },
-		text: { hasBackground: true, backgroundColor: '#333333', backgroundOpacity: 100, textColor: '#ffffff', borderRadius: 12, padding: 16, shadow: 'md', hasBorder: false, borderColor: '#444444', borderWidth: 1, borderStyle: 'solid', textAlign: 'left', fontSize: 'text-medium', isBold: false, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none' },
+		text: { hasBackground: true, backgroundColor: '#333333', backgroundOpacity: 100, textColor: '#ffffff', borderRadius: 12, padding: 16, shadow: 'md', hasBorder: false, borderColor: '#444444', borderWidth: 1, borderStyle: 'solid', textAlign: 'center', fontSize: 'text-medium', isBold: false, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none' },
 		header: { layout: 'overlap', coverType: 'color', coverColor: '#000000', coverGradientFrom: '#000000', coverGradientTo: '#1a1a1a', coverHeight: 160, avatarSize: 120, avatarBorder: 4, avatarBorderColor: '#ffffff', avatarShape: 'circle', showCover: true, bioAlign: 'center', bioSize: 'md' }
 	},
 	yoga: {
 		page: { pageBackground: '#b8c5d6', pageBackgroundType: 'solid', pageGradientFrom: '#b8c5d6', pageGradientTo: '#b8c5d6', pageGradientDirection: 'up', textColor: '#2d3748', textSecondaryColor: '#4a5568', accentColor: '#4a6fa5' },
-		card: { enableCardBackground: true, cardBackground: '#ffffff', cardBackgroundOpacity: 80, cardTextColor: '#4a6fa5', cardBorderRadius: 16, cardShadow: true, cardShadowX: 0, cardShadowY: 4, cardShadowBlur: 12, cardBorder: false, cardBorderColor: '#e2e8f0', cardBorderWidth: 1 },
-		text: { hasBackground: true, backgroundColor: '#ffffff', backgroundOpacity: 80, textColor: '#4a6fa5', borderRadius: 16, padding: 16, shadow: 'md', hasBorder: false, borderColor: '#e2e8f0', borderWidth: 1, borderStyle: 'solid', textAlign: 'center', fontSize: 'text-medium', isBold: false, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none' },
+		card: { enableCardBackground: true, cardBackground: '#ffffff', cardBackgroundOpacity: 75, cardTextColor: '#4a6fa5', cardBorderRadius: 12, cardShadow: true, cardShadowX: 0, cardShadowY: 4, cardShadowBlur: 12, cardBorder: false, cardBorderColor: '#e2e8f0', cardBorderWidth: 1 },
+		text: { hasBackground: true, backgroundColor: '#ffffff', backgroundOpacity: 75, textColor: '#4a6fa5', borderRadius: 12, padding: 16, shadow: 'md', hasBorder: false, borderColor: '#e2e8f0', borderWidth: 1, borderStyle: 'solid', textAlign: 'center', fontSize: 'text-medium', isBold: false, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none' },
 		header: { layout: 'card', coverType: 'gradient', coverColor: '#b8c5d6', coverGradientFrom: '#a8b5c6', coverGradientTo: '#c8d5e6', coverHeight: 100, avatarSize: 88, avatarBorder: 4, avatarBorderColor: '#ffffff', avatarShape: 'circle', showCover: true, bioAlign: 'center', bioSize: 'md' }
 	},
 	jerry: {
@@ -145,63 +154,34 @@ export function hexToRgba(hex: string, opacity: number): string {
 	return `rgba(${r}, ${g}, ${b}, ${opacity / 100})`;
 }
 
-export function cardStylesToLinkFields(card: CardStyles, text?: TextStyles): Record<string, any> {
-	// Map text block alignment to link alignment
-	const textAlign = text?.textAlign || 'center';
-	const alignment = textAlign === 'left' ? 'left' : textAlign === 'right' ? 'right' : 'center';
-	
-	// Get padding from text block (default 16)
-	const padding = text?.padding || 16;
 
-	return {
-		card_background_color: card.cardBackground, card_background_opacity: card.cardBackgroundOpacity,
-		card_text_color: card.cardTextColor, card_border_radius: card.cardBorderRadius,
-		show_shadow: card.cardShadow, shadow_x: card.cardShadowX, shadow_y: card.cardShadowY, shadow_blur: card.cardShadowBlur,
-		has_card_border: card.cardBorder, card_border_color: card.cardBorderColor, card_border_width: card.cardBorderWidth, 
-		has_card_background: card.enableCardBackground ?? true,
-		// Apply typography from theme
-		text_alignment: alignment,
-		text_size: 'M',
-		image_shape: 'square',
-		// Apply spacing from theme
-		style: JSON.stringify({
-			padding: { top: padding, right: padding, bottom: padding, left: padding },
-			margin: { top: 0, bottom: 8 }
-		})
-	};
-}
 
-export function textStylesToBlockStyle(text: TextStyles): string {
-	return JSON.stringify({
-		hasBackground: text.hasBackground, backgroundColor: text.backgroundColor, backgroundOpacity: text.backgroundOpacity,
-		textColor: text.textColor, borderRadius: text.borderRadius, padding: text.padding, shadow: text.shadow,
-		hasBorder: text.hasBorder, borderColor: text.borderColor, borderWidth: text.borderWidth, borderStyle: text.borderStyle,
-		textAlign: text.textAlign, fontSize: text.fontSize, isBold: text.isBold, isItalic: text.isItalic,
-		isUnderline: text.isUnderline, isStrikethrough: text.isStrikethrough, textTransform: text.textTransform
-	});
-}
-
-export function applyCardStylesToGroup(group: any, card: CardStyles): any {
-	return {
-		...group, card_background_color: card.cardBackground, card_background_opacity: card.cardBackgroundOpacity,
-		card_text_color: card.cardTextColor, card_border_radius: card.cardBorderRadius, show_shadow: card.cardShadow,
-		shadow_x: card.cardShadowX, shadow_y: card.cardShadowY, shadow_blur: card.cardShadowBlur,
-		has_card_border: card.cardBorder, card_border_color: card.cardBorderColor, card_border_width: card.cardBorderWidth, 
-		has_card_background: card.enableCardBackground ?? true
-	};
-}
-
-export function applyTextStylesToGroup(group: any, text: TextStyles): any {
-	return { ...group, style: textStylesToBlockStyle(text) };
-}
-
-const defaultTheme: ThemeConfig = { ...defaultPageStyles, ...defaultCardStyles };
+const defaultTheme: ThemeConfig = { 
+	...defaultPageStyles, 
+	...defaultCardStyles,
+	textAlignment: 'center',
+	textSize: 'M',
+	imageShape: 'square'
+};
 
 function createThemeStore() {
 	const { subscribe, set, update } = writable<ThemeConfig>(defaultTheme);
 	return {
 		subscribe,
-		setPreset(presetName: string) { const preset = themePresets[presetName]; if (preset) set({ ...preset.page, ...preset.card }); },
+		setPreset(presetName: string) { 
+			const preset = themePresets[presetName]; 
+			if (preset) {
+				// Include typography settings from text preset
+				const textAlign = preset.text.textAlign === 'left' ? 'left' : preset.text.textAlign === 'right' ? 'right' : 'center';
+				set({ 
+					...preset.page, 
+					...preset.card,
+					textAlignment: textAlign,
+					textSize: 'M', // Default
+					imageShape: 'square' // Default
+				});
+			}
+		},
 		getPreset(presetName: string): ThemePreset | null { return themePresets[presetName] || null; },
 		update(partial: Partial<ThemeConfig>) { update(current => ({ ...current, ...partial })); },
 		reset() { set(defaultTheme); },

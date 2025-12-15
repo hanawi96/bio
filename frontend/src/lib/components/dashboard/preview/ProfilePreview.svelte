@@ -39,10 +39,17 @@
 	// Get header style from store
 	const headerStyle = $derived($currentHeaderStyle);
 	
-	// Apply preview styles to links
+	// Apply theme + preview styles to links
 	const previewLinks = $derived(links.map(link => {
 		if (!link.is_group) return link;
-		return { ...link, ...preview };
+		// Override link fields with theme + preview
+		return { 
+			...link, 
+			text_alignment: preview.text_alignment || currentTheme.textAlignment || 'center',
+			text_size: preview.text_size || currentTheme.textSize || 'M',
+			image_shape: preview.image_shape || currentTheme.imageShape || 'square',
+			...preview 
+		};
 	}));
 	
 	// Helper to get card style from theme (with link override + preview)

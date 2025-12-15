@@ -109,7 +109,20 @@
 	);
 	
 	// Filter active links, excluding those hidden by inactive blocks
-	$: activeLinks = links.filter(l => l.is_active && !hiddenLinkIds.has(l.id));
+	// Apply theme styling to links
+	$: activeLinks = links
+		.filter(l => l.is_active && !hiddenLinkIds.has(l.id))
+		.map(link => {
+			if (!link.is_group) return link;
+			// Override with theme styling
+			const theme = $globalTheme;
+			return {
+				...link,
+				text_alignment: theme.textAlignment || link.text_alignment || 'center',
+				text_size: theme.textSize || link.text_size || 'M',
+				image_shape: theme.imageShape || link.image_shape || 'square'
+			};
+		});
 	
 	// Combine and sort: pinned links first, then by position
 	$: items = [

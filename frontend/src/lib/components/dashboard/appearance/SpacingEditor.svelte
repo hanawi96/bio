@@ -7,6 +7,14 @@
 	// Sync from first group
 	const firstGroup = $derived(links.find(l => l.is_group));
 	const getPaddingFromStyle = () => {
+		// Read from previewStyles first
+		if ($previewStyles.style) {
+			try {
+				const style = JSON.parse($previewStyles.style);
+				return typeof style.padding === 'number' ? style.padding : style.padding?.top || 16;
+			} catch {}
+		}
+		// Fallback to firstGroup
 		if (!firstGroup?.style) return 16;
 		try {
 			const style = JSON.parse(firstGroup.style);
@@ -14,6 +22,14 @@
 		} catch { return 16; }
 	};
 	const getSpacingFromStyle = () => {
+		// Read from previewStyles first
+		if ($previewStyles.style) {
+			try {
+				const style = JSON.parse($previewStyles.style);
+				return style.margin?.bottom || 8;
+			} catch {}
+		}
+		// Fallback to firstGroup
 		if (!firstGroup?.style) return 8;
 		try {
 			const style = JSON.parse(firstGroup.style);
