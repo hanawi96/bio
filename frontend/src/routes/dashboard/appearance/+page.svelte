@@ -38,186 +38,21 @@
 	let blocks = $state<Block[]>([]);
 	let selectedCategory = $state<string>('all');
 	let currentTheme = $state<string>('default');
-	let savedThemeName = $state<string>('default'); // Track what's saved in DB
+	let savedThemeName = $state<string>('default');
 	let saving = $state(false);
-	let applying = $state(false);
 	let loading = $state(true);
 	let isInitialLoad = $state(true);
+	let customHeaderPresets = $state<any[]>([]);
 	
 	const hasUnsavedChanges = $derived($pendingChanges.hasChanges);
 	
-	// Auto-sync previewStyles and check theme switch whenever globalTheme changes (after initial load)
+	// Sync preview styles whenever theme changes
 	$effect(() => {
 		if (!loading && !isInitialLoad) {
-			// Sync preview styles from theme whenever theme changes
 			syncPreviewStylesFromTheme();
-			// Check if we should switch theme (to custom or back to preset)
-			checkAndSwitchToCustom();
 		}
-		// Subscribe to globalTheme to trigger effect on changes
 		const _ = $globalTheme;
 	});
-	
-	// Auto-switch to custom when modifying preset (or back to preset if values match)
-	function checkAndSwitchToCustom() {
-		// Skip check during initial load
-		if (isInitialLoad) return;
-		
-		const current = globalTheme.getCurrent();
-		const currentHeader = get(currentHeaderStyle);
-		
-		// If already custom, check if we can switch back to any preset
-		if (currentTheme === 'custom') {
-			// Check all presets to see if current values match any
-			for (const [presetName, preset] of Object.entries(themePresets)) {
-				const textAlign = preset.text.textAlign === 'left' ? 'left' : preset.text.textAlign === 'right' ? 'right' : 'center';
-				const presetConfig = { 
-					...preset.page, 
-					...preset.card,
-					textAlignment: textAlign,
-					textSize: 'M',
-					imageShape: 'square'
-				};
-				
-				const themeMatches = 
-					// Typography
-					current.textAlignment === presetConfig.textAlignment &&
-					current.textSize === presetConfig.textSize &&
-					current.imageShape === presetConfig.imageShape &&
-					// Page background
-					current.pageBackground === presetConfig.pageBackground &&
-					current.pageBackgroundType === presetConfig.pageBackgroundType &&
-					current.pageGradientFrom === presetConfig.pageGradientFrom &&
-					current.pageGradientTo === presetConfig.pageGradientTo &&
-					current.pageGradientDirection === presetConfig.pageGradientDirection &&
-					current.textColor === presetConfig.textColor &&
-					current.textSecondaryColor === presetConfig.textSecondaryColor &&
-					current.accentColor === presetConfig.accentColor &&
-					// Card styles
-					current.enableCardBackground === presetConfig.enableCardBackground &&
-					current.cardBackground === presetConfig.cardBackground &&
-					current.cardBackgroundOpacity === presetConfig.cardBackgroundOpacity &&
-					current.cardTextColor === presetConfig.cardTextColor &&
-					current.cardBorderRadius === presetConfig.cardBorderRadius &&
-					current.cardShadow === presetConfig.cardShadow &&
-					current.cardShadowX === presetConfig.cardShadowX &&
-					current.cardShadowY === presetConfig.cardShadowY &&
-					current.cardShadowBlur === presetConfig.cardShadowBlur &&
-					current.cardBorder === presetConfig.cardBorder &&
-					current.cardBorderColor === presetConfig.cardBorderColor &&
-					current.cardBorderWidth === presetConfig.cardBorderWidth &&
-					current.cardPadding === presetConfig.cardPadding &&
-					current.cardSpacing === presetConfig.cardSpacing;
-				
-				const headerMatches = !preset.header || (
-					currentHeader.layout === preset.header.layout &&
-					currentHeader.coverType === preset.header.coverType &&
-					currentHeader.coverColor === preset.header.coverColor &&
-					currentHeader.coverGradientFrom === preset.header.coverGradientFrom &&
-					currentHeader.coverGradientTo === preset.header.coverGradientTo &&
-					currentHeader.coverHeight === preset.header.coverHeight &&
-					currentHeader.avatarSize === preset.header.avatarSize &&
-					currentHeader.avatarBorder === preset.header.avatarBorder &&
-					currentHeader.avatarShape === preset.header.avatarShape &&
-					currentHeader.showCover === preset.header.showCover &&
-					currentHeader.bioAlign === preset.header.bioAlign &&
-					currentHeader.bioSize === preset.header.bioSize
-				);
-				
-				if (themeMatches && headerMatches) {
-					// Found matching preset! Switch back
-					const wasCustom = currentTheme === 'custom';
-					currentTheme = presetName;
-					selectedCategory = Object.entries(themes).find(([_, items]) => 
-						items.some(item => item.id === presetName)
-					)?.[0] || 'all';
-					
-					// Clear pending changes since we're back to a saved preset
-					if (savedThemeName === presetName) {
-						pendingChanges.reset();
-						if (wasCustom) {
-							toast.info(`Switched back to ${themes[selectedCategory]?.find(t => t.id === presetName)?.name || presetName} theme`);
-						}
-					}
-					return;
-				}
-			}
-			// Still custom, no matching preset found
-			return;
-		}
-		
-		// Currently on a preset, check if modified
-		const preset = themePresets[currentTheme];
-		if (!preset) return;
-		
-		const textAlign = preset.text.textAlign === 'left' ? 'left' : preset.text.textAlign === 'right' ? 'right' : 'center';
-		const presetConfig = { 
-			...preset.page, 
-			...preset.card,
-			textAlignment: textAlign,
-			textSize: 'M',
-			imageShape: 'square'
-		};
-		
-		const themeChanged = 
-			// Typography
-			current.textAlignment !== presetConfig.textAlignment ||
-			current.textSize !== presetConfig.textSize ||
-			current.imageShape !== presetConfig.imageShape ||
-			// Page background
-			current.pageBackground !== presetConfig.pageBackground ||
-			current.pageBackgroundType !== presetConfig.pageBackgroundType ||
-			current.pageGradientFrom !== presetConfig.pageGradientFrom ||
-			current.pageGradientTo !== presetConfig.pageGradientTo ||
-			current.pageGradientDirection !== presetConfig.pageGradientDirection ||
-			current.textColor !== presetConfig.textColor ||
-			current.textSecondaryColor !== presetConfig.textSecondaryColor ||
-			current.accentColor !== presetConfig.accentColor ||
-			// Card styles
-			current.enableCardBackground !== presetConfig.enableCardBackground ||
-			current.cardBackground !== presetConfig.cardBackground ||
-			current.cardBackgroundOpacity !== presetConfig.cardBackgroundOpacity ||
-			current.cardTextColor !== presetConfig.cardTextColor ||
-			current.cardBorderRadius !== presetConfig.cardBorderRadius ||
-			current.cardShadow !== presetConfig.cardShadow ||
-			current.cardShadowX !== presetConfig.cardShadowX ||
-			current.cardShadowY !== presetConfig.cardShadowY ||
-			current.cardShadowBlur !== presetConfig.cardShadowBlur ||
-			current.cardBorder !== presetConfig.cardBorder ||
-			current.cardBorderColor !== presetConfig.cardBorderColor ||
-			current.cardBorderWidth !== presetConfig.cardBorderWidth ||
-			current.cardPadding !== presetConfig.cardPadding ||
-			current.cardSpacing !== presetConfig.cardSpacing;
-		
-		let headerChanged = false;
-		if (preset.header) {
-			headerChanged = 
-				currentHeader.layout !== preset.header.layout ||
-				currentHeader.coverType !== preset.header.coverType ||
-				currentHeader.coverColor !== preset.header.coverColor ||
-				currentHeader.coverGradientFrom !== preset.header.coverGradientFrom ||
-				currentHeader.coverGradientTo !== preset.header.coverGradientTo ||
-				currentHeader.coverHeight !== preset.header.coverHeight ||
-				currentHeader.avatarSize !== preset.header.avatarSize ||
-				currentHeader.avatarBorder !== preset.header.avatarBorder ||
-				currentHeader.avatarShape !== preset.header.avatarShape ||
-				currentHeader.showCover !== preset.header.showCover ||
-				currentHeader.bioAlign !== preset.header.bioAlign ||
-				currentHeader.bioSize !== preset.header.bioSize;
-		}
-		
-		if (themeChanged || headerChanged) {
-			// Modified from preset, switch to custom
-			currentTheme = 'custom';
-			selectedCategory = 'custom';
-			toast.info('Switched to Custom theme');
-		} else {
-			// Back to preset values, clear pending if this preset is saved
-			if (savedThemeName === currentTheme) {
-				pendingChanges.reset();
-			}
-		}
-	}
 	
 
 	
@@ -244,12 +79,9 @@
 
 
 	async function saveAllChanges() {
-		// Early return before setting saving state
 		if (saving || !hasUnsavedChanges) return;
 		
 		saving = true;
-		
-		// Add minimum delay to prevent flashing
 		const minDelay = new Promise(resolve => setTimeout(resolve, 500));
 		
 		try {
@@ -260,46 +92,42 @@
 			
 			const savePromises = [];
 			
+			// Save customHeaderPresets in custom_theme_config for ALL themes
+			const customThemeWithPresets = {
+				...updatedTheme,
+				header: updatedHeader,
+				customHeaderPresets
+			};
+			
 			if (currentTheme === 'custom') {
-				// Save custom theme with header included in custom_theme_config
-				const customThemeWithHeader = {
-					...updatedTheme,
-					header: updatedHeader
-				};
 				savePromises.push(
 					profileApi.updateProfile({ 
 						theme_name: 'custom',
-						custom_theme_config: JSON.stringify(customThemeWithHeader)
+						custom_theme_config: JSON.stringify(customThemeWithPresets)
 					}, token)
 				);
 				savedThemeName = 'custom';
 			} else {
-				// Save preset theme (only update header_config for preset)
 				savePromises.push(
-					profileApi.updateProfile({ 
+					profileApi.updateProfile({
 						theme_name: currentTheme,
 						theme_config: null,
-						header_config: JSON.stringify(updatedHeader)
+						header_config: JSON.stringify(updatedHeader),
+						custom_theme_config: JSON.stringify({ customHeaderPresets })
 					}, token)
 				);
 				savedThemeName = currentTheme;
 			}
 			
-			// Save link styles if there are any changes
 			if (changes.linkStyles && Object.keys(changes.linkStyles).length > 0) {
 				savePromises.push(linksApi.updateAllGroupStyles(changes.linkStyles, token));
 			}
 			
-			// Wait for all saves and minimum delay
 			await Promise.all([...savePromises, minDelay]);
 			
-			// Reload links
 			links = await linksApi.getLinks(token);
-			
-			// Reset preview and sync from theme
 			previewStyles.reset();
 			syncPreviewStylesFromTheme();
-			
 			pendingChanges.reset();
 			toast.success('All changes saved!');
 		} catch (e: any) {
@@ -372,14 +200,26 @@
 		try {
 			const token = get(auth).token;
 			
-			// Load profile first to get theme config
 			const profileData = await profileApi.getMyProfile(token!).catch(() => null);
 			
-			// Load theme using shared utility (same as bio page)
 			const { themeName, category } = loadThemeFromProfile(profileData);
 			savedThemeName = themeName;
 			currentTheme = themeName;
 			selectedCategory = category;
+			
+			if (profileData?.custom_theme_config) {
+				try {
+					const customConfig = typeof profileData.custom_theme_config === 'string'
+						? JSON.parse(profileData.custom_theme_config)
+						: profileData.custom_theme_config;
+					
+					if (customConfig?.customHeaderPresets && Array.isArray(customConfig.customHeaderPresets)) {
+						customHeaderPresets = customConfig.customHeaderPresets;
+					}
+				} catch (e) {
+					console.warn('Failed to load custom header presets:', e);
+				}
+			}
 			
 			// Load other data after theme is set
 			const [linksData, blocksData] = await Promise.all([
@@ -409,7 +249,6 @@
 			pageSettings.showSubscribeButton = profileData?.show_subscribe_button ?? true;
 			pageSettings.hideBranding = profileData?.hide_branding ?? false;
 			
-			// Sync previewStyles from theme (already done by loadThemeFromProfile, but ensure it's synced)
 			syncPreviewStylesFromTheme();
 			
 		} catch (e: any) {
@@ -422,28 +261,14 @@
 			}, 500);
 		}
 		
-		// Watch for header style changes (theme changes are watched by $effect above)
-		const unsubscribeHeader = currentHeaderStyle.subscribe(() => {
-			if (!loading && !isInitialLoad) {
-				checkAndSwitchToCustom();
-			}
-		});
-		
 		return () => {
-			unsubscribeHeader();
+			// Cleanup
 		};
 	});
 
 	async function selectTheme(themeId: string, presetName: string) {
-		if (applying) return;
-		
-		// Temporarily disable auto-switch during theme selection
-		isInitialLoad = true;
-		
-		// Check if this theme is already saved in DB
 		const isAlreadySaved = savedThemeName === themeId;
 		
-		// If selecting custom, reload from database
 		if (themeId === 'custom') {
 			currentTheme = 'custom';
 			selectedCategory = 'custom';
@@ -452,25 +277,15 @@
 				const token = get(auth).token;
 				const profileData = await profileApi.getMyProfile(token!);
 				
-				// Load custom theme from custom_theme_config (includes header)
 				if (profileData?.custom_theme_config) {
 					const customConfig = typeof profileData.custom_theme_config === 'string' 
 						? JSON.parse(profileData.custom_theme_config)
 						: profileData.custom_theme_config;
 					
 					if (customConfig && Object.keys(customConfig).length > 0) {
-						// Extract header from custom config
 						const { header, ...themeConfig } = customConfig;
-						
-						// Load theme config
 						globalTheme.loadFromJSON(JSON.stringify(themeConfig));
-						
-						// Load header from custom config (not from header_config)
-						if (header && Object.keys(header).length > 0) {
-							currentHeaderStyle.set(header);
-						} else {
-							currentHeaderStyle.set(defaultHeaderStyles);
-						}
+						currentHeaderStyle.set(header && Object.keys(header).length > 0 ? header : defaultHeaderStyles);
 					} else {
 						globalTheme.setPreset('default');
 						currentHeaderStyle.set(defaultHeaderStyles);
@@ -480,63 +295,42 @@
 					currentHeaderStyle.set(defaultHeaderStyles);
 				}
 				
-				// Sync preview from theme
 				syncPreviewStylesFromTheme();
-				const customTheme = globalTheme.getCurrent();
-				const customHeader = get(currentHeaderStyle);
 				
-				// Only mark as changed if switching from a different theme
-				if (isAlreadySaved) {
+				if (!isAlreadySaved) {
+					pendingChanges.updateTheme(globalTheme.getCurrent());
+					pendingChanges.updateHeader(get(currentHeaderStyle));
+					toast.info('Custom theme loaded. Click "Save All" to apply.');
+				} else {
 					pendingChanges.reset();
 					toast.info('Custom theme loaded');
-				} else {
-					pendingChanges.updateTheme(customTheme);
-					pendingChanges.updateHeader(customHeader);
-					toast.info('Custom theme loaded. Click "Save All" to apply.');
 				}
 			} catch (e: any) {
 				console.error('Failed to load custom theme:', e);
 				toast.error('Failed to load custom theme');
 			}
-			
-			// Re-enable auto-switch after a delay
-			setTimeout(() => {
-				isInitialLoad = false;
-			}, 500);
-			
 			return;
 		}
 		
-		// Apply preset theme
 		const preset = themePresets[presetName];
 		if (!preset) return;
 
 		currentTheme = themeId;
 		globalTheme.setPreset(presetName);
-		
 		if (preset.header) {
 			currentHeaderStyle.set(preset.header);
 		}
 		
-		// Sync preview styles from theme
 		syncPreviewStylesFromTheme();
-		const theme = globalTheme.getCurrent();
-		const header = preset.header || get(currentHeaderStyle);
 
-		// Only mark as changed if switching from a different theme
 		if (isAlreadySaved) {
 			pendingChanges.reset();
 			toast.info('Theme loaded');
 		} else {
-			pendingChanges.updateTheme(theme);
-			pendingChanges.updateHeader(header);
+			pendingChanges.updateTheme(globalTheme.getCurrent());
+			pendingChanges.updateHeader(preset.header || get(currentHeaderStyle));
 			toast.info('Theme preview applied. Click "Save All" to keep changes.');
 		}
-		
-		// Re-enable auto-switch after a delay
-		setTimeout(() => {
-			isInitialLoad = false;
-		}, 500);
 	}
 
 	function handleAvatarChange(e: Event) {
@@ -747,13 +541,6 @@
 				<div class="bg-white rounded-2xl border border-gray-200 p-6">
 					<div class="flex items-center justify-between mb-6">
 						<h2 class="text-xl font-bold text-gray-900">Theme</h2>
-						<span class="text-sm text-indigo-600 flex items-center gap-2 transition-opacity duration-200" style="opacity: {applying ? 1 : 0}; pointer-events: {applying ? 'auto' : 'none'};">
-							<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-							</svg>
-							Applying...
-						</span>
 					</div>
 					
 					<div class="flex gap-2 mb-4">
@@ -845,7 +632,9 @@
 
 				<!-- Header Section -->
 				<div class="bg-white rounded-2xl border border-gray-200 p-6">
-					<HeaderStyleEditor />
+					<HeaderStyleEditor 
+						bind:customPresets={customHeaderPresets}
+					/>
 				</div>
 
 				<!-- Card Colors Section -->

@@ -18,7 +18,7 @@ export function loadThemeFromProfile(profileData: Profile | null) {
 	const themeName = profileData.theme_name || 'default';
 
 	if (themeName === 'custom') {
-		// Load custom theme from custom_theme_config (includes header)
+		// Load custom theme from custom_theme_config (includes header and custom presets)
 		if (profileData.custom_theme_config) {
 			try {
 				const customConfig = typeof profileData.custom_theme_config === 'string'
@@ -26,8 +26,8 @@ export function loadThemeFromProfile(profileData: Profile | null) {
 					: profileData.custom_theme_config;
 
 				if (customConfig && Object.keys(customConfig).length > 0) {
-					// Extract header from custom config
-					const { header, ...themeConfig } = customConfig;
+					// Extract header and custom presets from custom config
+					const { header, customHeaderPresets, ...themeConfig } = customConfig;
 
 					// Load theme config
 					globalTheme.loadFromJSON(JSON.stringify(themeConfig));

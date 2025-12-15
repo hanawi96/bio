@@ -1,12 +1,13 @@
 <script lang="ts">
 	import type { HeaderStyles } from '$lib/stores/theme';
 	
-	let { profile, headerStyle, socialLinks = [], textColor, textSecondaryColor }: {
+	let { profile, headerStyle, socialLinks = [], textColor, textSecondaryColor, bioTextColor }: {
 		profile: any;
 		headerStyle: HeaderStyles;
 		socialLinks?: Array<{ platform: string; url: string }>;
 		textColor: string;
 		textSecondaryColor: string;
+		bioTextColor?: string;
 	} = $props();
 	
 
@@ -96,7 +97,7 @@
 					</div>
 				{/if}
 			</div>
-			{#if bio}<p class="mt-1" style="color: {textSecondaryColor}; font-size: {bioFontSize}; text-align: {headerStyle.bioAlign};">{bio}</p>{/if}
+			{#if bio}<p class="mt-1" style="color: {bioTextColor || textSecondaryColor}; font-size: {bioFontSize}; text-align: {headerStyle.bioAlign};">{bio}</p>{/if}
 		</div>
 	</div>
 {:else if headerStyle.layout === 'overlap'}
@@ -122,7 +123,7 @@
 					</div>
 				{/if}
 			</div>
-			{#if bio}<p class="mt-1" style="color: {textSecondaryColor}; font-size: {bioFontSize}; text-align: {headerStyle.bioAlign};">{bio}</p>{/if}
+			{#if bio}<p class="mt-1" style="color: {bioTextColor || textSecondaryColor}; font-size: {bioFontSize}; text-align: {headerStyle.bioAlign};">{bio}</p>{/if}
 		</div>
 	</div>
 {:else if headerStyle.layout === 'card'}
@@ -207,7 +208,7 @@
 					</div>
 				{/if}
 			</div>
-			{#if bio}<p class="text-base mt-2" style="color: {textSecondaryColor}; text-align: {headerStyle.bioAlign};">{bio}</p>{/if}
+			{#if bio}<p class="text-base mt-2" style="color: {bioTextColor || textSecondaryColor}; text-align: {headerStyle.bioAlign};">{bio}</p>{/if}
 		</div>
 	</div>
 {:else if headerStyle.layout === 'minimal'}
@@ -229,7 +230,7 @@
 				{/if}
 			</div>
 		</div>
-		{#if bio}<p class="text-xs mt-0.5" style="color: {textSecondaryColor}; text-align: {headerStyle.bioAlign};">{bio}</p>{/if}
+		{#if bio}<p class="text-xs mt-0.5" style="color: {bioTextColor || textSecondaryColor}; text-align: {headerStyle.bioAlign};">{bio}</p>{/if}
 	</div>
 {:else if headerStyle.layout === 'full'}
 	<div class="relative">
@@ -272,7 +273,7 @@
 						{/each}
 					</div>
 				{/if}
-				{#if bio}<p class="text-sm mt-1" style="color: {textSecondaryColor};">{bio}</p>{/if}
+				{#if bio}<p class="text-sm mt-1" style="color: {bioTextColor || textSecondaryColor};">{bio}</p>{/if}
 			</div>
 		</div>
 	</div>
@@ -301,7 +302,7 @@
 						{/each}
 					</div>
 				{/if}
-				{#if bio}<p class="text-sm mt-1" style="color: {textSecondaryColor};">{bio}</p>{/if}
+				{#if bio}<p class="text-sm mt-1" style="color: {bioTextColor || textSecondaryColor};">{bio}</p>{/if}
 			</div>
 		</div>
 	</div>
@@ -328,7 +329,7 @@
 							{/each}
 						</div>
 					{/if}
-					{#if bio}<p class="text-base mt-1" style="color: {textSecondaryColor};">{bio}</p>{/if}
+					{#if bio}<p class="text-base mt-1" style="color: {bioTextColor || textSecondaryColor};">{bio}</p>{/if}
 				</div>
 			</div>
 		</div>

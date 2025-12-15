@@ -301,7 +301,7 @@
 			
 			<div class="h-full overflow-y-auto relative z-10">
 				<!-- Profile Header with Dynamic Styles -->
-				<ProfileHeader {profile} {headerStyle} {socialLinks} textColor={currentTheme.textColor} textSecondaryColor={currentTheme.textSecondaryColor} />
+				<ProfileHeader {profile} {headerStyle} {socialLinks} textColor={currentTheme.textColor} textSecondaryColor={currentTheme.textSecondaryColor} bioTextColor={headerStyle.bioTextColor} />
 				
 				<!-- Links & Blocks -->
 				<div class="px-6 space-y-3 pb-6">

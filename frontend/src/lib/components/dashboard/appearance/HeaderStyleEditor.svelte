@@ -1,22 +1,38 @@
 <script lang="ts">
 	import { currentHeaderStyle, themePresets, type HeaderStyles } from '$lib/stores/theme';
 	import { pendingChanges } from '$lib/stores/pendingChanges';
-	import { onDestroy } from 'svelte';
+	import { onDestroy, createEventDispatcher } from 'svelte';
+	import { toast } from 'svelte-sonner';
+	
+	const dispatch = createEventDispatcher();
 	
 	type CustomPreset = { id: string; name: string; layout: HeaderStyles['layout']; preview: { cover: string; avatar: string }; settings: Partial<HeaderStyles> };
 	
+	let { customPresets = $bindable([]) } = $props();
+	
 	const headerStyle = $derived($currentHeaderStyle);
 	let selectedCategory = $state<string>('all');
-	let applying = $state(false);
 	let manuallySelected = $state<string | null>(null);
 	let expandedPreset = $state<string | null>(null);
-	let customPresets = $state<CustomPreset[]>([]);
-	let saveTimer: ReturnType<typeof setTimeout> | null = null;
+	let isModifiedFromPreset = $state(false);
 	
-	// Load custom presets from localStorage
-	if (typeof window !== 'undefined') {
-		const saved = localStorage.getItem('customHeaderPresets');
-		if (saved) customPresets = JSON.parse(saved);
+	// Helper to check if current headerStyle matches a custom preset
+	function findMatchingCustomPreset(): string | null {
+		if (!customPresets || customPresets.length === 0) return null;
+		
+		for (const preset of customPresets) {
+			if (!preset.settings) continue;
+			
+			// Check if all key settings match
+			const matches = 
+				preset.settings.layout === headerStyle.layout &&
+				preset.settings.avatarSize === headerStyle.avatarSize &&
+				preset.settings.avatarShape === headerStyle.avatarShape &&
+				preset.settings.coverHeight === headerStyle.coverHeight;
+			
+			if (matches) return preset.id;
+		}
+		return null;
 	}
 
 	const categories = [
@@ -74,13 +90,12 @@
 	};
 
 	function selectLayout(layout: HeaderStyles['layout'], customSettings?: Partial<HeaderStyles>, customId?: string) {
-		if (applying) return;
-		
 		const settings = customSettings || presetMap[layout];
 		const newStyle = { ...headerStyle, ...settings, avatarBorderColor: headerStyle.avatarBorderColor || '#ffffff' };
 		
 		manuallySelected = customId || layout;
 		expandedPreset = null;
+		isModifiedFromPreset = false;
 		currentHeaderStyle.set(newStyle);
 		pendingChanges.updateHeader(newStyle);
 	}
@@ -95,16 +110,14 @@
 
 	function updateHeaderSetting(updates: Partial<HeaderStyles>) {
 		const newStyle = { ...headerStyle, ...updates };
-		console.log('[HeaderStyleEditor] updateHeaderSetting:', {
-			updates,
-			newStyle: {
-				bioAlign: newStyle.bioAlign,
-				avatarAlign: newStyle.avatarAlign,
-				layout: newStyle.layout
-			}
-		});
 		currentHeaderStyle.set(newStyle);
 		pendingChanges.updateHeader(newStyle);
+		
+		// Auto-create custom preset if editing from a preset (only once)
+		if (!isModifiedFromPreset && manuallySelected && !manuallySelected.startsWith('custom-')) {
+			isModifiedFromPreset = true;
+			saveAsCustom();
+		}
 	}
 
 	function saveAsCustom() {
@@ -121,17 +134,17 @@
 		
 		customPresets = [...customPresets, customPreset];
 		manuallySelected = id as any;
-		expandedPreset = null;
+		expandedPreset = id;
+		isModifiedFromPreset = false;
 		
-		if (typeof window !== 'undefined') {
-			localStorage.setItem('customHeaderPresets', JSON.stringify(customPresets));
-		}
+		toast.success('Custom header style created');
+		pendingChanges.updateHeader(headerStyle);
 	}
 
 	function deleteCustom(id: string) {
 		customPresets = customPresets.filter(p => p.id !== id);
-		if (typeof window !== 'undefined') {
-			localStorage.setItem('customHeaderPresets', JSON.stringify(customPresets));
+		if (manuallySelected === id) {
+			manuallySelected = null;
 		}
 	}
 
@@ -144,12 +157,34 @@
 		pendingChanges.updateHeader(newStyle);
 	}
 	onDestroy(() => {
-		if (saveTimer) clearTimeout(saveTimer);
+		// Cleanup
 	});
 	
+	// Auto-detect which preset is selected (custom or built-in)
 	$effect(() => {
-		if (headerStyle.layout && !manuallySelected) {
-			manuallySelected = headerStyle.layout;
+		if (!manuallySelected && headerStyle.layout) {
+			// First check if it matches a custom preset
+			const matchingCustomId = findMatchingCustomPreset();
+			if (matchingCustomId) {
+				manuallySelected = matchingCustomId;
+				console.log('🟣 [HEADER] Auto-selected custom preset:', matchingCustomId);
+			} else {
+				// Otherwise use the layout name
+				manuallySelected = headerStyle.layout;
+				console.log('🟣 [HEADER] Auto-selected built-in preset:', headerStyle.layout);
+			}
+			isModifiedFromPreset = false;
+		}
+	});
+	
+	// Re-check when customPresets changes (after load)
+	$effect(() => {
+		if (customPresets.length > 0 && headerStyle.layout) {
+			const matchingCustomId = findMatchingCustomPreset();
+			if (matchingCustomId && manuallySelected !== matchingCustomId) {
+				manuallySelected = matchingCustomId;
+				console.log('🟣 [HEADER] Switched to custom preset after load:', matchingCustomId);
+			}
 		}
 	});
 </script>
@@ -158,15 +193,6 @@
 	<div>
 		<div class="flex items-center justify-between mb-4">
 			<h3 class="text-lg font-semibold text-gray-900">Header Style</h3>
-			{#if applying}
-				<span class="text-sm text-indigo-600 flex items-center gap-2">
-					<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-						<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-					</svg>
-					Saving...
-				</span>
-			{/if}
 		</div>
 		
 		<!-- Category Tabs -->
@@ -192,7 +218,7 @@
 						onclick={() => isCustom ? selectLayout(preset.layout, preset.settings, preset.id) : selectLayout(preset.layout)}
 						class="group relative w-full"
 					>
-						<div class="aspect-[9/16] rounded-lg overflow-hidden border-2 transition-all {manuallySelected === preset.layout ? 'border-indigo-600 shadow-md ring-2 ring-indigo-200' : 'border-gray-200 hover:border-gray-300'}"
+						<div class="aspect-[9/16] rounded-lg overflow-hidden border-2 transition-all {(isCustom ? manuallySelected === preset.id : headerStyle.layout === preset.layout) ? 'border-indigo-600 shadow-md ring-2 ring-indigo-200' : 'border-gray-200 hover:border-gray-300'}"
 							style="background: {preset.preview.cover};"
 						>
 							<div class="h-full flex flex-col items-center justify-center p-1.5 relative">
@@ -201,7 +227,7 @@
 								<div class="mt-0.5 w-4 h-0.5 rounded" style="background: {preset.preview.avatar}; opacity: 0.5;"></div>
 								
 								<!-- Customize Button - only show when selected -->
-								{#if manuallySelected === (isCustom ? preset.id : preset.layout)}
+								{#if (isCustom ? manuallySelected === preset.id : headerStyle.layout === preset.layout)}
 									<button
 										onclick={(e) => { e.stopPropagation(); toggleCustomize(isCustom ? preset.id : preset.layout); }}
 										class="absolute bottom-1 left-1 right-1 px-1.5 py-1 text-[9px] font-medium rounded transition-all flex items-center justify-center gap-1 backdrop-blur-sm {expandedPreset === (isCustom ? preset.id : preset.layout) ? 'bg-white/95 text-indigo-600 border border-indigo-600' : 'bg-white/90 text-gray-700 border border-white/50 hover:bg-white'}"
@@ -214,7 +240,7 @@
 								{/if}
 							</div>
 						</div>
-						{#if manuallySelected === (isCustom ? preset.id : preset.layout)}
+						{#if (isCustom ? manuallySelected === preset.id : headerStyle.layout === preset.layout)}
 							<div class="absolute top-1 right-1 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center z-10">
 								<svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />

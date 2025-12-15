@@ -33,17 +33,9 @@ export interface ApplyThemeResponse {
 }
 
 export const profileApi = {
-	getMyProfile: async (token: string) => {
-		const profile = await api.get<Profile>('/profile', token);
-		console.log('[API] getMyProfile response:', {
-			theme_name: profile.theme_name,
-			has_theme_config: !!profile.theme_config
-		});
-		return profile;
-	},
+	getMyProfile: (token: string) => api.get<Profile>('/profile', token),
 	getPublicProfile: (username: string) => api.get<Profile>(`/p/${username}`),
-	updateProfile: (data: Partial<Profile>, token: string) =>
-		api.put<Profile>('/profile', data, token),
+	updateProfile: (data: Partial<Profile>, token: string) => api.put<Profile>('/profile', data, token),
 	
 	/**
 	 * Apply theme preset to profile and all groups
