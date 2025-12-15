@@ -244,14 +244,21 @@
 
 
 	async function saveAllChanges() {
+		// Early return before setting saving state
 		if (saving || !hasUnsavedChanges) return;
 		
 		saving = true;
+		
+		// Add minimum delay to prevent flashing
+		const minDelay = new Promise(resolve => setTimeout(resolve, 500));
+		
 		try {
 			const token = get(auth).token!;
 			const updatedTheme = globalTheme.getCurrent();
 			const updatedHeader = get(currentHeaderStyle);
 			const changes = pendingChanges.getAll();
+			
+			const savePromises = [];
 			
 			if (currentTheme === 'custom') {
 				// Save custom theme with header included in custom_theme_config
@@ -259,25 +266,32 @@
 					...updatedTheme,
 					header: updatedHeader
 				};
-				await profileApi.updateProfile({ 
-					theme_name: 'custom',
-					custom_theme_config: JSON.stringify(customThemeWithHeader)
-				}, token);
+				savePromises.push(
+					profileApi.updateProfile({ 
+						theme_name: 'custom',
+						custom_theme_config: JSON.stringify(customThemeWithHeader)
+					}, token)
+				);
 				savedThemeName = 'custom';
 			} else {
 				// Save preset theme (only update header_config for preset)
-				await profileApi.updateProfile({ 
-					theme_name: currentTheme,
-					theme_config: null,
-					header_config: JSON.stringify(updatedHeader)
-				}, token);
+				savePromises.push(
+					profileApi.updateProfile({ 
+						theme_name: currentTheme,
+						theme_config: null,
+						header_config: JSON.stringify(updatedHeader)
+					}, token)
+				);
 				savedThemeName = currentTheme;
 			}
 			
 			// Save link styles if there are any changes
 			if (changes.linkStyles && Object.keys(changes.linkStyles).length > 0) {
-				await linksApi.updateAllGroupStyles(changes.linkStyles, token);
+				savePromises.push(linksApi.updateAllGroupStyles(changes.linkStyles, token));
 			}
+			
+			// Wait for all saves and minimum delay
+			await Promise.all([...savePromises, minDelay]);
 			
 			// Reload links
 			links = await linksApi.getLinks(token);
@@ -556,8 +570,14 @@
 		savingProfile = true;
 		try {
 			const token = get(auth).token;
-			const updated = await profileApi.updateProfile({ bio }, token!);
+			// Filter out empty social links
+			const validSocialLinks = socialLinks.filter(link => link.platform && link.url);
+			const updated = await profileApi.updateProfile({ 
+				bio,
+				social_links: JSON.stringify(validSocialLinks)
+			}, token!);
 			profile = updated;
+			socialLinks = validSocialLinks;
 			toast.success('Profile updated!');
 		} catch (e: any) {
 			toast.error(e.message || 'Failed to update profile');
@@ -653,41 +673,73 @@
 		<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 			<!-- Settings Section (2/3) -->
 			<div class="lg:col-span-2 space-y-6">
-				<!-- Profile Settings Card -->
+				<!-- Profile & Social Card -->
 				<div class="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-					<div class="flex items-start justify-between">
-						<div class="flex items-start gap-4 flex-1">
-							<!-- Avatar -->
-							<div class="relative">
-								{#if avatarPreview}
-									<img src={avatarPreview} alt="Avatar" class="w-16 h-16 rounded-xl object-cover ring-2 ring-gray-100" />
-								{:else}
-									<div class="w-16 h-16 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 ring-2 ring-gray-100"></div>
-								{/if}
-							</div>
-							
-							<!-- Info -->
-							<div class="flex-1 min-w-0">
-								<h3 class="text-base font-semibold text-gray-900">Profile Information</h3>
-								<p class="text-sm text-gray-500 mt-0.5">@{profile?.username || 'username'}</p>
-								{#if bio}
-									<p class="text-sm text-gray-600 mt-2 line-clamp-2">{bio}</p>
-								{:else}
-									<p class="text-sm text-gray-400 mt-2 italic">No bio yet</p>
-								{/if}
-							</div>
-						</div>
-						
-						<!-- Edit Button -->
+					<div class="flex items-start justify-between mb-4">
+						<h3 class="text-base font-semibold text-gray-900">Profile & Social</h3>
 						<button
 							onclick={() => showProfileModal = true}
-							class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+							class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
 						>
 							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
 							</svg>
 							Edit
 						</button>
+					</div>
+					
+					<div class="flex items-start gap-4">
+						<!-- Avatar -->
+						<div class="relative flex-shrink-0">
+							{#if avatarPreview}
+								<img src={avatarPreview} alt="Avatar" class="w-20 h-20 rounded-2xl object-cover ring-2 ring-gray-100 shadow-sm" />
+							{:else}
+								<div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 ring-2 ring-gray-100 shadow-sm"></div>
+							{/if}
+						</div>
+						
+						<!-- Info -->
+						<div class="flex-1 min-w-0">
+							<p class="text-sm font-medium text-gray-500">@{profile?.username || 'username'}</p>
+							{#if bio}
+								<p class="text-sm text-gray-700 mt-1.5 line-clamp-2 leading-relaxed">{bio}</p>
+							{:else}
+								<p class="text-sm text-gray-400 mt-1.5 italic">No bio yet</p>
+							{/if}
+							
+							<!-- Social Icons -->
+							{#if socialLinks.length > 0}
+								<div class="flex items-center gap-2 mt-3 flex-wrap">
+									{#each socialLinks as link}
+										{@const platform = [
+											{ id: 'twitter', icon: 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z' },
+											{ id: 'facebook', icon: 'M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z' },
+											{ id: 'instagram', icon: 'M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z' },
+											{ id: 'linkedin', icon: 'M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z' },
+											{ id: 'github', icon: 'M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z' },
+											{ id: 'youtube', icon: 'M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z' },
+											{ id: 'tiktok', icon: 'M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z' },
+											{ id: 'telegram', icon: 'M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z' },
+											{ id: 'discord', icon: 'M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0 a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z' },
+											{ id: 'website', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z' }
+										].find(p => p.id === link.platform)}
+										<a 
+											href={link.url} 
+											target="_blank" 
+											rel="noopener noreferrer"
+											class="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-all hover:scale-110"
+											title={link.platform}
+										>
+											<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+												<path d={platform?.icon || ''}/>
+											</svg>
+										</a>
+									{/each}
+								</div>
+							{:else}
+								<p class="text-xs text-gray-400 mt-3 italic">No social links added</p>
+							{/if}
+						</div>
 					</div>
 				</div>
 
@@ -826,11 +878,6 @@
 					<SpacingEditor {links} />
 				</div>
 
-				<!-- Social Links Section -->
-				<div class="bg-white rounded-2xl border border-gray-200 p-6">
-					<SocialLinksEditor {socialLinks} onUpdate={loadProfile} />
-				</div>
-
 				<!-- Page Settings Section -->
 				<div class="bg-white rounded-2xl border border-gray-200 p-6">
 					<PageSettingsEditor settings={pageSettings} />
@@ -861,170 +908,226 @@
 
 <!-- Profile Edit Modal -->
 {#if showProfileModal}
-	<div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick={(e) => e.target === e.currentTarget && (showProfileModal = false)}>
-		<div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+	<div class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4" onclick={(e) => e.target === e.currentTarget && (showProfileModal = false)}>
+		<div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
 			<!-- Modal Header -->
-			<div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-				<h2 class="text-lg font-bold text-gray-900">Edit Profile</h2>
+			<div class="flex-shrink-0 bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-6 flex items-center justify-between">
+				<div>
+					<h2 class="text-2xl font-bold text-white">Edit Profile</h2>
+					<p class="text-indigo-100 text-sm mt-1">Update your profile information and social links</p>
+				</div>
 				<button
 					onclick={() => showProfileModal = false}
-					class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+					class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
 				>
-					<svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 					</svg>
 				</button>
 			</div>
 			
 			<!-- Modal Content -->
-			<div class="p-6 space-y-8">
-				<!-- Avatar Section -->
-				<div>
-					<label class="block text-sm font-semibold text-gray-900 mb-4">Profile Picture</label>
-					
-					<!-- Modern Avatar Upload Area -->
-					<div class="relative group">
-						<!-- Avatar Display with Hover Effect -->
-						<div class="flex items-center justify-center mb-4">
-							<div class="relative">
-								{#if avatarPreview}
-									<img 
-										src={avatarPreview} 
-										alt="Avatar" 
-										class="w-32 h-32 rounded-2xl object-cover ring-4 ring-indigo-100 shadow-lg transition-all group-hover:ring-indigo-200 group-hover:shadow-xl" 
-									/>
-								{:else}
-									<div class="w-32 h-32 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 ring-4 ring-indigo-100 shadow-lg transition-all group-hover:ring-indigo-200 group-hover:shadow-xl"></div>
-								{/if}
+			<div class="flex-1 overflow-y-auto">
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-8 p-8">
+					<!-- Left Column: Avatar & Bio -->
+					<div class="space-y-6">
+						<!-- Avatar Section -->
+						<div>
+							<label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Profile Picture</label>
+							
+							<div class="relative group">
+								<div class="flex items-center justify-center mb-4">
+									<div class="relative">
+										{#if avatarPreview}
+											<img 
+												src={avatarPreview} 
+												alt="Avatar" 
+												class="w-40 h-40 rounded-3xl object-cover shadow-xl transition-all group-hover:shadow-2xl" 
+											/>
+										{:else}
+											<div class="w-40 h-40 rounded-3xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 shadow-xl transition-all group-hover:shadow-2xl"></div>
+										{/if}
+										
+										<div class="absolute inset-0 flex items-center justify-center bg-black/50 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+											<svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+											</svg>
+										</div>
+									</div>
+								</div>
 								
-								<!-- Camera Icon Overlay -->
-								<div class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity">
-									<svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-									</svg>
+								<input
+									type="file"
+									accept="image/*"
+									onchange={handleAvatarChange}
+									class="hidden"
+									id="modal-avatar-upload"
+								/>
+								
+								<div class="space-y-2">
+									<label
+										for="modal-avatar-upload"
+										class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium cursor-pointer transition-all"
+									>
+										<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+										</svg>
+										Choose Image
+									</label>
+									
+									{#if avatarFile}
+										<button
+											onclick={uploadAvatar}
+											disabled={uploadingAvatar}
+											class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+										>
+											{#if uploadingAvatar}
+												<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+													<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+													<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+												</svg>
+												Uploading...
+											{:else}
+												<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+												</svg>
+												Upload
+											{/if}
+										</button>
+									{/if}
+									
+									<p class="text-xs text-gray-500 text-center">JPG, PNG or GIF • Max 5MB</p>
 								</div>
 							</div>
 						</div>
-						
-						<!-- Upload Controls -->
-						<input
-							type="file"
-							accept="image/*"
-							onchange={handleAvatarChange}
-							class="hidden"
-							id="modal-avatar-upload"
-						/>
-						
-						<div class="space-y-3">
-							<!-- Choose File Button -->
-							<label
-								for="modal-avatar-upload"
-								class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-200 text-indigo-700 rounded-xl text-sm font-semibold hover:from-indigo-100 hover:to-purple-100 hover:border-indigo-300 cursor-pointer transition-all hover:shadow-md"
-							>
-								<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-								</svg>
-								Choose Image
-							</label>
-							
-							<!-- Upload Button (shown when file selected) -->
-							{#if avatarFile}
-								<button
-									onclick={uploadAvatar}
-									disabled={uploadingAvatar}
-									class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-sm font-semibold hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
-								>
-									{#if uploadingAvatar}
-										<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-											<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-											<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-										</svg>
-										Uploading...
-									{:else}
-										<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-										</svg>
-										Upload Image
-									{/if}
-								</button>
-							{/if}
-							
-							<!-- File Info -->
-							<div class="flex items-center justify-center gap-2 text-xs text-gray-500">
-								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-								</svg>
-								<span>JPG, PNG or GIF • Max 5MB</span>
+
+						<!-- Bio Section -->
+						<div>
+							<label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Bio</label>
+							<div class="relative">
+								<textarea
+									bind:value={bio}
+									placeholder="Tell people about yourself..."
+									rows="6"
+									maxlength="200"
+									class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white transition-all resize-none text-sm"
+								></textarea>
+								
+								<div class="absolute bottom-3 right-3">
+									<span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium {bio.length >= 180 ? 'bg-amber-100 text-amber-700' : bio.length >= 200 ? 'bg-red-100 text-red-700' : 'bg-gray-200 text-gray-600'}">
+										{bio.length}/200
+									</span>
+								</div>
 							</div>
 						</div>
 					</div>
-				</div>
 
-				<!-- Divider -->
-				<div class="relative">
-					<div class="absolute inset-0 flex items-center">
-						<div class="w-full border-t border-gray-200"></div>
-					</div>
-					<div class="relative flex justify-center">
-						<span class="px-3 bg-white text-xs text-gray-500 font-medium">ABOUT YOU</span>
-					</div>
-				</div>
+					<!-- Right Column: Social Links -->
 
-				<!-- Bio Section -->
-				<div>
-					<label class="block text-sm font-semibold text-gray-900 mb-3">Bio</label>
-					<div class="relative">
-						<textarea
-							bind:value={bio}
-							placeholder="Tell people about yourself..."
-							rows="5"
-							maxlength="200"
-							class="w-full px-4 py-3 bg-gradient-to-br from-gray-50 to-gray-100/50 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white transition-all resize-none text-sm placeholder:text-gray-400"
-						></textarea>
-						
-						<!-- Character Count Badge -->
-						<div class="absolute bottom-3 right-3">
-							<span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium transition-colors {bio.length >= 180 ? 'bg-amber-100 text-amber-700' : bio.length >= 200 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}">
-								{bio.length}/200
-							</span>
+					<div class="space-y-6">
+						<div>
+							<label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Social Links</label>
+							
+							<div class="flex items-center justify-between mb-4">
+								<p class="text-sm text-gray-600">Connect your social profiles</p>
+								<button
+									onclick={() => {
+										socialLinks = [...socialLinks, { platform: '', url: '' }];
+									}}
+									class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+								>
+									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+									</svg>
+									Add
+								</button>
+							</div>
+
+							{#if socialLinks.length > 0}
+								<div class="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+									{#each socialLinks as link, index}
+										<div class="flex gap-2 items-start p-3 bg-gray-50 rounded-xl border border-gray-200">
+											<div class="flex-1 space-y-2">
+												<select 
+													bind:value={link.platform}
+													class="w-full px-3 py-2.5 text-sm bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+												>
+													<option value="">Select platform...</option>
+													<option value="twitter">Twitter/X</option>
+													<option value="facebook">Facebook</option>
+													<option value="instagram">Instagram</option>
+													<option value="linkedin">LinkedIn</option>
+													<option value="github">GitHub</option>
+													<option value="youtube">YouTube</option>
+													<option value="tiktok">TikTok</option>
+													<option value="telegram">Telegram</option>
+													<option value="discord">Discord</option>
+													<option value="website">Website</option>
+												</select>
+												<input
+													type="url"
+													bind:value={link.url}
+													placeholder="https://..."
+													class="w-full px-3 py-2.5 text-sm bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+												/>
+											</div>
+											<button
+												onclick={() => {
+													socialLinks = socialLinks.filter((_, i) => i !== index);
+												}}
+												class="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+											>
+												<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+												</svg>
+											</button>
+										</div>
+									{/each}
+								</div>
+							{:else}
+								<div class="text-center py-12 px-4 bg-gray-50 rounded-xl border border-gray-200">
+									<svg class="w-16 h-16 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+									</svg>
+									<p class="text-sm text-gray-500 font-medium">No social links</p>
+									<p class="text-xs text-gray-400 mt-1">Click "Add" to get started</p>
+								</div>
+							{/if}
 						</div>
 					</div>
-					<p class="text-xs text-gray-500 mt-2 flex items-center gap-1.5">
-						<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-						</svg>
-						Share your story, interests, or what makes you unique
-					</p>
 				</div>
 			</div>
 			
 			<!-- Modal Footer -->
-			<div class="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex items-center justify-end gap-3">
-				<button
-					onclick={() => showProfileModal = false}
-					class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-				>
-					Cancel
-				</button>
-				<button
-					onclick={async () => {
-						await saveProfile();
-						showProfileModal = false;
-					}}
-					disabled={savingProfile}
-					class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-				>
-					{#if savingProfile}
-						<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-						</svg>
-						Saving...
-					{:else}
-						Save Changes
-					{/if}
-				</button>
+			<div class="flex-shrink-0 bg-gray-50 border-t border-gray-200 px-8 py-5 flex items-center justify-between">
+				<p class="text-sm text-gray-500">Changes will be saved to your profile</p>
+				<div class="flex items-center gap-3">
+					<button
+						onclick={() => showProfileModal = false}
+						class="px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-200 bg-gray-100 rounded-xl transition-colors"
+					>
+						Cancel
+					</button>
+					<button
+						onclick={async () => {
+							await saveProfile();
+							showProfileModal = false;
+						}}
+						disabled={savingProfile}
+						class="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-indigo-500/30"
+					>
+						{#if savingProfile}
+							<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+							</svg>
+							Saving...
+						{:else}
+							Save Changes
+						{/if}
+					</button>
+				</div>
 			</div>
 		</div>
 	</div>
