@@ -13,9 +13,6 @@
 		globalTheme.update(updates);
 		previewStyles.update(updates);
 		pendingChanges.updateTheme(updates);
-		
-		// Trigger auto-switch check
-		window.dispatchEvent(new CustomEvent('theme-modified'));
 	}
 
 	const colorPresets = [

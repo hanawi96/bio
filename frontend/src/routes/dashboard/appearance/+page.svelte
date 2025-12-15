@@ -46,11 +46,13 @@
 	
 	const hasUnsavedChanges = $derived($pendingChanges.hasChanges);
 	
-	// Auto-sync previewStyles whenever globalTheme changes (after initial load)
+	// Auto-sync previewStyles and check theme switch whenever globalTheme changes (after initial load)
 	$effect(() => {
 		if (!loading && !isInitialLoad) {
 			// Sync preview styles from theme whenever theme changes
 			syncPreviewStylesFromTheme();
+			// Check if we should switch theme (to custom or back to preset)
+			checkAndSwitchToCustom();
 		}
 		// Subscribe to globalTheme to trigger effect on changes
 		const _ = $globalTheme;
@@ -78,15 +80,34 @@
 				};
 				
 				const themeMatches = 
+					// Typography
 					current.textAlignment === presetConfig.textAlignment &&
 					current.textSize === presetConfig.textSize &&
 					current.imageShape === presetConfig.imageShape &&
+					// Page background
+					current.pageBackground === presetConfig.pageBackground &&
+					current.pageBackgroundType === presetConfig.pageBackgroundType &&
+					current.pageGradientFrom === presetConfig.pageGradientFrom &&
+					current.pageGradientTo === presetConfig.pageGradientTo &&
+					current.pageGradientDirection === presetConfig.pageGradientDirection &&
+					current.textColor === presetConfig.textColor &&
+					current.textSecondaryColor === presetConfig.textSecondaryColor &&
+					current.accentColor === presetConfig.accentColor &&
+					// Card styles
+					current.enableCardBackground === presetConfig.enableCardBackground &&
 					current.cardBackground === presetConfig.cardBackground &&
 					current.cardBackgroundOpacity === presetConfig.cardBackgroundOpacity &&
 					current.cardTextColor === presetConfig.cardTextColor &&
 					current.cardBorderRadius === presetConfig.cardBorderRadius &&
-					current.pageBackground === presetConfig.pageBackground &&
-					current.pageBackgroundType === presetConfig.pageBackgroundType;
+					current.cardShadow === presetConfig.cardShadow &&
+					current.cardShadowX === presetConfig.cardShadowX &&
+					current.cardShadowY === presetConfig.cardShadowY &&
+					current.cardShadowBlur === presetConfig.cardShadowBlur &&
+					current.cardBorder === presetConfig.cardBorder &&
+					current.cardBorderColor === presetConfig.cardBorderColor &&
+					current.cardBorderWidth === presetConfig.cardBorderWidth &&
+					current.cardPadding === presetConfig.cardPadding &&
+					current.cardSpacing === presetConfig.cardSpacing;
 				
 				const headerMatches = !preset.header || (
 					currentHeader.layout === preset.header.layout &&
@@ -139,15 +160,34 @@
 		};
 		
 		const themeChanged = 
+			// Typography
 			current.textAlignment !== presetConfig.textAlignment ||
 			current.textSize !== presetConfig.textSize ||
 			current.imageShape !== presetConfig.imageShape ||
+			// Page background
+			current.pageBackground !== presetConfig.pageBackground ||
+			current.pageBackgroundType !== presetConfig.pageBackgroundType ||
+			current.pageGradientFrom !== presetConfig.pageGradientFrom ||
+			current.pageGradientTo !== presetConfig.pageGradientTo ||
+			current.pageGradientDirection !== presetConfig.pageGradientDirection ||
+			current.textColor !== presetConfig.textColor ||
+			current.textSecondaryColor !== presetConfig.textSecondaryColor ||
+			current.accentColor !== presetConfig.accentColor ||
+			// Card styles
+			current.enableCardBackground !== presetConfig.enableCardBackground ||
 			current.cardBackground !== presetConfig.cardBackground ||
 			current.cardBackgroundOpacity !== presetConfig.cardBackgroundOpacity ||
 			current.cardTextColor !== presetConfig.cardTextColor ||
 			current.cardBorderRadius !== presetConfig.cardBorderRadius ||
-			current.pageBackground !== presetConfig.pageBackground ||
-			current.pageBackgroundType !== presetConfig.pageBackgroundType;
+			current.cardShadow !== presetConfig.cardShadow ||
+			current.cardShadowX !== presetConfig.cardShadowX ||
+			current.cardShadowY !== presetConfig.cardShadowY ||
+			current.cardShadowBlur !== presetConfig.cardShadowBlur ||
+			current.cardBorder !== presetConfig.cardBorder ||
+			current.cardBorderColor !== presetConfig.cardBorderColor ||
+			current.cardBorderWidth !== presetConfig.cardBorderWidth ||
+			current.cardPadding !== presetConfig.cardPadding ||
+			current.cardSpacing !== presetConfig.cardSpacing;
 		
 		let headerChanged = false;
 		if (preset.header) {
@@ -362,27 +402,14 @@
 			}, 500);
 		}
 		
-		// Listen for theme modifications
-		const handleThemeModified = () => {
-			console.log('🔔 Theme modified event received');
-			setTimeout(() => {
-				checkAndSwitchToCustom();
-			}, 0);
-		};
-		
-		window.addEventListener('theme-modified', handleThemeModified);
-		
-		// Watch for header style changes
+		// Watch for header style changes (theme changes are watched by $effect above)
 		const unsubscribeHeader = currentHeaderStyle.subscribe(() => {
 			if (!loading && !isInitialLoad) {
-				setTimeout(() => {
-					checkAndSwitchToCustom();
-				}, 0);
+				checkAndSwitchToCustom();
 			}
 		});
 		
 		return () => {
-			window.removeEventListener('theme-modified', handleThemeModified);
 			unsubscribeHeader();
 		};
 	});

@@ -24,9 +24,6 @@
 		
 		// Mark as pending
 		pendingChanges.updateTheme({ [field]: value });
-		
-		// Trigger auto-switch check
-		window.dispatchEvent(new CustomEvent('theme-modified'));
 	}
 
 	function updateTextColor(color: string) {

@@ -18,9 +18,6 @@
 		
 		// Mark as pending
 		pendingChanges.updateTheme({ imageShape: shape });
-		
-		// Trigger auto-switch check
-		window.dispatchEvent(new CustomEvent('theme-modified'));
 	}
 </script>
 

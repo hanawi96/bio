@@ -110,6 +110,29 @@
 		}
 	}
 
+	// Helper function to get card spacing (from theme or fallback to style)
+	function getCardSpacing(link: any): number {
+		// Priority: theme > preview > link.style
+		const themeSpacing = currentTheme.cardSpacing;
+		if (themeSpacing !== undefined && themeSpacing !== null) {
+			console.log('✅ Using theme spacing:', themeSpacing);
+			return themeSpacing;
+		}
+		
+		// Fallback to parsing from link.style
+		console.log('📏 Fallback: parsing spacing from link.style:', link.style);
+		try {
+			if (!link.style) return 8; // default
+			const parsed = JSON.parse(link.style);
+			const m = parsed.margin;
+			if (!m) return 8;
+			return m.bottom ?? 8;
+		} catch (e) {
+			console.error('❌ Failed to parse style:', e);
+			return 8;
+		}
+	}
+	
 	// Helper function to parse margin from style (only bottom to avoid CSS collapse)
 	// Returns margin value in pixels (number) for use in gap or margin-bottom
 	function getMarginValue(style: string | null | undefined): number {
@@ -403,7 +426,7 @@
 										{@const b = parseInt(cardProps.bgColor.slice(5,7), 16)}
 										{@const shadowStyle = cardProps.showShadow ? `box-shadow: ${cardProps.shadowX}px ${cardProps.shadowY}px ${cardProps.shadowBlur}px rgba(0,0,0,0.2);` : ''}
 										{@const borderStyle = cardProps.hasBorder ? `border: ${cardProps.borderWidth}px solid ${cardProps.borderColor};` : ''}
-										{@const cardSpacing = getMarginValue(link.style)}
+										{@const cardSpacing = getCardSpacing(link)}
 										{@const bgStyle = cardProps.hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${cardProps.bgOpacity / 100}); border-radius: ${cardProps.borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}` : `padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}`}
 										{@const getAspectStyle = (ratio) => {
 											const map = { '1:1': '1/1', '3:2': '3/2', '16:9': '16/9', '3:1': '3/1', '2:3': '2/3' };
@@ -440,7 +463,7 @@
 									{:else if link.group_layout === 'carousel'}
 										{@const textSize = link.text_size || 'M'}
 										{@const aspectRatio = link.grid_aspect_ratio || '3:2'}
-										{@const cardSpacing = getMarginValue(link.style)}
+										{@const cardSpacing = getCardSpacing(link)}
 										{@const carouselId = `carousel-${link.id}`}
 										{@const cardProps = getCardProps(link)}
 										{@const r = parseInt(cardProps.bgColor.slice(1,3), 16)}
@@ -536,7 +559,7 @@
 										<!-- Card layout -->
 										{@const textSize = link.text_size || 'M'}
 										{@const imagePlacement = link.image_placement || 'alternating'}
-										{@const cardSpacing = getMarginValue(link.style)}
+										{@const cardSpacing = getCardSpacing(link)}
 										{@const cardProps = getCardProps(link)}
 										{@const r = parseInt(cardProps.bgColor.slice(1,3), 16)}
 										{@const g = parseInt(cardProps.bgColor.slice(3,5), 16)}
@@ -581,7 +604,7 @@
 										<!-- List layout (default) -->
 										{@const textSize = link.text_size || 'M'}
 										{@const imageShape = link.image_shape || 'square'}
-										{@const cardSpacing = getMarginValue(link.style)}
+										{@const cardSpacing = getCardSpacing(link)}
 										{@const cardProps = getCardProps(link)}
 										{@const r = parseInt(cardProps.bgColor.slice(1,3), 16)}
 										{@const g = parseInt(cardProps.bgColor.slice(3,5), 16)}
