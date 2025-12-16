@@ -38,34 +38,11 @@ function createPendingChangesStore() {
 	let currentSnapshot: ThemeSnapshot | null = null;
 
 	function checkHasChanges(): boolean {
-		if (!savedSnapshot || !currentSnapshot) {
-			console.log('🔍 [checkHasChanges] No snapshots:', { savedSnapshot, currentSnapshot });
-			return false;
-		}
+		if (!savedSnapshot || !currentSnapshot) return false;
 		
 		// Compare theme and header
 		const themeChanged = !deepEqual(currentSnapshot.theme, savedSnapshot.theme);
 		const headerChanged = !deepEqual(currentSnapshot.header, savedSnapshot.header);
-		
-		// Find differences if changed
-		if (themeChanged) {
-			const diffs: string[] = [];
-			for (const key in currentSnapshot.theme) {
-				if (currentSnapshot.theme[key] !== savedSnapshot.theme[key]) {
-					diffs.push(`${key}: ${savedSnapshot.theme[key]} → ${currentSnapshot.theme[key]}`);
-				}
-			}
-			console.log('🔍 [checkHasChanges] Theme differences:', diffs);
-		}
-		
-		console.log('🔍 [checkHasChanges]', {
-			themeChanged,
-			headerChanged,
-			savedTheme: savedSnapshot.theme,
-			currentTheme: currentSnapshot.theme,
-			savedHeader: savedSnapshot.header,
-			currentHeader: currentSnapshot.header
-		});
 		
 		return themeChanged || headerChanged;
 	}
@@ -77,16 +54,13 @@ function createPendingChangesStore() {
 		setSavedSnapshot(snapshot: ThemeSnapshot) {
 			savedSnapshot = JSON.parse(JSON.stringify(snapshot));
 			currentSnapshot = JSON.parse(JSON.stringify(snapshot));
-			console.log('💾 [setSavedSnapshot] Saved snapshot:', savedSnapshot);
 			set({ hasChanges: false });
 		},
 		
 		// Update current snapshot (when user edits)
 		updateCurrentSnapshot(snapshot: ThemeSnapshot) {
 			currentSnapshot = JSON.parse(JSON.stringify(snapshot));
-			console.log('📸 [updateCurrentSnapshot] New snapshot:', currentSnapshot);
 			const hasChanges = checkHasChanges();
-			console.log('📸 [updateCurrentSnapshot] hasChanges:', hasChanges);
 			update(state => ({ ...state, hasChanges }));
 		},
 		

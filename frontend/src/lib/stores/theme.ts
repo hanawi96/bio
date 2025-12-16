@@ -119,7 +119,7 @@ export const themePresets: Record<string, ThemePreset> = {
 	},
 	yoga: {
 		page: { pageBackground: '#b8c5d6', pageBackgroundType: 'solid', pageGradientFrom: '#b8c5d6', pageGradientTo: '#b8c5d6', pageGradientDirection: 'up', textColor: '#2d3748', textSecondaryColor: '#4a5568', accentColor: '#4a6fa5' },
-		card: { enableCardBackground: true, cardBackground: '#ffffff', cardBackgroundOpacity: 75, cardTextColor: '#4a6fa5', cardBorderRadius: 12, cardShadow: true, cardShadowX: 0, cardShadowY: 4, cardShadowBlur: 12, cardBorder: false, cardBorderColor: '#e2e8f0', cardBorderWidth: 1, cardPadding: 16, cardSpacing: 8 },
+		card: { enableCardBackground: true, cardBackground: '#ffffff', cardBackgroundOpacity: 75, cardTextColor: '#4a6fa5', cardBorderRadius: 12, cardShadow: true, cardShadowX: 0, cardShadowY: 4, cardShadowBlur: 10, cardBorder: false, cardBorderColor: '#e2e8f0', cardBorderWidth: 1, cardPadding: 16, cardSpacing: 8 },
 		text: { hasBackground: true, backgroundColor: '#ffffff', backgroundOpacity: 75, textColor: '#4a6fa5', borderRadius: 12, padding: 16, shadow: 'md', hasBorder: false, borderColor: '#e2e8f0', borderWidth: 1, borderStyle: 'solid', textAlign: 'center', fontSize: 'text-medium', isBold: false, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none' },
 		header: { layout: 'card', coverType: 'gradient', coverColor: '#b8c5d6', coverGradientFrom: '#a8b5c6', coverGradientTo: '#c8d5e6', coverHeight: 100, avatarSize: 88, avatarBorder: 4, avatarBorderColor: '#ffffff', avatarShape: 'circle', avatarAlign: 'center', showCover: true, bioAlign: 'center', bioSize: 'md', bioTextColor: '#2d3748' }
 	},
@@ -143,7 +143,7 @@ export const themePresets: Record<string, ThemePreset> = {
 	},
 	vibrant: {
 		page: { pageBackground: '#fef3c7', pageBackgroundType: 'solid', pageGradientFrom: '#fef3c7', pageGradientTo: '#fef3c7', pageGradientDirection: 'up', textColor: '#78350f', textSecondaryColor: '#92400e', accentColor: '#f59e0b' },
-		card: { enableCardBackground: true, cardBackground: '#ffffff', cardBackgroundOpacity: 100, cardTextColor: '#78350f', cardBorderRadius: 24, cardShadow: true, cardShadowX: 0, cardShadowY: 6, cardShadowBlur: 15, cardBorder: false, cardBorderColor: '#fcd34d', cardBorderWidth: 2, cardPadding: 20, cardSpacing: 12 },
+		card: { enableCardBackground: true, cardBackground: '#ffffff', cardBackgroundOpacity: 100, cardTextColor: '#78350f', cardBorderRadius: 24, cardShadow: true, cardShadowX: 0, cardShadowY: 8, cardShadowBlur: 20, cardBorder: false, cardBorderColor: '#fcd34d', cardBorderWidth: 2, cardPadding: 24, cardSpacing: 16 },
 		text: { hasBackground: true, backgroundColor: '#ffffff', backgroundOpacity: 100, textColor: '#78350f', borderRadius: 24, padding: 20, shadow: 'lg', hasBorder: false, borderColor: '#fcd34d', borderWidth: 2, borderStyle: 'solid', textAlign: 'center', fontSize: 'text-medium', isBold: false, isItalic: false, isUnderline: false, isStrikethrough: false, textTransform: 'none' },
 		header: { layout: 'gradient', coverType: 'gradient', coverColor: '#fbbf24', coverGradientFrom: '#f59e0b', coverGradientTo: '#ef4444', coverHeight: 150, avatarSize: 104, avatarBorder: 5, avatarBorderColor: '#ffffff', avatarShape: 'circle', avatarAlign: 'center', showCover: true, bioAlign: 'center', bioSize: 'lg', bioTextColor: '#78350f' }
 	}

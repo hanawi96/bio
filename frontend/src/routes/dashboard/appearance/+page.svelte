@@ -64,8 +64,6 @@
 		
 		if (loading || isInitialLoad) return;
 		
-		console.log('🔄 [appearance $effect] Triggered by change');
-		
 		// Check if preset theme was modified
 		if (currentTheme !== 'custom' && savedThemeName !== 'custom') {
 			const preset = themePresets[currentTheme];
@@ -75,7 +73,6 @@
 				// Check if any property is different
 				for (const key in theme) {
 					if (theme[key] !== presetTheme[key]) {
-						console.log('🎨 [appearance $effect] Preset modified, switching to custom UI');
 						currentTheme = 'custom';
 						selectedCategory = 'custom';
 						break;
@@ -92,12 +89,6 @@
 			const themeSnapshot = JSON.parse(JSON.stringify(theme));
 			const headerSnapshot = JSON.parse(JSON.stringify(header));
 			const presetsSnapshot = JSON.parse(JSON.stringify(presets));
-			
-			console.log('🔄 [appearance $effect] Updating snapshot:', {
-				theme: themeSnapshot,
-				header: headerSnapshot,
-				customHeaderPresets: presetsSnapshot
-			});
 			
 			pendingChanges.updateCurrentSnapshot({
 				theme: themeSnapshot,
@@ -191,12 +182,6 @@
 				header: updatedHeader,
 				customHeaderPresets: customHeaderPresetsSnapshot
 			};
-			
-			console.log('💾 [saveAllChanges] Saving theme:', {
-				themeName: currentTheme,
-				cardBackgroundOpacity: updatedTheme.cardBackgroundOpacity,
-				customThemeWithPresets
-			});
 			
 			if (currentTheme === 'custom') {
 				savePromises.push(

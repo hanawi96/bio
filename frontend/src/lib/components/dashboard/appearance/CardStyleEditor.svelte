@@ -10,8 +10,6 @@
 	let showCustomOpacity = $state(false);
 
 	function updateCardStyles(updates: Record<string, any>) {
-		console.log('🎨 [CardStyleEditor] Updating:', updates);
-		
 		// Separate theme updates (camelCase) from preview/link updates (snake_case)
 		const themeUpdates: Record<string, any> = {};
 		const previewUpdates: Record<string, any> = {};
