@@ -8,7 +8,7 @@
 	
 	type CustomPreset = { id: string; name: string; layout: HeaderStyles['layout']; preview: { cover: string; avatar: string }; settings: Partial<HeaderStyles> };
 	
-	let { customPresets = $bindable([]) } = $props();
+	let { customPresets = $bindable([]), currentThemeName = 'default' } = $props();
 	
 	const headerStyle = $derived($currentHeaderStyle);
 	let selectedCategory = $state<string>('all');
@@ -19,17 +19,42 @@
 	let showDeleteModal = $state(false);
 	let presetToDelete = $state<string | null>(null);
 	
+	// Check if current header matches theme's default header
+	const isUsingThemeDefault = $derived.by(() => {
+		const themePreset = themePresets[currentThemeName];
+		if (!themePreset?.header) return true;
+		
+		const themeHeader = themePreset.header;
+		// Compare key properties
+		return (
+			themeHeader.layout === headerStyle.layout &&
+			themeHeader.avatarSize === headerStyle.avatarSize &&
+			themeHeader.avatarShape === headerStyle.avatarShape &&
+			themeHeader.avatarAlign === headerStyle.avatarAlign &&
+			themeHeader.coverHeight === headerStyle.coverHeight &&
+			themeHeader.bioAlign === headerStyle.bioAlign &&
+			themeHeader.bioSize === headerStyle.bioSize
+		);
+	});
+	
 	function findMatchingCustomPreset(): string | null {
 		if (!customPresets || customPresets.length === 0) return null;
 		
 		for (const preset of customPresets) {
 			if (!preset.settings) continue;
 			
+			// Compare all important properties for exact match
 			const matches = 
 				preset.settings.layout === headerStyle.layout &&
 				preset.settings.avatarSize === headerStyle.avatarSize &&
 				preset.settings.avatarShape === headerStyle.avatarShape &&
-				preset.settings.coverHeight === headerStyle.coverHeight;
+				preset.settings.avatarAlign === headerStyle.avatarAlign &&
+				preset.settings.avatarBorder === headerStyle.avatarBorder &&
+				preset.settings.coverHeight === headerStyle.coverHeight &&
+				preset.settings.showCover === headerStyle.showCover &&
+				preset.settings.bioAlign === headerStyle.bioAlign &&
+				preset.settings.bioSize === headerStyle.bioSize &&
+				preset.settings.bioTextColor === headerStyle.bioTextColor;
 			
 			if (matches) return preset.id;
 		}
@@ -127,12 +152,15 @@
 		const id = `custom-${Date.now()}`;
 		const basePreset = allPresets.find(p => p.layout === headerStyle.layout);
 		
+		// Deep clone to avoid Svelte proxy issues
+		const settingsSnapshot = JSON.parse(JSON.stringify(headerStyle));
+		
 		const customPreset: CustomPreset = {
 			id,
 			name: `Custom ${customPresets.length + 1}`,
 			layout: headerStyle.layout,
 			preview: basePreset?.preview || { cover: headerStyle.coverGradientFrom || '#667eea', avatar: '#ffffff' },
-			settings: { ...headerStyle }
+			settings: settingsSnapshot
 		};
 		
 		customPresets = [...customPresets, customPreset];
@@ -145,12 +173,6 @@
 	}
 
 	function confirmDelete(id: string) {
-		// Check if trying to delete currently selected preset
-		if (manuallySelected === id) {
-			toast.error('Please select a different header style before deleting this one.');
-			return;
-		}
-		
 		presetToDelete = id;
 		showDeleteModal = true;
 	}
@@ -159,11 +181,57 @@
 		if (!presetToDelete) return;
 		
 		const deletingId = presetToDelete;
+		const isCurrentlySelected = manuallySelected === deletingId;
+		
+		console.log('🗑️ [deleteCustom] Deleting preset:', deletingId);
+		console.log('🗑️ manuallySelected:', manuallySelected);
+		console.log('🗑️ isCurrentlySelected:', isCurrentlySelected);
+		
 		showDeleteModal = false;
 		presetToDelete = null;
 		
 		// Remove from local state
 		customPresets = customPresets.filter(p => p.id !== deletingId);
+		
+		// If deleting currently selected preset, switch to theme's default header
+		if (isCurrentlySelected) {
+			console.log('🗑️ Switching to theme default header...');
+			console.log('🗑️ currentThemeName:', currentThemeName);
+			
+			// Get theme's default header from themePresets
+			const themePreset = themePresets[currentThemeName];
+			console.log('🗑️ themePreset:', themePreset);
+			console.log('🗑️ themePreset.header:', themePreset?.header);
+			
+			if (themePreset?.header) {
+				const newStyle = { ...themePreset.header };
+				console.log('🗑️ newStyle from theme:', newStyle);
+				console.log('🗑️ newStyle.coverHeight:', newStyle.coverHeight);
+				console.log('🗑️ newStyle.layout:', newStyle.layout);
+				
+				currentHeaderStyle.set(newStyle);
+				manuallySelected = null;
+				pendingChanges.updateHeader(newStyle);
+				
+				console.log('✅ Switched to theme default header');
+				toast.success('Custom header style deleted. Switched to theme default.');
+			} else {
+				// Fallback to layout preset if theme has no header
+				const currentLayout = headerStyle.layout;
+				const defaultPreset = presetMap[currentLayout];
+				console.log('⚠️ No theme header, using layout preset:', currentLayout);
+				
+				if (defaultPreset) {
+					const newStyle = { ...headerStyle, ...defaultPreset };
+					currentHeaderStyle.set(newStyle);
+					manuallySelected = currentLayout;
+					pendingChanges.updateHeader(newStyle);
+					toast.success('Custom header style deleted.');
+				}
+			}
+		} else {
+			console.log('ℹ️ Not currently selected, just deleting');
+		}
 		
 		// Dispatch event to parent to save immediately
 		dispatch('deletePreset', { presets: customPresets });
@@ -184,7 +252,15 @@
 	$effect(() => {
 		if (!manuallySelected && headerStyle.layout) {
 			const matchingCustomId = findMatchingCustomPreset();
-			manuallySelected = matchingCustomId || headerStyle.layout;
+			if (matchingCustomId) {
+				manuallySelected = matchingCustomId;
+			} else if (!isUsingThemeDefault) {
+				// Not using theme default and no custom match → must be a built-in preset
+				manuallySelected = headerStyle.layout;
+			} else {
+				// Using theme default
+				manuallySelected = null;
+			}
 			isModifiedFromPreset = false;
 		}
 	});
@@ -203,27 +279,41 @@
 	<div>
 		<div class="flex items-center justify-between mb-4">
 			<h3 class="text-lg font-semibold text-gray-900">Header Style</h3>
+			{#if expandedPreset}
+				<button
+					onclick={() => expandedPreset = null}
+					class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+				>
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+					</svg>
+					Back
+				</button>
+			{/if}
 		</div>
 		
-		<!-- Category Tabs -->
-		<div class="flex gap-2 mb-3">
-			{#each categories as cat}
-				<button
-					onclick={() => selectedCategory = cat.id}
-					class="px-3 py-1.5 rounded-full text-xs font-medium transition-all {selectedCategory === cat.id
-						? 'bg-gray-900 text-white'
-						: 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
-				>
-					{cat.label}
-				</button>
-			{/each}
-		</div>
+		{#if !expandedPreset}
+			<!-- Category Tabs -->
+			<div class="flex gap-2 mb-3">
+				{#each categories as cat}
+					<button
+						onclick={() => selectedCategory = cat.id}
+						class="px-3 py-1.5 rounded-full text-xs font-medium transition-all {selectedCategory === cat.id
+							? 'bg-gray-900 text-white'
+							: 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
+					>
+						{cat.label}
+					</button>
+				{/each}
+			</div>
 
-		<!-- Header Presets Grid -->
-		<div class="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-2">
+			<!-- Header Presets Grid -->
+			<div class="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-2">
 			{#each displayedPresets as preset}
 				{@const isCustom = 'settings' in preset}
-				{@const isSelected = isCustom ? manuallySelected === preset.id : manuallySelected === preset.layout}
+				{@const isSelected = isCustom 
+					? manuallySelected === preset.id 
+					: (!isUsingThemeDefault && manuallySelected === preset.layout)}
 				<div class="relative">
 					<button
 						onclick={() => isCustom ? selectLayout(preset.layout, preset.settings, preset.id) : selectLayout(preset.layout)}
@@ -273,25 +363,12 @@
 					</button>
 				</div>
 			{/each}
-		</div>
-		
-		<!-- Close button for expanded section -->
-		{#if expandedPreset}
-			<div class="mt-3 flex justify-end">
-				<button
-					onclick={() => expandedPreset = null}
-					class="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all"
-				>
-					Close Customization
-				</button>
 			</div>
-		{/if}
-		
-		<!-- Expand Section with Vertical Tabs -->
-		{#if expandedPreset}
+		{:else}
+			<!-- Edit Section with Vertical Tabs -->
 			{@const preset = allPresets.find(p => ('settings' in p ? p.id : p.layout) === expandedPreset)}
 			{#if preset}
-				<div class="mt-4 p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border-2 border-indigo-200">
+				<div class="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border-2 border-indigo-200">
 					<div class="flex gap-4">
 						<!-- Vertical Tabs -->
 						<div class="flex flex-col gap-2 min-w-[120px]">

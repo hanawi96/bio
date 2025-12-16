@@ -130,11 +130,13 @@
 			
 			const savePromises = [];
 			
-			// Save customHeaderPresets in custom_theme_config for ALL themes
+			// IMPORTANT: Snapshot $state proxies before stringify to avoid losing data
+			const customHeaderPresetsSnapshot = JSON.parse(JSON.stringify(customHeaderPresets));
+			
 			const customThemeWithPresets = {
 				...updatedTheme,
 				header: updatedHeader,
-				customHeaderPresets
+				customHeaderPresets: customHeaderPresetsSnapshot
 			};
 			
 			if (currentTheme === 'custom') {
@@ -151,7 +153,7 @@
 						theme_name: currentTheme,
 						theme_config: null,
 						header_config: JSON.stringify(updatedHeader),
-						custom_theme_config: JSON.stringify({ customHeaderPresets })
+						custom_theme_config: JSON.stringify({ customHeaderPresets: customHeaderPresetsSnapshot })
 					}, token)
 				);
 				savedThemeName = currentTheme;
@@ -693,6 +695,7 @@
 				<div class="bg-white rounded-2xl border border-gray-200 p-6">
 					<HeaderStyleEditor 
 						bind:customPresets={customHeaderPresets}
+						currentThemeName={currentTheme}
 						on:deletePreset={handleDeletePreset}
 					/>
 				</div>
