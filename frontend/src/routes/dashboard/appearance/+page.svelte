@@ -43,6 +43,7 @@
 	let loading = $state(true);
 	let isInitialLoad = $state(true);
 	let customHeaderPresets = $state<any[]>([]);
+	let isUsingPreset = $state(true); // Track if user is using unmodified preset
 	
 	const hasUnsavedChanges = $derived($pendingChanges.hasChanges);
 	
@@ -52,6 +53,18 @@
 			syncPreviewStylesFromTheme();
 		}
 		const _ = $globalTheme;
+	});
+	
+	// Auto-switch to custom theme when user modifies preset
+	$effect(() => {
+		if (loading || isInitialLoad || currentTheme === 'custom' || isUsingPreset) return;
+		
+		// User has modified theme → switch to custom
+		currentTheme = 'custom';
+		selectedCategory = 'custom';
+		pendingChanges.updateTheme($globalTheme);
+		pendingChanges.updateHeader($currentHeaderStyle);
+		toast.info('Switched to custom theme');
 	});
 	
 
@@ -243,7 +256,19 @@
 		pageSettings.hideBranding = profileData?.hide_branding ?? false;
 	}
 
+	// Setup modification tracking
+	let trackModifications = $state(false);
+	function handleThemeModified() {
+		if (trackModifications && isUsingPreset && currentTheme !== 'custom') {
+			isUsingPreset = false;
+		}
+	}
+	
 	onMount(async () => {
+		// Set callbacks to track user modifications
+		globalTheme.setModifiedCallback(handleThemeModified);
+		currentHeaderStyle.setModifiedCallback(handleThemeModified);
+		
 		try {
 			const token = get(auth).token;
 			
@@ -253,6 +278,7 @@
 			savedThemeName = themeName;
 			currentTheme = themeName;
 			selectedCategory = category;
+			isUsingPreset = themeName !== 'custom'; // Set flag based on loaded theme
 			
 			if (profileData?.custom_theme_config) {
 				try {
@@ -308,10 +334,11 @@
 			console.error('Failed to load data:', e);
 		} finally {
 			loading = false;
-			// Allow auto-switch after initial load completes
+			// Allow auto-switch after initial load completes (short delay to avoid false triggers)
 			setTimeout(() => {
 				isInitialLoad = false;
-			}, 500);
+				trackModifications = true; // Start tracking modifications
+			}, 200);
 		}
 		
 		return () => {
@@ -323,12 +350,22 @@
 		const isAlreadySaved = savedThemeName === themeId;
 		
 		if (themeId === 'custom') {
+			// If already on custom theme, don't reload from database (keep current modifications)
+			if (currentTheme === 'custom') {
+				toast.info('Already using custom theme');
+				return;
+			}
+			
 			currentTheme = 'custom';
 			selectedCategory = 'custom';
+			isUsingPreset = false; // Custom theme is not a preset
 			
 			try {
 				const token = get(auth).token;
 				const profileData = await profileApi.getMyProfile(token!);
+				
+				// Temporarily disable tracking while loading custom theme
+				trackModifications = false;
 				
 				if (profileData?.custom_theme_config) {
 					const customConfig = typeof profileData.custom_theme_config === 'string' 
@@ -349,6 +386,11 @@
 				}
 				
 				syncPreviewStylesFromTheme();
+				
+				// Re-enable tracking
+				setTimeout(() => {
+					trackModifications = true;
+				}, 100);
 				
 				if (!isAlreadySaved) {
 					pendingChanges.updateTheme(globalTheme.getCurrent());
@@ -373,12 +415,20 @@
 		if (!preset) return;
 
 		currentTheme = themeId;
+		isUsingPreset = true; // Mark as using unmodified preset
+		
+		// Temporarily disable tracking while setting preset
+		trackModifications = false;
 		globalTheme.setPreset(presetName);
 		if (preset.header) {
 			currentHeaderStyle.set(preset.header);
 		}
-		
 		syncPreviewStylesFromTheme();
+		
+		// Re-enable tracking after a short delay
+		setTimeout(() => {
+			trackModifications = true;
+		}, 100);
 
 		if (isAlreadySaved) {
 			pendingChanges.reset();

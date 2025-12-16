@@ -168,6 +168,9 @@ const defaultTheme: ThemeConfig = {
 	imageShape: 'square'
 };
 
+// Callback to notify when theme is modified by user
+let onThemeModified: (() => void) | null = null;
+
 function createThemeStore() {
 	const { subscribe, set, update } = writable<ThemeConfig>(defaultTheme);
 	return {
@@ -187,7 +190,11 @@ function createThemeStore() {
 			}
 		},
 		getPreset(presetName: string): ThemePreset | null { return themePresets[presetName] || null; },
-		update(partial: Partial<ThemeConfig>) { update(current => ({ ...current, ...partial })); },
+		update(partial: Partial<ThemeConfig>) { 
+			update(current => ({ ...current, ...partial }));
+			// Notify that theme was modified by user
+			if (onThemeModified) onThemeModified();
+		},
 		reset() { set(defaultTheme); },
 		loadFromJSON(json: string | object | null | undefined) {
 			if (!json) { set(defaultTheme); return; }
@@ -195,14 +202,35 @@ function createThemeStore() {
 			catch (e) { console.warn('Failed to parse theme JSON:', e); set(defaultTheme); }
 		},
 		exportJSON(): string { let current: ThemeConfig = defaultTheme; subscribe(v => current = v)(); return JSON.stringify(current); },
-		getCurrent(): ThemeConfig { let current: ThemeConfig = defaultTheme; subscribe(v => current = v)(); return current; }
+		getCurrent(): ThemeConfig { let current: ThemeConfig = defaultTheme; subscribe(v => current = v)(); return current; },
+		setModifiedCallback(callback: () => void) { onThemeModified = callback; }
 	};
 }
 
 export const globalTheme = createThemeStore();
 
-// Current header style store
-export const currentHeaderStyle = writable<HeaderStyles>(defaultHeaderStyles);
+// Callback for header modifications
+let onHeaderModified: (() => void) | null = null;
+
+// Current header style store with modification tracking
+function createHeaderStore() {
+	const { subscribe, set, update } = writable<HeaderStyles>(defaultHeaderStyles);
+	return {
+		subscribe,
+		set(value: HeaderStyles) {
+			set(value);
+			// Notify that header was modified by user
+			if (onHeaderModified) onHeaderModified();
+		},
+		update(fn: (value: HeaderStyles) => HeaderStyles) {
+			update(fn);
+			if (onHeaderModified) onHeaderModified();
+		},
+		setModifiedCallback(callback: () => void) { onHeaderModified = callback; }
+	};
+}
+
+export const currentHeaderStyle = createHeaderStore();
 
 export const themeStyles = derived(globalTheme, ($theme) => {
 	// Always respect the current pageBackgroundType setting
