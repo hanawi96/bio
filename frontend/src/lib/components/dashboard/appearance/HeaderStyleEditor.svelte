@@ -15,49 +15,23 @@
 	let manuallySelected = $state<string | null>(null);
 	let expandedPreset = $state<string | null>(null);
 	let isModifiedFromPreset = $state(false);
+	let activeTab = $state<string>('avatar');
 	
-	// Helper to check if current headerStyle matches a custom preset
 	function findMatchingCustomPreset(): string | null {
-		console.log('🔍 [MATCH] Finding matching custom preset...');
-		console.log('🔍 [MATCH] customPresets count:', customPresets?.length || 0);
-		console.log('🔍 [MATCH] Current headerStyle:', {
-			layout: headerStyle.layout,
-			avatarSize: headerStyle.avatarSize,
-			avatarShape: headerStyle.avatarShape,
-			coverHeight: headerStyle.coverHeight
-		});
-		
-		if (!customPresets || customPresets.length === 0) {
-			console.log('🔍 [MATCH] No custom presets available');
-			return null;
-		}
+		if (!customPresets || customPresets.length === 0) return null;
 		
 		for (const preset of customPresets) {
 			if (!preset.settings) continue;
 			
-			console.log('🔍 [MATCH] Checking preset:', preset.id, {
-				layout: preset.settings.layout,
-				avatarSize: preset.settings.avatarSize,
-				avatarShape: preset.settings.avatarShape,
-				coverHeight: preset.settings.coverHeight
-			});
-			
-			// Check if all key settings match
 			const matches = 
 				preset.settings.layout === headerStyle.layout &&
 				preset.settings.avatarSize === headerStyle.avatarSize &&
 				preset.settings.avatarShape === headerStyle.avatarShape &&
 				preset.settings.coverHeight === headerStyle.coverHeight;
 			
-			console.log('🔍 [MATCH] Match result:', matches);
-			
-			if (matches) {
-				console.log('✅ [MATCH] Found matching preset:', preset.id);
-				return preset.id;
-			}
+			if (matches) return preset.id;
 		}
 		
-		console.log('❌ [MATCH] No matching custom preset found');
 		return null;
 	}
 
@@ -131,6 +105,7 @@
 			expandedPreset = null;
 		} else {
 			expandedPreset = id;
+			activeTab = supportsCover ? 'cover' : 'avatar';
 		}
 	}
 
@@ -186,40 +161,19 @@
 		// Cleanup
 	});
 	
-	// Auto-detect which preset is selected (custom or built-in)
 	$effect(() => {
-		console.log('🔄 [EFFECT-1] Running auto-detect...');
-		console.log('🔄 [EFFECT-1] manuallySelected:', manuallySelected);
-		console.log('🔄 [EFFECT-1] headerStyle.layout:', headerStyle.layout);
-		
 		if (!manuallySelected && headerStyle.layout) {
-			// First check if it matches a custom preset
 			const matchingCustomId = findMatchingCustomPreset();
-			if (matchingCustomId) {
-				manuallySelected = matchingCustomId;
-				console.log('✅ [EFFECT-1] Auto-selected custom preset:', matchingCustomId);
-			} else {
-				// Otherwise use the layout name
-				manuallySelected = headerStyle.layout;
-				console.log('✅ [EFFECT-1] Auto-selected built-in preset:', headerStyle.layout);
-			}
+			manuallySelected = matchingCustomId || headerStyle.layout;
 			isModifiedFromPreset = false;
 		}
 	});
 	
-	// Re-check when customPresets changes (after load)
 	$effect(() => {
-		console.log('🔄 [EFFECT-2] Checking after customPresets change...');
-		console.log('🔄 [EFFECT-2] customPresets.length:', customPresets.length);
-		console.log('🔄 [EFFECT-2] manuallySelected:', manuallySelected);
-		
 		if (customPresets.length > 0 && headerStyle.layout) {
 			const matchingCustomId = findMatchingCustomPreset();
-			console.log('🔄 [EFFECT-2] matchingCustomId:', matchingCustomId);
-			
 			if (matchingCustomId && manuallySelected !== matchingCustomId) {
 				manuallySelected = matchingCustomId;
-				console.log('✅ [EFFECT-2] Switched to custom preset:', matchingCustomId);
 			}
 		}
 	});
@@ -247,25 +201,12 @@
 
 		<!-- Header Presets Grid -->
 		<div class="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-2">
-			{#each displayedPresets as preset, index}
+			{#each displayedPresets as preset}
 				{@const isCustom = 'settings' in preset}
 				{@const isSelected = isCustom ? manuallySelected === preset.id : manuallySelected === preset.layout}
-				{#if index === 0}
-					{console.log('🎨 [RENDER] manuallySelected:', manuallySelected)}
-					{console.log('🎨 [RENDER] displayedPresets count:', displayedPresets.length)}
-				{/if}
-				{console.log(`🎨 [RENDER] Preset ${isCustom ? preset.id : preset.layout}:`, {
-					isCustom,
-					isSelected,
-					manuallySelected,
-					presetId: isCustom ? preset.id : preset.layout
-				})}
 				<div class="relative">
 					<button
-						onclick={() => {
-							console.log('🖱️ [CLICK] Preset clicked:', isCustom ? preset.id : preset.layout);
-							isCustom ? selectLayout(preset.layout, preset.settings, preset.id) : selectLayout(preset.layout);
-						}}
+						onclick={() => isCustom ? selectLayout(preset.layout, preset.settings, preset.id) : selectLayout(preset.layout)}
 						class="group relative w-full"
 					>
 						<div class="aspect-[9/16] rounded-lg overflow-hidden border-2 transition-all {isSelected ? 'border-indigo-600 shadow-md ring-2 ring-indigo-200' : 'border-gray-200 hover:border-gray-300'}"
@@ -325,15 +266,56 @@
 			</div>
 		{/if}
 		
-		<!-- Expand Section (FULL WIDTH BELOW GRID) -->
+		<!-- Expand Section with Vertical Tabs -->
 		{#if expandedPreset}
 			{@const preset = allPresets.find(p => ('settings' in p ? p.id : p.layout) === expandedPreset)}
 			{#if preset}
-				<div class="mt-4 p-6 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border-2 border-indigo-200 space-y-4">
+				<div class="mt-4 p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border-2 border-indigo-200">
+					<div class="flex gap-4">
+						<!-- Vertical Tabs -->
+						<div class="flex flex-col gap-2 min-w-[120px]">
 							{#if supportsCover}
-								<!-- Show Cover Toggle -->
-								<div class="flex items-center justify-between p-2 bg-white rounded-lg">
-									<span class="text-xs font-medium text-gray-900">Show Cover</span>
+								<button
+									onclick={() => activeTab = 'cover'}
+									class="px-4 py-2.5 text-sm font-medium rounded-lg transition-all text-left {activeTab === 'cover' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-700 hover:bg-white/50'}"
+								>
+									<div class="flex items-center gap-2">
+										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+										</svg>
+										Cover
+									</div>
+								</button>
+							{/if}
+							<button
+								onclick={() => activeTab = 'avatar'}
+								class="px-4 py-2.5 text-sm font-medium rounded-lg transition-all text-left {activeTab === 'avatar' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-700 hover:bg-white/50'}"
+							>
+								<div class="flex items-center gap-2">
+									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+									</svg>
+									Avatar
+								</div>
+							</button>
+							<button
+								onclick={() => activeTab = 'bio'}
+								class="px-4 py-2.5 text-sm font-medium rounded-lg transition-all text-left {activeTab === 'bio' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-700 hover:bg-white/50'}"
+							>
+								<div class="flex items-center gap-2">
+									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
+									</svg>
+									Bio
+								</div>
+							</button>
+						</div>
+
+						<!-- Tab Content -->
+						<div class="flex-1 bg-white rounded-lg p-4 space-y-4">
+							{#if activeTab === 'cover' && supportsCover}
+								<div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+									<span class="text-sm font-medium text-gray-900">Show Cover</span>
 									<label class="relative inline-flex items-center cursor-pointer">
 										<input
 											type="checkbox"
@@ -344,13 +326,11 @@
 										<div class="w-9 h-5 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
 									</label>
 								</div>
-
 								{#if headerStyle.showCover}
-									<!-- Cover Height -->
 									<div>
 										<div class="flex items-center justify-between mb-2">
-											<label class="text-xs font-semibold text-gray-900">Cover Height</label>
-											<span class="text-xs font-mono text-indigo-600">{headerStyle.coverHeight}px</span>
+											<label class="text-sm font-medium text-gray-900">Cover Height</label>
+											<span class="text-sm font-mono text-indigo-600">{headerStyle.coverHeight}px</span>
 										</div>
 										<input
 											type="range"
@@ -358,147 +338,138 @@
 											max="300"
 											value={headerStyle.coverHeight}
 											oninput={(e) => updateHeaderSetting({ coverHeight: parseInt(e.currentTarget.value) })}
-											class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+											class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
 										/>
 									</div>
 								{/if}
-							{/if}
-
-							<!-- Avatar Size -->
-							<div>
-								<div class="flex items-center justify-between mb-2">
-									<label class="text-xs font-semibold text-gray-900">Avatar Size</label>
-									<span class="text-xs font-mono text-indigo-600">{headerStyle.avatarSize}px</span>
-								</div>
-								<input
-									type="range"
-									min="60"
-									max="180"
-									value={headerStyle.avatarSize}
-									oninput={(e) => updateHeaderSetting({ avatarSize: parseInt(e.currentTarget.value) })}
-									class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-								/>
-							</div>
-
-							<!-- Avatar Border -->
-							<div>
-								<div class="flex items-center justify-between mb-2">
-									<label class="text-xs font-semibold text-gray-900">Avatar Border</label>
-									<span class="text-xs font-mono text-indigo-600">{headerStyle.avatarBorder}px</span>
-								</div>
-								<input
-									type="range"
-									min="0"
-									max="10"
-									value={headerStyle.avatarBorder}
-									oninput={(e) => updateHeaderSetting({ avatarBorder: parseInt(e.currentTarget.value) })}
-									class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-								/>
-							</div>
-
-							<!-- Avatar Shape -->
-							<div>
-								<label class="text-xs font-semibold text-gray-900 mb-2 block">Avatar Shape</label>
-								<div class="grid grid-cols-3 gap-1.5">
-									{#each [
-										{ value: 'circle', label: 'Circle', icon: '●' },
-										{ value: 'square', label: 'Square', icon: '■' },
-										{ value: 'rounded', label: 'Rounded', icon: '▢' },
-										{ value: 'vertical', label: 'Vertical', icon: '▯' },
-										{ value: 'horizontal', label: 'Horizontal', icon: '▭' }
-									] as shape}
-										<button
-											onclick={() => updateHeaderSetting({ avatarShape: shape.value as any })}
-											class="px-2 py-1.5 text-xs border rounded transition-all flex flex-col items-center gap-0.5 {headerStyle.avatarShape === shape.value ? 'border-indigo-600 bg-indigo-50 text-indigo-600' : 'border-gray-200 text-gray-700 hover:bg-gray-100'}"
-										>
-											<span class="text-base">{shape.icon}</span>
-											<span class="text-[10px]">{shape.label}</span>
-										</button>
-									{/each}
-								</div>
-							</div>
-
-							<!-- Avatar Alignment -->
-							<div>
-								<label class="text-xs font-semibold text-gray-900 mb-2 block">Avatar Alignment</label>
-								<div class="flex gap-1.5">
-									{#each ['left', 'center', 'right'] as align}
-										<button
-											onclick={() => updateHeaderSetting({ avatarAlign: align as any })}
-											class="flex-1 px-2 py-1.5 text-xs border rounded transition-all {headerStyle.avatarAlign === align ? 'border-indigo-600 bg-indigo-50 text-indigo-600' : 'border-gray-200 text-gray-700 hover:bg-gray-100'}"
-										>
-											{align === 'left' ? 'Left' : align === 'center' ? 'Center' : 'Right'}
-										</button>
-									{/each}
-								</div>
-							</div>
-
-							<!-- Bio Alignment -->
-							<div>
-								<label class="text-xs font-semibold text-gray-900 mb-2 block">Bio Alignment</label>
-								<div class="flex gap-1.5">
-									{#each ['left', 'center', 'right'] as align}
-										<button
-											onclick={() => updateHeaderSetting({ bioAlign: align as any })}
-											class="flex-1 px-2 py-1.5 text-xs border rounded transition-all {headerStyle.bioAlign === align ? 'border-indigo-600 bg-indigo-50 text-indigo-600' : 'border-gray-200 text-gray-700 hover:bg-gray-100'}"
-										>
-											{align === 'left' ? 'Left' : align === 'center' ? 'Center' : 'Right'}
-										</button>
-									{/each}
-								</div>
-							</div>
-
-							<!-- Bio Size -->
-							<div>
-								<label class="text-xs font-semibold text-gray-900 mb-2 block">Bio Size</label>
-								<div class="flex gap-1.5">
-									{#each ['sm', 'md', 'lg'] as size}
-										<button
-											onclick={() => updateHeaderSetting({ bioSize: size as any })}
-											class="flex-1 px-2 py-1.5 text-xs border rounded transition-all {headerStyle.bioSize === size ? 'border-indigo-600 bg-indigo-50 text-indigo-600' : 'border-gray-200 text-gray-700 hover:bg-gray-100'}"
-										>
-											{size.toUpperCase()}
-										</button>
-									{/each}
-								</div>
-							</div>
-
-							<!-- Bio Text Color -->
-							<div>
-								<label class="text-xs font-semibold text-gray-900 mb-2 block">Bio Text Color</label>
-								<div class="flex gap-2 items-center">
-									<input 
-										type="color" 
-										value={headerStyle.bioTextColor || '#6b7280'}
-										onchange={(e) => updateHeaderSetting({ bioTextColor: e.currentTarget.value })}
-										class="w-10 h-10 rounded-lg border-2 border-gray-200 cursor-pointer" 
+							{:else if activeTab === 'avatar'}
+								<div>
+									<div class="flex items-center justify-between mb-2">
+										<label class="text-sm font-medium text-gray-900">Size</label>
+										<span class="text-sm font-mono text-indigo-600">{headerStyle.avatarSize}px</span>
+									</div>
+									<input
+										type="range"
+										min="60"
+										max="180"
+										value={headerStyle.avatarSize}
+										oninput={(e) => updateHeaderSetting({ avatarSize: parseInt(e.currentTarget.value) })}
+										class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
 									/>
-									<div class="flex-1 flex gap-1 flex-wrap">
-										{#each ['#000000', '#ffffff', '#6b7280', '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'] as color}
-											<button 
-												onclick={() => updateHeaderSetting({ bioTextColor: color })}
-												class="w-6 h-6 rounded-md border-2 hover:scale-110 transition-transform {headerStyle.bioTextColor === color ? 'border-indigo-600 ring-2 ring-indigo-200' : 'border-gray-200'}" 
-												style="background-color: {color};"
-												title={color}
-											></button>
+								</div>
+								<div>
+									<div class="flex items-center justify-between mb-2">
+										<label class="text-sm font-medium text-gray-900">Border Width</label>
+										<span class="text-sm font-mono text-indigo-600">{headerStyle.avatarBorder}px</span>
+									</div>
+									<input
+										type="range"
+										min="0"
+										max="10"
+										value={headerStyle.avatarBorder}
+										oninput={(e) => updateHeaderSetting({ avatarBorder: parseInt(e.currentTarget.value) })}
+										class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+									/>
+								</div>
+								<div>
+									<label class="text-sm font-medium text-gray-900 mb-2 block">Shape</label>
+									<div class="grid grid-cols-3 gap-2">
+										{#each [
+											{ value: 'circle', label: 'Circle', icon: '●' },
+											{ value: 'square', label: 'Square', icon: '■' },
+											{ value: 'rounded', label: 'Rounded', icon: '▢' },
+											{ value: 'vertical', label: 'Vertical', icon: '▯' },
+											{ value: 'horizontal', label: 'Horizontal', icon: '▭' }
+										] as shape}
+											<button
+												onclick={() => updateHeaderSetting({ avatarShape: shape.value as any })}
+												class="px-3 py-2 text-sm border rounded-lg transition-all flex flex-col items-center gap-1 {headerStyle.avatarShape === shape.value ? 'border-indigo-600 bg-indigo-50 text-indigo-600' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}"
+											>
+												<span class="text-lg">{shape.icon}</span>
+												<span class="text-xs">{shape.label}</span>
+											</button>
 										{/each}
 									</div>
 								</div>
-							</div>
+								<div>
+									<label class="text-sm font-medium text-gray-900 mb-2 block">Alignment</label>
+									<div class="flex gap-2">
+										{#each ['left', 'center', 'right'] as align}
+											<button
+												onclick={() => updateHeaderSetting({ avatarAlign: align as any })}
+												class="flex-1 px-3 py-2 text-sm border rounded-lg transition-all {headerStyle.avatarAlign === align ? 'border-indigo-600 bg-indigo-50 text-indigo-600 font-medium' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}"
+											>
+												{align === 'left' ? 'Left' : align === 'center' ? 'Center' : 'Right'}
+											</button>
+										{/each}
+									</div>
+								</div>
+							{:else if activeTab === 'bio'}
+								<div>
+									<label class="text-sm font-medium text-gray-900 mb-2 block">Alignment</label>
+									<div class="flex gap-2">
+										{#each ['left', 'center', 'right'] as align}
+											<button
+												onclick={() => updateHeaderSetting({ bioAlign: align as any })}
+												class="flex-1 px-3 py-2 text-sm border rounded-lg transition-all {headerStyle.bioAlign === align ? 'border-indigo-600 bg-indigo-50 text-indigo-600 font-medium' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}"
+											>
+												{align === 'left' ? 'Left' : align === 'center' ? 'Center' : 'Right'}
+											</button>
+										{/each}
+									</div>
+								</div>
+								<div>
+									<label class="text-sm font-medium text-gray-900 mb-2 block">Size</label>
+									<div class="flex gap-2">
+										{#each ['sm', 'md', 'lg'] as size}
+											<button
+												onclick={() => updateHeaderSetting({ bioSize: size as any })}
+												class="flex-1 px-3 py-2 text-sm border rounded-lg transition-all {headerStyle.bioSize === size ? 'border-indigo-600 bg-indigo-50 text-indigo-600 font-medium' : 'border-gray-200 text-gray-700 hover:bg-gray-50'}"
+											>
+												{size.toUpperCase()}
+											</button>
+										{/each}
+									</div>
+								</div>
+								<div>
+									<label class="text-sm font-medium text-gray-900 mb-2 block">Text Color</label>
+									<div class="flex gap-2 items-center">
+										<input 
+											type="color" 
+											value={headerStyle.bioTextColor || '#6b7280'}
+											onchange={(e) => updateHeaderSetting({ bioTextColor: e.currentTarget.value })}
+											class="w-12 h-12 rounded-lg border-2 border-gray-200 cursor-pointer" 
+										/>
+										<div class="flex-1 flex gap-2 flex-wrap">
+											{#each ['#000000', '#ffffff', '#6b7280', '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'] as color}
+												<button 
+													onclick={() => updateHeaderSetting({ bioTextColor: color })}
+													class="w-8 h-8 rounded-lg border-2 hover:scale-110 transition-transform {headerStyle.bioTextColor === color ? 'border-indigo-600 ring-2 ring-indigo-200' : 'border-gray-200'}" 
+													style="background-color: {color};"
+													title={color}
+												></button>
+											{/each}
+										</div>
+									</div>
+								</div>
+							{/if}
 
-					<div class="flex gap-2">
-						<button
-							onclick={() => resetToPreset(expandedPreset)}
-							class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all"
-						>
-							Reset
-						</button>
-						<button
-							onclick={saveAsCustom}
-							class="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-all"
-						>
-							Save as Custom
-						</button>
+							<!-- Action Buttons -->
+							<div class="flex gap-2 pt-2 border-t">
+								<button
+									onclick={() => resetToPreset(expandedPreset)}
+									class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all"
+								>
+									Reset
+								</button>
+								<button
+									onclick={saveAsCustom}
+									class="flex-1 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-all"
+								>
+									Save as Custom
+								</button>
+							</div>
+						</div>
 					</div>
 				</div>
 			{/if}
