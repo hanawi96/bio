@@ -144,7 +144,18 @@
 		// Auto-create custom preset if editing from a preset (only once)
 		if (!isModifiedFromPreset && manuallySelected && !manuallySelected.startsWith('custom-')) {
 			isModifiedFromPreset = true;
-			saveAsCustom();
+			
+			// Check if a custom preset with same config already exists
+			const matchingCustomId = findMatchingCustomPreset();
+			if (matchingCustomId) {
+				// Switch to existing custom preset instead of creating new one
+				manuallySelected = matchingCustomId;
+				expandedPreset = matchingCustomId;
+				toast.info('Switched to existing custom style');
+			} else {
+				// Create new custom preset
+				saveAsCustom();
+			}
 		}
 	}
 
