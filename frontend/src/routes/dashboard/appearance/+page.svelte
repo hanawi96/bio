@@ -43,7 +43,6 @@
 	let loading = $state(true);
 	let isInitialLoad = $state(true);
 	let customHeaderPresets = $state<any[]>([]);
-	let isUsingPreset = $state(true); // Track if user is using unmodified preset
 	
 	const hasUnsavedChanges = $derived($pendingChanges.hasChanges);
 	
@@ -55,16 +54,57 @@
 		const _ = $globalTheme;
 	});
 	
-	// Auto-switch to custom theme when user modifies preset
+	// Auto-update current snapshot when theme or header changes
+	let updateTimeout: ReturnType<typeof setTimeout> | null = null;
 	$effect(() => {
-		if (loading || isInitialLoad || currentTheme === 'custom' || isUsingPreset) return;
+		// Track reactive dependencies
+		const theme = $globalTheme;
+		const header = $currentHeaderStyle;
+		const presets = customHeaderPresets;
 		
-		// User has modified theme → switch to custom
-		currentTheme = 'custom';
-		selectedCategory = 'custom';
-		pendingChanges.updateTheme($globalTheme);
-		pendingChanges.updateHeader($currentHeaderStyle);
-		toast.info('Switched to custom theme');
+		if (loading || isInitialLoad) return;
+		
+		console.log('🔄 [appearance $effect] Triggered by change');
+		
+		// Check if preset theme was modified
+		if (currentTheme !== 'custom' && savedThemeName !== 'custom') {
+			const preset = themePresets[currentTheme];
+			if (preset) {
+				const presetTheme = { ...preset.page, ...preset.card, textAlignment: 'center', textSize: 'M', imageShape: 'square' };
+				
+				// Check if any property is different
+				for (const key in theme) {
+					if (theme[key] !== presetTheme[key]) {
+						console.log('🎨 [appearance $effect] Preset modified, switching to custom UI');
+						currentTheme = 'custom';
+						selectedCategory = 'custom';
+						break;
+					}
+				}
+			}
+		}
+		
+		// Debounce to avoid multiple rapid updates
+		if (updateTimeout) clearTimeout(updateTimeout);
+		
+		updateTimeout = setTimeout(() => {
+			// Deep clone to avoid Svelte proxy issues
+			const themeSnapshot = JSON.parse(JSON.stringify(theme));
+			const headerSnapshot = JSON.parse(JSON.stringify(header));
+			const presetsSnapshot = JSON.parse(JSON.stringify(presets));
+			
+			console.log('🔄 [appearance $effect] Updating snapshot:', {
+				theme: themeSnapshot,
+				header: headerSnapshot,
+				customHeaderPresets: presetsSnapshot
+			});
+			
+			pendingChanges.updateCurrentSnapshot({
+				theme: themeSnapshot,
+				header: headerSnapshot,
+				customHeaderPresets: presetsSnapshot
+			});
+		}, 50); // 50ms debounce
 	});
 	
 
@@ -152,6 +192,12 @@
 				customHeaderPresets: customHeaderPresetsSnapshot
 			};
 			
+			console.log('💾 [saveAllChanges] Saving theme:', {
+				themeName: currentTheme,
+				cardBackgroundOpacity: updatedTheme.cardBackgroundOpacity,
+				customThemeWithPresets
+			});
+			
 			if (currentTheme === 'custom') {
 				savePromises.push(
 					profileApi.updateProfile({ 
@@ -161,15 +207,49 @@
 				);
 				savedThemeName = 'custom';
 			} else {
-				savePromises.push(
-					profileApi.updateProfile({
-						theme_name: currentTheme,
-						theme_config: null,
-						header_config: JSON.stringify(updatedHeader),
-						custom_theme_config: JSON.stringify({ customHeaderPresets: customHeaderPresetsSnapshot })
-					}, token)
-				);
-				savedThemeName = currentTheme;
+				// For preset themes, check if theme was modified
+				const preset = themePresets[currentTheme];
+				let isThemeModified = false;
+				
+				if (preset) {
+					// Compare current theme with preset
+					const presetTheme = { ...preset.page, ...preset.card, textAlignment: 'center', textSize: 'M', imageShape: 'square' };
+					
+					// Check if any property is different
+					for (const key in updatedTheme) {
+						if (updatedTheme[key] !== presetTheme[key]) {
+							isThemeModified = true;
+							console.log(`💾 [saveAllChanges] Theme modified: ${key} = ${updatedTheme[key]} (preset: ${presetTheme[key]})`);
+							break;
+						}
+					}
+				}
+				
+				if (isThemeModified) {
+					// Theme was modified → switch to custom theme
+					console.log('💾 [saveAllChanges] Theme modified, switching to custom');
+					savePromises.push(
+						profileApi.updateProfile({ 
+							theme_name: 'custom',
+							custom_theme_config: JSON.stringify(customThemeWithPresets)
+						}, token)
+					);
+					currentTheme = 'custom';
+					selectedCategory = 'custom';
+					savedThemeName = 'custom';
+					toast.info('Switched to custom theme due to modifications');
+				} else {
+					// Theme not modified → save as preset with header override
+					savePromises.push(
+						profileApi.updateProfile({
+							theme_name: currentTheme,
+							theme_config: null,
+							header_config: JSON.stringify(updatedHeader),
+							custom_theme_config: JSON.stringify({ customHeaderPresets: customHeaderPresetsSnapshot })
+						}, token)
+					);
+					savedThemeName = currentTheme;
+				}
 			}
 			
 			if (changes.linkStyles && Object.keys(changes.linkStyles).length > 0) {
@@ -181,12 +261,12 @@
 			links = await linksApi.getLinks(token);
 			previewStyles.reset();
 			syncPreviewStylesFromTheme();
-			pendingChanges.reset();
 			
-			// Update original values after successful save
-			pendingChanges.setOriginal({
+			// Update saved snapshot after successful save
+			pendingChanges.setSavedSnapshot({
 				theme: globalTheme.getCurrent(),
-				header: get(currentHeaderStyle)
+				header: get(currentHeaderStyle),
+				customHeaderPresets: JSON.parse(JSON.stringify(customHeaderPresets))
 			});
 			
 			toast.success('All changes saved!');
@@ -256,19 +336,7 @@
 		pageSettings.hideBranding = profileData?.hide_branding ?? false;
 	}
 
-	// Setup modification tracking
-	let trackModifications = $state(false);
-	function handleThemeModified() {
-		if (trackModifications && isUsingPreset && currentTheme !== 'custom') {
-			isUsingPreset = false;
-		}
-	}
-	
 	onMount(async () => {
-		// Set callbacks to track user modifications
-		globalTheme.setModifiedCallback(handleThemeModified);
-		currentHeaderStyle.setModifiedCallback(handleThemeModified);
-		
 		try {
 			const token = get(auth).token;
 			
@@ -278,7 +346,6 @@
 			savedThemeName = themeName;
 			currentTheme = themeName;
 			selectedCategory = category;
-			isUsingPreset = themeName !== 'custom'; // Set flag based on loaded theme
 			
 			if (profileData?.custom_theme_config) {
 				try {
@@ -324,20 +391,19 @@
 			
 			syncPreviewStylesFromTheme();
 			
-			// Set original values for change detection
-			pendingChanges.setOriginal({
+			// Set saved snapshot for change detection
+			pendingChanges.setSavedSnapshot({
 				theme: globalTheme.getCurrent(),
-				header: get(currentHeaderStyle)
+				header: get(currentHeaderStyle),
+				customHeaderPresets: JSON.parse(JSON.stringify(customHeaderPresets))
 			});
 			
 		} catch (e: any) {
 			console.error('Failed to load data:', e);
 		} finally {
 			loading = false;
-			// Allow auto-switch after initial load completes (short delay to avoid false triggers)
 			setTimeout(() => {
 				isInitialLoad = false;
-				trackModifications = true; // Start tracking modifications
 			}, 200);
 		}
 		
@@ -358,14 +424,10 @@
 			
 			currentTheme = 'custom';
 			selectedCategory = 'custom';
-			isUsingPreset = false; // Custom theme is not a preset
 			
 			try {
 				const token = get(auth).token;
 				const profileData = await profileApi.getMyProfile(token!);
-				
-				// Temporarily disable tracking while loading custom theme
-				trackModifications = false;
 				
 				if (profileData?.custom_theme_config) {
 					const customConfig = typeof profileData.custom_theme_config === 'string' 
@@ -387,20 +449,13 @@
 				
 				syncPreviewStylesFromTheme();
 				
-				// Re-enable tracking
-				setTimeout(() => {
-					trackModifications = true;
-				}, 100);
-				
 				if (!isAlreadySaved) {
-					pendingChanges.updateTheme(globalTheme.getCurrent());
-					pendingChanges.updateHeader(get(currentHeaderStyle));
 					toast.info('Custom theme loaded. Click "Save All" to apply.');
 				} else {
-					pendingChanges.reset();
-					pendingChanges.setOriginal({
+					pendingChanges.setSavedSnapshot({
 						theme: globalTheme.getCurrent(),
-						header: get(currentHeaderStyle)
+						header: get(currentHeaderStyle),
+						customHeaderPresets: JSON.parse(JSON.stringify(customHeaderPresets))
 					});
 					toast.info('Custom theme loaded');
 				}
@@ -415,31 +470,21 @@
 		if (!preset) return;
 
 		currentTheme = themeId;
-		isUsingPreset = true; // Mark as using unmodified preset
 		
-		// Temporarily disable tracking while setting preset
-		trackModifications = false;
 		globalTheme.setPreset(presetName);
 		if (preset.header) {
 			currentHeaderStyle.set(preset.header);
 		}
 		syncPreviewStylesFromTheme();
-		
-		// Re-enable tracking after a short delay
-		setTimeout(() => {
-			trackModifications = true;
-		}, 100);
 
 		if (isAlreadySaved) {
-			pendingChanges.reset();
-			pendingChanges.setOriginal({
+			pendingChanges.setSavedSnapshot({
 				theme: globalTheme.getCurrent(),
-				header: get(currentHeaderStyle)
+				header: get(currentHeaderStyle),
+				customHeaderPresets: JSON.parse(JSON.stringify(customHeaderPresets))
 			});
 			toast.info('Theme loaded');
 		} else {
-			pendingChanges.updateTheme(globalTheme.getCurrent());
-			pendingChanges.updateHeader(preset.header || get(currentHeaderStyle));
 			toast.info('Theme preview applied. Click "Save All" to keep changes.');
 		}
 	}

@@ -1,13 +1,11 @@
 <script lang="ts">
 	import { previewStyles } from '$lib/stores/previewStyles';
 	import { globalTheme } from '$lib/stores/theme';
-	import { pendingChanges } from '$lib/stores/pendingChanges';
 
 	let { links = [] }: { links?: any[] } = $props();
 
-	const firstGroup = $derived(links.find(l => l.is_group));
-	// Read from previewStyles first, fallback to globalTheme (NOT from links!)
-	const imageShape = $derived<'sharp' | 'square' | 'circle'>($previewStyles.image_shape || $globalTheme.imageShape || 'square');
+	// Read from globalTheme (single source of truth)
+	const imageShape = $derived<'sharp' | 'square' | 'circle'>($globalTheme.imageShape || 'square');
 
 	function updateImageShape(shape: 'sharp' | 'square' | 'circle') {
 		// Update theme config
@@ -15,9 +13,6 @@
 		
 		// Update preview
 		previewStyles.update({ image_shape: shape });
-		
-		// Mark as pending
-		pendingChanges.updateTheme({ imageShape: shape });
 	}
 </script>
 

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { globalTheme } from '$lib/stores/theme';
-	import { pendingChanges } from '$lib/stores/pendingChanges';
 
 	let selectedType = $state<'solid' | 'gradient' | 'image' | 'video'>('solid');
 	let solidColor = $state('#ffffff');
@@ -48,7 +47,6 @@
 				pageBackgroundVideo: videoUrl
 			};
 			globalTheme.update(updates);
-			pendingChanges.updateTheme(updates);
 		}
 	}
 

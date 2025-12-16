@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { previewStyles } from '$lib/stores/previewStyles';
 	import { globalTheme } from '$lib/stores/theme';
-	import { pendingChanges } from '$lib/stores/pendingChanges';
 
 	const shadowPresets = {
 		subtle: { x: 0, y: 2, blur: 4 },
@@ -9,11 +8,11 @@
 		strong: { x: 0, y: 8, blur: 20 }
 	};
 
-	// Read from previewStyles first, fallback to globalTheme (NOT from links!)
-	const showShadow = $derived($previewStyles.show_shadow ?? $globalTheme.cardShadow ?? false);
-	const shadowX = $derived(Number($previewStyles.shadow_x ?? $globalTheme.cardShadowX ?? 0));
-	const shadowY = $derived(Number($previewStyles.shadow_y ?? $globalTheme.cardShadowY ?? 4));
-	const shadowBlur = $derived(Number($previewStyles.shadow_blur ?? $globalTheme.cardShadowBlur ?? 10));
+	// Read from globalTheme (single source of truth)
+	const showShadow = $derived($globalTheme.cardShadow ?? false);
+	const shadowX = $derived($globalTheme.cardShadowX ?? 0);
+	const shadowY = $derived($globalTheme.cardShadowY ?? 4);
+	const shadowBlur = $derived($globalTheme.cardShadowBlur ?? 10);
 	
 	// Detect which preset matches current shadow values (flexible comparison)
 	const currentPreset = $derived<'subtle' | 'medium' | 'strong' | 'custom'>(
@@ -44,14 +43,6 @@
 		
 		// Update preview
 		previewStyles.update({ show_shadow: enabled, shadow_x: x, shadow_y: y, shadow_blur: blur });
-		
-		// Mark as pending
-		pendingChanges.updateTheme({ 
-			cardShadow: enabled, 
-			cardShadowX: x, 
-			cardShadowY: y, 
-			cardShadowBlur: blur 
-		});
 	}
 
 	function updateCustomShadow(x: number, y: number, blur: number) {
@@ -65,14 +56,6 @@
 		
 		// Update preview
 		previewStyles.update({ show_shadow: true, shadow_x: x, shadow_y: y, shadow_blur: blur });
-		
-		// Mark as pending
-		pendingChanges.updateTheme({ 
-			cardShadow: true, 
-			cardShadowX: x, 
-			cardShadowY: y, 
-			cardShadowBlur: blur 
-		});
 	}
 </script>
 

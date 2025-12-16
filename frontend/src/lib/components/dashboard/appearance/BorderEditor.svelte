@@ -3,35 +3,34 @@
 	import { previewStyles } from '$lib/stores/previewStyles';
 	import { pendingChanges } from '$lib/stores/pendingChanges';
 
-	let { links = [] }: { links?: any[] } = $props();
-
 	const currentBorderRadius = $derived($globalTheme.cardBorderRadius);
-	const firstGroup = $derived(links.find(l => l.is_group));
-	// Read from previewStyles first, fallback to firstGroup
-	const hasBorder = $derived($previewStyles.has_card_border ?? firstGroup?.has_card_border ?? false);
-	const borderColor = $derived($previewStyles.card_border_color || firstGroup?.card_border_color || '#e5e7eb');
-	const borderWidth = $derived($previewStyles.card_border_width ?? firstGroup?.card_border_width ?? 1);
+	// Read from globalTheme (single source of truth)
+	const hasBorder = $derived($globalTheme.cardBorder ?? false);
+	const borderColor = $derived($globalTheme.cardBorderColor || '#e5e7eb');
+	const borderWidth = $derived($globalTheme.cardBorderWidth ?? 1);
 	
 	let showCustomRadius = $state(false);
 
 	function updateBorderRadius(radius: number) {
 		globalTheme.update({ cardBorderRadius: radius });
 		previewStyles.update({ card_border_radius: radius });
-		pendingChanges.updateTheme({ cardBorderRadius: radius });
 		pendingChanges.updateLinkStyles({ card_border_radius: radius });
 	}
 
 	function updateBorder(enabled: boolean) {
+		globalTheme.update({ cardBorder: enabled, cardBorderColor: borderColor, cardBorderWidth: borderWidth });
 		previewStyles.update({ has_card_border: enabled, card_border_color: borderColor, card_border_width: borderWidth });
 		pendingChanges.updateLinkStyles({ has_card_border: enabled, card_border_color: borderColor, card_border_width: borderWidth });
 	}
 
 	function updateBorderColor(color: string) {
+		globalTheme.update({ cardBorderColor: color, cardBorder: true });
 		previewStyles.update({ card_border_color: color });
 		pendingChanges.updateLinkStyles({ has_card_border: true, card_border_color: color });
 	}
 
 	function updateBorderWidth(width: number) {
+		globalTheme.update({ cardBorderWidth: width, cardBorder: true });
 		previewStyles.update({ card_border_width: width });
 		pendingChanges.updateLinkStyles({ has_card_border: true, card_border_width: width });
 	}

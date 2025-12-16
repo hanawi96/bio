@@ -1,15 +1,13 @@
 import { writable } from 'svelte/store';
 
-interface PendingChanges {
-	theme?: Record<string, any>;
-	header?: Record<string, any>;
-	linkStyles?: Record<string, any>;
-	hasChanges: boolean;
+interface ThemeSnapshot {
+	theme: Record<string, any>;
+	header: Record<string, any>;
+	customHeaderPresets?: any[];
 }
 
-interface OriginalValues {
-	theme?: Record<string, any>;
-	header?: Record<string, any>;
+interface PendingChanges {
+	hasChanges: boolean;
 	linkStyles?: Record<string, any>;
 }
 
@@ -36,54 +34,77 @@ function createPendingChangesStore() {
 		hasChanges: false
 	});
 	
-	let originalValues: OriginalValues = {};
+	let savedSnapshot: ThemeSnapshot | null = null;
+	let currentSnapshot: ThemeSnapshot | null = null;
 
-	function checkHasChanges(current: PendingChanges): boolean {
-		if (current.theme && !deepEqual(current.theme, originalValues.theme)) return true;
-		if (current.header && !deepEqual(current.header, originalValues.header)) return true;
-		if (current.linkStyles && !deepEqual(current.linkStyles, originalValues.linkStyles)) return true;
-		return false;
+	function checkHasChanges(): boolean {
+		if (!savedSnapshot || !currentSnapshot) {
+			console.log('🔍 [checkHasChanges] No snapshots:', { savedSnapshot, currentSnapshot });
+			return false;
+		}
+		
+		// Compare theme and header
+		const themeChanged = !deepEqual(currentSnapshot.theme, savedSnapshot.theme);
+		const headerChanged = !deepEqual(currentSnapshot.header, savedSnapshot.header);
+		
+		// Find differences if changed
+		if (themeChanged) {
+			const diffs: string[] = [];
+			for (const key in currentSnapshot.theme) {
+				if (currentSnapshot.theme[key] !== savedSnapshot.theme[key]) {
+					diffs.push(`${key}: ${savedSnapshot.theme[key]} → ${currentSnapshot.theme[key]}`);
+				}
+			}
+			console.log('🔍 [checkHasChanges] Theme differences:', diffs);
+		}
+		
+		console.log('🔍 [checkHasChanges]', {
+			themeChanged,
+			headerChanged,
+			savedTheme: savedSnapshot.theme,
+			currentTheme: currentSnapshot.theme,
+			savedHeader: savedSnapshot.header,
+			currentHeader: currentSnapshot.header
+		});
+		
+		return themeChanged || headerChanged;
 	}
 
 	return {
 		subscribe,
-		setOriginal(values: OriginalValues) {
-			originalValues = JSON.parse(JSON.stringify(values));
-		},
-		updateTheme(changes: Record<string, any>) {
-			update(state => {
-				const newState = {
-					...state,
-					theme: changes
-				};
-				newState.hasChanges = checkHasChanges(newState);
-				return newState;
-			});
-		},
-		updateHeader(changes: Record<string, any>) {
-			update(state => {
-				const newState = {
-					...state,
-					header: changes
-				};
-				newState.hasChanges = checkHasChanges(newState);
-				return newState;
-			});
-		},
-		updateLinkStyles(changes: Record<string, any>) {
-			update(state => {
-				const newState = {
-					...state,
-					linkStyles: { ...state.linkStyles, ...changes }
-				};
-				newState.hasChanges = checkHasChanges(newState);
-				return newState;
-			});
-		},
-		reset() {
+		
+		// Set saved snapshot (from DB)
+		setSavedSnapshot(snapshot: ThemeSnapshot) {
+			savedSnapshot = JSON.parse(JSON.stringify(snapshot));
+			currentSnapshot = JSON.parse(JSON.stringify(snapshot));
+			console.log('💾 [setSavedSnapshot] Saved snapshot:', savedSnapshot);
 			set({ hasChanges: false });
-			originalValues = {};
 		},
+		
+		// Update current snapshot (when user edits)
+		updateCurrentSnapshot(snapshot: ThemeSnapshot) {
+			currentSnapshot = JSON.parse(JSON.stringify(snapshot));
+			console.log('📸 [updateCurrentSnapshot] New snapshot:', currentSnapshot);
+			const hasChanges = checkHasChanges();
+			console.log('📸 [updateCurrentSnapshot] hasChanges:', hasChanges);
+			update(state => ({ ...state, hasChanges }));
+		},
+		
+		// For link styles (separate tracking)
+		updateLinkStyles(changes: Record<string, any>) {
+			update(state => ({
+				...state,
+				linkStyles: { ...state.linkStyles, ...changes },
+				hasChanges: true
+			}));
+		},
+		
+		reset() {
+			savedSnapshot = null;
+			currentSnapshot = null;
+			set({ hasChanges: false });
+		},
+		
 		getAll(): PendingChanges {
 			let current: PendingChanges = { hasChanges: false };
 			subscribe(v => current = v)();

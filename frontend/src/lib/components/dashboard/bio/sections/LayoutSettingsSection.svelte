@@ -2,7 +2,6 @@
 	import { createEventDispatcher } from 'svelte';
 	import type { Link } from '$lib/api/links';
 	import { themePresets, defaultCardStyles, globalTheme } from '$lib/stores/theme';
-	import { previewStyles } from '$lib/stores/previewStyles';
 	
 	export let group: Link;
 	
@@ -63,16 +62,15 @@
 	// Use group properties directly - no local state needed
 	$: layout = group.group_layout || 'list';
 	$: textAlignment = group.text_alignment || 'center';
-	// Shadow: Always use theme from previewStyles to match appearance page
+	// Shadow: Use theme from globalTheme first, then group-specific override
 	// This ensures consistency when theme changes, until user explicitly customizes this group
-	// When user toggles shadow in this tab, it will save to DB and group will have its own value
-	$: showShadow = $previewStyles.show_shadow ?? group.show_shadow ?? false;
+	$: showShadow = group.show_shadow ?? $globalTheme.cardShadow ?? false;
 	$: showText = group.show_text !== undefined ? group.show_text : true;
 	
-	// Shadow values from theme (previewStyles) for preset detection
-	$: shadowX = $previewStyles.shadow_x ?? group.shadow_x ?? 0;
-	$: shadowY = $previewStyles.shadow_y ?? group.shadow_y ?? 4;
-	$: shadowBlur = $previewStyles.shadow_blur ?? group.shadow_blur ?? 10;
+	// Shadow values from theme for preset detection
+	$: shadowX = group.shadow_x ?? $globalTheme.cardShadowX ?? 0;
+	$: shadowY = group.shadow_y ?? $globalTheme.cardShadowY ?? 4;
+	$: shadowBlur = group.shadow_blur ?? $globalTheme.cardShadowBlur ?? 10;
 	
 	// Detect which preset matches current theme shadow values
 	$: currentShadowPreset = 

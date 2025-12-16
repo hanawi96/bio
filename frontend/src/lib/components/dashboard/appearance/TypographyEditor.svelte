@@ -5,10 +5,9 @@
 
 	let { links = [] }: { links?: any[] } = $props();
 
-	const firstGroup = $derived(links.find(l => l.is_group));
-	// Read from previewStyles first, fallback to globalTheme (NOT from links!)
-	const textAlignment = $derived($previewStyles.text_alignment || $globalTheme.textAlignment || 'center');
-	const textSize = $derived($previewStyles.text_size || $globalTheme.textSize || 'M');
+	// Read from globalTheme (single source of truth)
+	const textAlignment = $derived($globalTheme.textAlignment || 'center');
+	const textSize = $derived($globalTheme.textSize || 'M');
 	const currentTextColor = $derived($globalTheme.cardTextColor);
 
 	function updateTypography(field: string, value: any) {
@@ -21,15 +20,11 @@
 		
 		// Update preview
 		previewStyles.update({ [field]: value });
-		
-		// Mark as pending
-		pendingChanges.updateTheme({ [field]: value });
 	}
 
 	function updateTextColor(color: string) {
 		globalTheme.update({ cardTextColor: color });
 		previewStyles.update({ card_text_color: color });
-		pendingChanges.updateTheme({ cardTextColor: color });
 		pendingChanges.updateLinkStyles({ card_text_color: color });
 	}
 

@@ -108,7 +108,6 @@
 		expandedPreset = null;
 		isModifiedFromPreset = false;
 		currentHeaderStyle.set(newStyle);
-		pendingChanges.updateHeader(newStyle);
 	}
 
 	function toggleCustomize(id: string) {
@@ -124,7 +123,6 @@
 		const newStyle = { ...headerStyle, ...updates };
 		isUserEditing = true; // Mark as user-initiated edit
 		currentHeaderStyle.set(newStyle);
-		pendingChanges.updateHeader(newStyle);
 		
 		// Auto-create custom preset if editing from a preset (only once)
 		// Set flag FIRST to prevent race conditions
@@ -190,7 +188,6 @@
 		isModifiedFromPreset = false;
 		
 		toast.success('Custom header style created');
-		pendingChanges.updateHeader(headerStyle);
 	}
 
 	function confirmDelete(id: string) {
@@ -232,7 +229,6 @@
 				
 				currentHeaderStyle.set(newStyle);
 				manuallySelected = null;
-				pendingChanges.updateHeader(newStyle);
 				
 				console.log('✅ Switched to theme default header');
 				toast.success('Custom header style deleted. Switched to theme default.');
@@ -246,7 +242,6 @@
 					const newStyle = { ...headerStyle, ...defaultPreset };
 					currentHeaderStyle.set(newStyle);
 					manuallySelected = currentLayout;
-					pendingChanges.updateHeader(newStyle);
 					toast.success('Custom header style deleted.');
 				}
 			}
@@ -264,7 +259,6 @@
 		
 		const newStyle = { ...headerStyle, ...presetSettings, avatarBorderColor: '#ffffff' };
 		currentHeaderStyle.set(newStyle);
-		pendingChanges.updateHeader(newStyle);
 	}
 	onDestroy(() => {
 		// Cleanup

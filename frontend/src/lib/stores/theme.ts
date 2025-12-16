@@ -168,9 +168,6 @@ const defaultTheme: ThemeConfig = {
 	imageShape: 'square'
 };
 
-// Callback to notify when theme is modified by user
-let onThemeModified: (() => void) | null = null;
-
 function createThemeStore() {
 	const { subscribe, set, update } = writable<ThemeConfig>(defaultTheme);
 	return {
@@ -192,8 +189,6 @@ function createThemeStore() {
 		getPreset(presetName: string): ThemePreset | null { return themePresets[presetName] || null; },
 		update(partial: Partial<ThemeConfig>) { 
 			update(current => ({ ...current, ...partial }));
-			// Notify that theme was modified by user
-			if (onThemeModified) onThemeModified();
 		},
 		reset() { set(defaultTheme); },
 		loadFromJSON(json: string | object | null | undefined) {
@@ -202,31 +197,19 @@ function createThemeStore() {
 			catch (e) { console.warn('Failed to parse theme JSON:', e); set(defaultTheme); }
 		},
 		exportJSON(): string { let current: ThemeConfig = defaultTheme; subscribe(v => current = v)(); return JSON.stringify(current); },
-		getCurrent(): ThemeConfig { let current: ThemeConfig = defaultTheme; subscribe(v => current = v)(); return current; },
-		setModifiedCallback(callback: () => void) { onThemeModified = callback; }
+		getCurrent(): ThemeConfig { let current: ThemeConfig = defaultTheme; subscribe(v => current = v)(); return current; }
 	};
 }
 
 export const globalTheme = createThemeStore();
 
-// Callback for header modifications
-let onHeaderModified: (() => void) | null = null;
-
-// Current header style store with modification tracking
+// Current header style store
 function createHeaderStore() {
 	const { subscribe, set, update } = writable<HeaderStyles>(defaultHeaderStyles);
 	return {
 		subscribe,
-		set(value: HeaderStyles) {
-			set(value);
-			// Notify that header was modified by user
-			if (onHeaderModified) onHeaderModified();
-		},
-		update(fn: (value: HeaderStyles) => HeaderStyles) {
-			update(fn);
-			if (onHeaderModified) onHeaderModified();
-		},
-		setModifiedCallback(callback: () => void) { onHeaderModified = callback; }
+		set,
+		update
 	};
 }
 

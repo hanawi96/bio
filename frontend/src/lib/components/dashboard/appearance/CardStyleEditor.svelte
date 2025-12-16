@@ -10,9 +10,29 @@
 	let showCustomOpacity = $state(false);
 
 	function updateCardStyles(updates: Record<string, any>) {
-		globalTheme.update(updates);
-		previewStyles.update(updates);
-		pendingChanges.updateTheme(updates);
+		console.log('🎨 [CardStyleEditor] Updating:', updates);
+		
+		// Separate theme updates (camelCase) from preview/link updates (snake_case)
+		const themeUpdates: Record<string, any> = {};
+		const previewUpdates: Record<string, any> = {};
+		
+		for (const [key, value] of Object.entries(updates)) {
+			if (key.includes('_')) {
+				// snake_case = for preview/links
+				previewUpdates[key] = value;
+			} else {
+				// camelCase = for theme
+				themeUpdates[key] = value;
+			}
+		}
+		
+		if (Object.keys(themeUpdates).length > 0) {
+			globalTheme.update(themeUpdates);
+		}
+		if (Object.keys(previewUpdates).length > 0) {
+			previewStyles.update(previewUpdates);
+			pendingChanges.updateLinkStyles(previewUpdates);
+		}
 	}
 
 	const colorPresets = [

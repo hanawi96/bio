@@ -39,21 +39,12 @@
 		// Update theme
 		globalTheme.update({ cardPadding: value });
 		
-		// Get current style and merge with new padding
-		let currentStyle: any = {};
-		if ($previewStyles.style) {
-			try {
-				currentStyle = JSON.parse($previewStyles.style);
-			} catch {}
-		}
-		
+		// Create style object for preview
 		const newStyle = {
-			...currentStyle,
 			padding: { top: value, right: value, bottom: value, left: value }
 		};
 		const styleStr = JSON.stringify(newStyle);
 		previewStyles.update({ style: styleStr });
-		pendingChanges.updateTheme({ cardPadding: value });
 		pendingChanges.updateLinkStyles({ style: styleStr });
 	}
 
@@ -61,21 +52,12 @@
 		// Update theme
 		globalTheme.update({ cardSpacing: value });
 		
-		// Get current style and merge with new spacing
-		let currentStyle: any = {};
-		if ($previewStyles.style) {
-			try {
-				currentStyle = JSON.parse($previewStyles.style);
-			} catch {}
-		}
-		
+		// Create style object for preview
 		const newStyle = {
-			...currentStyle,
 			margin: { top: 0, bottom: value }
 		};
 		const styleStr = JSON.stringify(newStyle);
 		previewStyles.update({ style: styleStr });
-		pendingChanges.updateTheme({ cardSpacing: value });
 		pendingChanges.updateLinkStyles({ style: styleStr });
 	}
 </script>
