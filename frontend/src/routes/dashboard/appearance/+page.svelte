@@ -78,6 +78,44 @@
 
 
 
+	async function handleDeletePreset(event: CustomEvent<{ presets: any[] }>) {
+		const updatedPresets = event.detail.presets;
+		customHeaderPresets = updatedPresets;
+		
+		// Save immediately to database
+		try {
+			const token = get(auth).token!;
+			const updatedTheme = globalTheme.getCurrent();
+			const updatedHeader = get(currentHeaderStyle);
+			
+			const customThemeWithPresets = {
+				...updatedTheme,
+				header: updatedHeader,
+				customHeaderPresets: updatedPresets
+			};
+			
+			if (currentTheme === 'custom') {
+				await profileApi.updateProfile({ 
+					theme_name: 'custom',
+					custom_theme_config: JSON.stringify(customThemeWithPresets)
+				}, token);
+			} else {
+				await profileApi.updateProfile({
+					theme_name: currentTheme,
+					theme_config: null,
+					header_config: JSON.stringify(updatedHeader),
+					custom_theme_config: JSON.stringify({ customHeaderPresets: updatedPresets })
+				}, token);
+			}
+			
+			toast.success('Custom header style deleted successfully!');
+		} catch (e: any) {
+			toast.error(e.message || 'Failed to delete header style');
+			// Reload to restore state
+			window.location.reload();
+		}
+	}
+
 	async function saveAllChanges() {
 		if (saving || !hasUnsavedChanges) return;
 		
@@ -129,6 +167,13 @@
 			previewStyles.reset();
 			syncPreviewStylesFromTheme();
 			pendingChanges.reset();
+			
+			// Update original values after successful save
+			pendingChanges.setOriginal({
+				theme: globalTheme.getCurrent(),
+				header: get(currentHeaderStyle)
+			});
+			
 			toast.success('All changes saved!');
 		} catch (e: any) {
 			toast.error(e.message || 'Failed to save changes');
@@ -251,6 +296,12 @@
 			
 			syncPreviewStylesFromTheme();
 			
+			// Set original values for change detection
+			pendingChanges.setOriginal({
+				theme: globalTheme.getCurrent(),
+				header: get(currentHeaderStyle)
+			});
+			
 		} catch (e: any) {
 			console.error('Failed to load data:', e);
 		} finally {
@@ -303,6 +354,10 @@
 					toast.info('Custom theme loaded. Click "Save All" to apply.');
 				} else {
 					pendingChanges.reset();
+					pendingChanges.setOriginal({
+						theme: globalTheme.getCurrent(),
+						header: get(currentHeaderStyle)
+					});
 					toast.info('Custom theme loaded');
 				}
 			} catch (e: any) {
@@ -325,6 +380,10 @@
 
 		if (isAlreadySaved) {
 			pendingChanges.reset();
+			pendingChanges.setOriginal({
+				theme: globalTheme.getCurrent(),
+				header: get(currentHeaderStyle)
+			});
 			toast.info('Theme loaded');
 		} else {
 			pendingChanges.updateTheme(globalTheme.getCurrent());
@@ -634,6 +693,7 @@
 				<div class="bg-white rounded-2xl border border-gray-200 p-6">
 					<HeaderStyleEditor 
 						bind:customPresets={customHeaderPresets}
+						on:deletePreset={handleDeletePreset}
 					/>
 				</div>
 

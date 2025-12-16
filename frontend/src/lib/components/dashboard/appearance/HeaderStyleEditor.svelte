@@ -16,6 +16,8 @@
 	let expandedPreset = $state<string | null>(null);
 	let isModifiedFromPreset = $state(false);
 	let activeTab = $state<string>('avatar');
+	let showDeleteModal = $state(false);
+	let presetToDelete = $state<string | null>(null);
 	
 	function findMatchingCustomPreset(): string | null {
 		if (!customPresets || customPresets.length === 0) return null;
@@ -142,11 +144,29 @@
 		pendingChanges.updateHeader(headerStyle);
 	}
 
-	function deleteCustom(id: string) {
-		customPresets = customPresets.filter(p => p.id !== id);
+	function confirmDelete(id: string) {
+		// Check if trying to delete currently selected preset
 		if (manuallySelected === id) {
-			manuallySelected = null;
+			toast.error('Please select a different header style before deleting this one.');
+			return;
 		}
+		
+		presetToDelete = id;
+		showDeleteModal = true;
+	}
+
+	async function deleteCustom() {
+		if (!presetToDelete) return;
+		
+		const deletingId = presetToDelete;
+		showDeleteModal = false;
+		presetToDelete = null;
+		
+		// Remove from local state
+		customPresets = customPresets.filter(p => p.id !== deletingId);
+		
+		// Dispatch event to parent to save immediately
+		dispatch('deletePreset', { presets: customPresets });
 	}
 
 	function resetToPreset(layout: HeaderStyles['layout']) {
@@ -240,8 +260,9 @@
 						{/if}
 						{#if isCustom}
 							<button
-								onclick={(e) => { e.stopPropagation(); deleteCustom(preset.id); }}
-								class="absolute top-1 left-1 w-4 h-4 bg-red-600 rounded-full flex items-center justify-center z-10 hover:bg-red-700"
+								onclick={(e) => { e.stopPropagation(); confirmDelete(preset.id); }}
+								class="absolute top-1 left-1 w-4 h-4 bg-red-600 rounded-full flex items-center justify-center z-10 hover:bg-red-700 transition-colors"
+								title="Delete custom preset"
 							>
 								<svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -476,3 +497,38 @@
 		{/if}
 	</div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+{#if showDeleteModal}
+	<div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onclick={() => showDeleteModal = false}>
+		<div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" onclick={(e) => e.stopPropagation()}>
+			<div class="flex items-start gap-4">
+				<div class="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+					<svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+					</svg>
+				</div>
+				<div class="flex-1">
+					<h3 class="text-lg font-semibold text-gray-900 mb-2">Delete Custom Header Style?</h3>
+					<p class="text-sm text-gray-600 mb-6">
+						This action cannot be undone. The custom header style will be permanently deleted immediately.
+					</p>
+					<div class="flex gap-3">
+						<button
+							onclick={() => { showDeleteModal = false; presetToDelete = null; }}
+							class="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+						>
+							Cancel
+						</button>
+						<button
+							onclick={deleteCustom}
+							class="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+						>
+							Delete
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+{/if}
