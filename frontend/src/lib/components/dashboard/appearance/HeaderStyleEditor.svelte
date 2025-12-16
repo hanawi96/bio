@@ -18,24 +18,8 @@
 	let activeTab = $state<string>('avatar');
 	let showDeleteModal = $state(false);
 	let presetToDelete = $state<string | null>(null);
-	
-	// Check if current header matches theme's default header
-	const isUsingThemeDefault = $derived.by(() => {
-		const themePreset = themePresets[currentThemeName];
-		if (!themePreset?.header) return true;
-		
-		const themeHeader = themePreset.header;
-		// Compare key properties
-		return (
-			themeHeader.layout === headerStyle.layout &&
-			themeHeader.avatarSize === headerStyle.avatarSize &&
-			themeHeader.avatarShape === headerStyle.avatarShape &&
-			themeHeader.avatarAlign === headerStyle.avatarAlign &&
-			themeHeader.coverHeight === headerStyle.coverHeight &&
-			themeHeader.bioAlign === headerStyle.bioAlign &&
-			themeHeader.bioSize === headerStyle.bioSize
-		);
-	});
+	let isUserEditing = $state(false); // Track if user is actively editing (not auto-updates)
+	let createPresetTimeout: ReturnType<typeof setTimeout> | null = null;
 	
 	function findMatchingCustomPreset(): string | null {
 		if (!customPresets || customPresets.length === 0) return null;
@@ -138,28 +122,54 @@
 
 	function updateHeaderSetting(updates: Partial<HeaderStyles>) {
 		const newStyle = { ...headerStyle, ...updates };
+		isUserEditing = true; // Mark as user-initiated edit
 		currentHeaderStyle.set(newStyle);
 		pendingChanges.updateHeader(newStyle);
 		
 		// Auto-create custom preset if editing from a preset (only once)
+		// Set flag FIRST to prevent race conditions
 		if (!isModifiedFromPreset && manuallySelected && !manuallySelected.startsWith('custom-')) {
-			isModifiedFromPreset = true;
+			isModifiedFromPreset = true; // Set immediately to prevent duplicate calls
 			
-			// Check if a custom preset with same config already exists
-			const matchingCustomId = findMatchingCustomPreset();
-			if (matchingCustomId) {
-				// Switch to existing custom preset instead of creating new one
-				manuallySelected = matchingCustomId;
-				expandedPreset = matchingCustomId;
-				toast.info('Switched to existing custom style');
-			} else {
-				// Create new custom preset
-				saveAsCustom();
+			// Clear any pending timeout
+			if (createPresetTimeout) {
+				clearTimeout(createPresetTimeout);
 			}
+			
+			// Use setTimeout to batch multiple rapid updates
+			createPresetTimeout = setTimeout(() => {
+				// Check if a custom preset with same config already exists
+				const matchingCustomId = findMatchingCustomPreset();
+				if (matchingCustomId) {
+					// Switch to existing custom preset instead of creating new one
+					manuallySelected = matchingCustomId;
+					expandedPreset = matchingCustomId;
+					toast.info('Switched to existing custom style');
+				} else {
+					// Create new custom preset
+					saveAsCustom();
+				}
+				createPresetTimeout = null;
+			}, 300); // Debounce to batch rapid updates
 		}
+		
+		// Reset flag after a short delay
+		setTimeout(() => {
+			isUserEditing = false;
+		}, 100);
 	}
 
 	function saveAsCustom() {
+		// Check if exact same custom preset already exists
+		const existingMatch = findMatchingCustomPreset();
+		if (existingMatch) {
+			// Don't create duplicate, just switch to existing
+			manuallySelected = existingMatch;
+			expandedPreset = existingMatch;
+			toast.info('Using existing custom style');
+			return;
+		}
+		
 		const id = `custom-${Date.now()}`;
 		const basePreset = allPresets.find(p => p.layout === headerStyle.layout);
 		
@@ -260,27 +270,17 @@
 		// Cleanup
 	});
 	
+	// Auto-detect which preset matches current header style
 	$effect(() => {
-		if (!manuallySelected && headerStyle.layout) {
+		if (headerStyle.layout) {
+			// First check if it matches a custom preset (exact match on all properties)
 			const matchingCustomId = findMatchingCustomPreset();
 			if (matchingCustomId) {
 				manuallySelected = matchingCustomId;
-			} else if (!isUsingThemeDefault) {
-				// Not using theme default and no custom match → must be a built-in preset
-				manuallySelected = headerStyle.layout;
 			} else {
-				// Using theme default
-				manuallySelected = null;
-			}
-			isModifiedFromPreset = false;
-		}
-	});
-	
-	$effect(() => {
-		if (customPresets.length > 0 && headerStyle.layout) {
-			const matchingCustomId = findMatchingCustomPreset();
-			if (matchingCustomId && manuallySelected !== matchingCustomId) {
-				manuallySelected = matchingCustomId;
+				// No exact custom match → use layout as identifier for built-in presets
+				// This ensures highlight works immediately when theme is selected
+				manuallySelected = headerStyle.layout;
 			}
 		}
 	});
@@ -324,7 +324,7 @@
 				{@const isCustom = 'settings' in preset}
 				{@const isSelected = isCustom 
 					? manuallySelected === preset.id 
-					: (!isUsingThemeDefault && manuallySelected === preset.layout)}
+					: manuallySelected === preset.layout}
 				<div class="relative">
 					<button
 						onclick={() => isCustom ? selectLayout(preset.layout, preset.settings, preset.id) : selectLayout(preset.layout)}
