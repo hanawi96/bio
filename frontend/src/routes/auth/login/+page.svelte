@@ -2,11 +2,19 @@
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth';
 	import { api } from '$lib/api/client';
+	import { onMount } from 'svelte';
 
 	let email = '';
 	let password = '';
 	let error = '';
 	let loading = false;
+
+	onMount(() => {
+		// If already logged in, redirect to dashboard
+		if ($auth.user && $auth.token) {
+			goto('/dashboard');
+		}
+	});
 
 	async function handleLogin() {
 		loading = true;
@@ -19,7 +27,13 @@
 			});
 
 			auth.login(response.user, response.token);
-			goto('/dashboard');
+			
+			// Check if user needs to complete onboarding
+			if (response.user.username && response.user.username.startsWith('temp_')) {
+				goto('/onboarding/setup-url');
+			} else {
+				goto('/dashboard');
+			}
 		} catch (err: any) {
 			error = err.message || 'Login failed';
 		} finally {

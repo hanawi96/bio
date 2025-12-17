@@ -44,6 +44,12 @@ function createAuthStore() {
 			}
 			set({ user: null, token: null, loading: false });
 		},
+		updateUser: (user: User) => {
+			if (browser) {
+				localStorage.setItem('user', JSON.stringify(user));
+			}
+			update(state => ({ ...state, user }));
+		},
 		setLoading: (loading: boolean) => {
 			update(state => ({ ...state, loading }));
 		}

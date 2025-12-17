@@ -11,15 +11,23 @@
 	const currentTextColor = $derived($globalTheme.cardTextColor);
 
 	function updateTypography(field: string, value: any) {
+		console.log('📝 TypographyEditor - updateTypography:', {
+			field,
+			value,
+			'current textAlignment': textAlignment
+		});
+		
 		// Update theme config (single source of truth)
 		if (field === 'text_alignment') {
 			globalTheme.update({ textAlignment: value });
+			console.log('✅ Updated globalTheme.textAlignment to:', value);
 		} else if (field === 'text_size') {
 			globalTheme.update({ textSize: value });
 		}
 		
 		// Update preview
 		previewStyles.update({ [field]: value });
+		console.log('✅ Updated previewStyles:', { [field]: value });
 	}
 
 	function updateTextColor(color: string) {

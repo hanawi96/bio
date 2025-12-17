@@ -40,18 +40,44 @@
 	const headerStyle = $derived($currentHeaderStyle);
 	
 	// Apply theme + preview styles to links
+	// Priority: link-specific (if explicitly set) > preview (appearance page) > theme
 	const previewLinks = $derived(links.map(link => {
 		if (!link.is_group) return link;
-		// Override link fields with theme + preview (including style for padding/spacing)
-		return { 
-			...link, 
-			text_alignment: preview.text_alignment || currentTheme.textAlignment || 'center',
-			text_size: preview.text_size || currentTheme.textSize || 'M',
-			image_shape: preview.image_shape || currentTheme.imageShape || 'square',
-			...preview,
+		
+		// Use nullish coalescing (??) instead of OR (||) to properly check for null/undefined
+		// This ensures that only explicitly set link values override theme/preview
+		const textAlignment = link.text_alignment ?? preview.text_alignment ?? currentTheme.textAlignment ?? 'center';
+		const textSize = link.text_size ?? preview.text_size ?? currentTheme.textSize ?? 'M';
+		const imageShape = link.image_shape ?? preview.image_shape ?? currentTheme.imageShape ?? 'square';
+		
+		console.log('🎨 ProfilePreview - Processing link:', {
+			linkId: link.id,
+			linkTitle: link.group_title,
+			'link.text_alignment': link.text_alignment,
+			'link.text_alignment === null': link.text_alignment === null,
+			'link.text_alignment === undefined': link.text_alignment === undefined,
+			'preview.text_alignment': preview.text_alignment,
+			'theme.textAlignment': currentTheme.textAlignment,
+			'final textAlignment': textAlignment
+		});
+		
+		// Build result object - link-specific values should NOT be overridden by preview
+		const result = { 
+			...link,
+			// Set final computed values (nullish coalescing ensures proper priority)
+			text_alignment: textAlignment,
+			text_size: textSize,
+			image_shape: imageShape,
 			// Override style if preview has it (for padding/spacing reactivity)
 			style: preview.style || link.style
 		};
+		
+		console.log('✅ ProfilePreview - Final result:', {
+			linkId: link.id,
+			'result.text_alignment': result.text_alignment
+		});
+		
+		return result;
 	}));
 	
 	// Helper to get merged card properties (preview > theme ONLY, ignore link values)

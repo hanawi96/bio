@@ -41,6 +41,11 @@ func SetupRoutes(api fiber.Router, db *sql.DB, cfg *config.Config) {
 	auth := api.Group("/auth")
 	auth.Post("/register", authHandler.Register)
 	auth.Post("/login", authHandler.Login)
+	auth.Get("/check-username/:username", authHandler.CheckUsername)
+	
+	// Protected auth routes
+	authProtected := auth.Group("", middleware.AuthRequired(cfg))
+	authProtected.Patch("/setup-username", authHandler.SetupUsername)
 
 	// Public profile view
 	api.Get("/p/:username", profileHandler.GetPublicProfile)

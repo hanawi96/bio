@@ -19,31 +19,54 @@ func NewAuthService(userRepo *repository.UserRepository, cfg *config.Config) *Au
 	return &AuthService{userRepo: userRepo, cfg: cfg}
 }
 
-func (s *AuthService) Register(email, username, password string) (interface{}, string, error) {
-	println("[AuthService] Starting registration for email:", email, "username:", username)
-	
+func (s *AuthService) Register(email, password string) (interface{}, string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		println("[AuthService] Error hashing password:", err.Error())
 		return nil, "", err
 	}
-	println("[AuthService] Password hashed successfully")
 
-	user, err := s.userRepo.Create(email, username, string(hashedPassword))
+	// Create temporary username unique from timestamp
+	tempUsername := "temp_" + time.Now().Format("20060102150405")
+	
+	user, err := s.userRepo.Create(email, tempUsername, string(hashedPassword))
 	if err != nil {
-		println("[AuthService] Error creating user in repository:", err.Error())
 		return nil, "", err
 	}
-	println("[AuthService] User created successfully with ID:", user.ID)
 
 	token, err := s.generateToken(user.ID)
 	if err != nil {
-		println("[AuthService] Error generating token:", err.Error())
 		return nil, "", err
 	}
-	println("[AuthService] Token generated successfully")
 
 	return user, token, nil
+}
+
+func (s *AuthService) SetupUsername(userID, username string) error {
+	// Validate username
+	if len(username) < 3 || len(username) > 30 {
+		return errors.New("username must be between 3 and 30 characters")
+	}
+
+	// Check if username is available
+	available, err := s.CheckUsernameAvailable(username)
+	if err != nil {
+		return err
+	}
+	if !available {
+		return errors.New("username already taken")
+	}
+
+	return s.userRepo.UpdateUsername(userID, username)
+}
+
+func (s *AuthService) CheckUsernameAvailable(username string) (bool, error) {
+	_, err := s.userRepo.GetByUsername(username)
+	if err != nil {
+		// Username not found = available
+		return true, nil
+	}
+	// Username found = not available
+	return false, nil
 }
 
 func (s *AuthService) Login(email, password string) (interface{}, string, error) {

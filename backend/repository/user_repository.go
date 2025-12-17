@@ -2,6 +2,8 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
+	"strings"
 )
 
 type User struct {
@@ -20,44 +22,32 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 }
 
 func (r *UserRepository) Create(email, username, passwordHash string) (*User, error) {
-	println("[UserRepository] Creating user - email:", email, "username:", username)
-	
-	// Test connection first
-	var testUser string
-	err := r.db.QueryRow("SELECT current_user").Scan(&testUser)
-	if err != nil {
-		println("[UserRepository] ERROR checking current user:", err.Error())
-	} else {
-		println("[UserRepository] Current DB user:", testUser)
-	}
-	
 	var user User
 	query := `
 		INSERT INTO users (email, username, password_hash)
 		VALUES ($1, $2, $3)
 		RETURNING id, email, username, password_hash
 	`
-	println("[UserRepository] Executing INSERT query...")
-	println("[UserRepository] Query:", query)
-	println("[UserRepository] Params: email=", email, "username=", username)
 	
-	err = r.db.QueryRow(query, email, username, passwordHash).Scan(
+	err := r.db.QueryRow(query, email, username, passwordHash).Scan(
 		&user.ID, &user.Email, &user.Username, &user.PasswordHash,
 	)
 	if err != nil {
-		println("[UserRepository] ERROR inserting into users table:", err.Error())
+		// Check for duplicate key errors
+		if strings.Contains(err.Error(), "users_email_key") {
+			return nil, errors.New("email already exists")
+		}
+		if strings.Contains(err.Error(), "users_username_key") {
+			return nil, errors.New("username already taken")
+		}
 		return nil, err
 	}
-	println("[UserRepository] User inserted successfully with ID:", user.ID)
 
 	// Create profile for user
-	println("[UserRepository] Creating profile for user...")
 	_, err = r.db.Exec(`INSERT INTO profiles (user_id) VALUES ($1)`, user.ID)
 	if err != nil {
-		println("[UserRepository] ERROR inserting into profiles table:", err.Error())
 		return nil, err
 	}
-	println("[UserRepository] Profile created successfully")
 
 	return &user, nil
 }
@@ -96,4 +86,10 @@ func (r *UserRepository) GetByUsername(username string) (*User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (r *UserRepository) UpdateUsername(userID, username string) error {
+	query := `UPDATE users SET username = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`
+	_, err := r.db.Exec(query, username, userID)
+	return err
 }

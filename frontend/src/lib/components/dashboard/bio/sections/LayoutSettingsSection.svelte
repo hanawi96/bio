@@ -42,6 +42,13 @@
 	}
 	
 	function updateTextAlignment(value: string) {
+		console.log('📝 LayoutSettingsSection - updateTextAlignment:', {
+			groupId: group.id,
+			groupTitle: group.group_title,
+			newValue: value,
+			oldValue: group.text_alignment
+		});
+		
 		dispatch('update', {
 			groupId: group.id,
 			text_alignment: value

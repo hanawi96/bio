@@ -59,6 +59,9 @@ export const api = {
 	put: <T>(endpoint: string, data: unknown, token?: string) =>
 		request<T>(endpoint, { method: 'PUT', body: JSON.stringify(data), token }),
 	
+	patch: <T>(endpoint: string, data: unknown, token?: string) =>
+		request<T>(endpoint, { method: 'PATCH', body: JSON.stringify(data), token }),
+	
 	delete: <T>(endpoint: string, token?: string) =>
 		request<T>(endpoint, { method: 'DELETE', token })
 };

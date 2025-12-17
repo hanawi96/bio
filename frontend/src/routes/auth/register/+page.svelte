@@ -2,12 +2,23 @@
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth';
 	import { api } from '$lib/api/client';
+	import { onMount } from 'svelte';
 
 	let email = '';
-	let username = '';
 	let password = '';
 	let error = '';
 	let loading = false;
+
+	onMount(() => {
+		// If already logged in, redirect to appropriate page
+		if ($auth.user && $auth.token) {
+			if ($auth.user.username && $auth.user.username.startsWith('temp_')) {
+				goto('/onboarding/setup-url');
+			} else {
+				goto('/dashboard');
+			}
+		}
+	});
 
 	async function handleRegister() {
 		loading = true;
@@ -16,15 +27,21 @@
 		try {
 			const response = await api.post<{ user: any; token: string }>('/auth/register', {
 				email,
-				username,
 				password
 			});
 
 			auth.login(response.user, response.token);
-			goto('/dashboard');
+			goto('/onboarding/setup-url');
 		} catch (err: any) {
 			console.error('Registration error:', err);
-			error = err.message || 'Registration failed';
+			const message = err.message || 'Registration failed';
+			
+			// Handle specific errors
+			if (message.includes('email already exists') || message.includes('duplicate')) {
+				error = 'This email is already registered. Please login instead.';
+			} else {
+				error = message;
+			}
 		} finally {
 			loading = false;
 		}
@@ -57,19 +74,6 @@
 						required
 						class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
 					/>
-				</div>
-
-				<div>
-					<label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-					<input
-						id="username"
-						type="text"
-						bind:value={username}
-						required
-						pattern="[a-zA-Z0-9_]+"
-						class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-					/>
-					<p class="mt-1 text-sm text-gray-500">Your profile URL: linkbio.com/{username || 'username'}</p>
 				</div>
 
 				<div>
