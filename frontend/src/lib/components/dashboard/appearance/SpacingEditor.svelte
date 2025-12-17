@@ -36,27 +36,59 @@
 	});
 
 	function updatePadding(value: number) {
+		console.log('🔵 updatePadding called:', { value });
+		
 		// Update theme
 		globalTheme.update({ cardPadding: value });
 		
-		// Create style object for preview
-		const newStyle = {
-			padding: { top: value, right: value, bottom: value, left: value }
-		};
-		const styleStr = JSON.stringify(newStyle);
+		// Get current style from preview to merge
+		const currentStyle = $previewStyles.style;
+		console.log('📦 Current preview style:', currentStyle);
+		
+		let styleObj: any = {};
+		if (currentStyle) {
+			try {
+				styleObj = JSON.parse(currentStyle);
+				console.log('📦 Parsed current style:', styleObj);
+			} catch (e) {
+				console.warn('⚠️ Failed to parse current style:', e);
+			}
+		}
+		
+		// Merge padding into existing style
+		styleObj.padding = { top: value, right: value, bottom: value, left: value };
+		const styleStr = JSON.stringify(styleObj);
+		console.log('✅ New merged style (padding):', styleStr);
+		
 		previewStyles.update({ style: styleStr });
 		pendingChanges.updateLinkStyles({ style: styleStr });
 	}
 
 	function updateSpacing(value: number) {
+		console.log('🟢 updateSpacing called:', { value });
+		
 		// Update theme
 		globalTheme.update({ cardSpacing: value });
 		
-		// Create style object for preview
-		const newStyle = {
-			margin: { top: 0, bottom: value }
-		};
-		const styleStr = JSON.stringify(newStyle);
+		// Get current style from preview to merge
+		const currentStyle = $previewStyles.style;
+		console.log('📦 Current preview style:', currentStyle);
+		
+		let styleObj: any = {};
+		if (currentStyle) {
+			try {
+				styleObj = JSON.parse(currentStyle);
+				console.log('📦 Parsed current style:', styleObj);
+			} catch (e) {
+				console.warn('⚠️ Failed to parse current style:', e);
+			}
+		}
+		
+		// Merge margin into existing style
+		styleObj.margin = { top: 0, bottom: value };
+		const styleStr = JSON.stringify(styleObj);
+		console.log('✅ New merged style (spacing):', styleStr);
+		
 		previewStyles.update({ style: styleStr });
 		pendingChanges.updateLinkStyles({ style: styleStr });
 	}

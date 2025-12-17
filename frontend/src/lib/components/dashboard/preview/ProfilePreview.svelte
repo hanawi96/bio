@@ -54,30 +54,27 @@
 		};
 	}));
 	
-	// Helper to get merged card properties (preview > link > theme)
+	// Helper to get merged card properties (preview > theme ONLY, ignore link values)
+	// Card background settings are now controlled ONLY by theme or appearance page
 	function getCardProps(link: any) {
 		const t = currentTheme;
 		const p = preview;
 		
-		// Priority: preview > theme > link (link is lowest priority for card background)
-		// This ensures theme changes are immediately visible without needing to update each link
-		const hasCustomBg = p.enableCardBackground !== undefined 
-			? p.enableCardBackground 
-			: (t.enableCardBackground !== undefined ? t.enableCardBackground : (link?.has_card_background ?? true));
-		
+		// Priority: preview > theme (NEVER use link values for card background)
+		// This ensures all link groups use consistent theme styling
 		return {
-			hasCustomBg,
-			bgColor: p.card_background_color || link?.card_background_color || t.cardBackground,
-			bgOpacity: p.card_background_opacity ?? link?.card_background_opacity ?? t.cardBackgroundOpacity,
-			borderRadius: p.card_border_radius ?? link?.card_border_radius ?? t.cardBorderRadius,
-			textColor: p.card_text_color || link?.card_text_color || t.cardTextColor,
-			showShadow: p.show_shadow ?? link?.show_shadow ?? t.cardShadow,
-			shadowX: p.shadow_x ?? link?.shadow_x ?? t.cardShadowX,
-			shadowY: p.shadow_y ?? link?.shadow_y ?? t.cardShadowY,
-			shadowBlur: link?.shadow_blur ?? t.cardShadowBlur,
-			hasBorder: p.has_card_border ?? link?.has_card_border ?? t.cardBorder,
-			borderColor: p.card_border_color || link?.card_border_color || t.cardBorderColor,
-			borderWidth: p.card_border_width ?? link?.card_border_width ?? t.cardBorderWidth
+			hasCustomBg: p.enableCardBackground ?? t.enableCardBackground ?? true,
+			bgColor: p.card_background_color || t.cardBackground,
+			bgOpacity: p.card_background_opacity ?? t.cardBackgroundOpacity,
+			borderRadius: p.card_border_radius ?? t.cardBorderRadius,
+			textColor: p.card_text_color || t.cardTextColor,
+			showShadow: p.show_shadow ?? t.cardShadow,
+			shadowX: p.shadow_x ?? t.cardShadowX,
+			shadowY: p.shadow_y ?? t.cardShadowY,
+			shadowBlur: t.cardShadowBlur,
+			hasBorder: p.has_card_border ?? t.cardBorder,
+			borderColor: p.card_border_color || t.cardBorderColor,
+			borderWidth: p.card_border_width ?? t.cardBorderWidth
 		};
 	}
 

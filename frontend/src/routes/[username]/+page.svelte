@@ -6,12 +6,33 @@
 	import { globalTheme, themeStyles } from '$lib/stores/theme';
 	
 	$: styles = $themeStyles;
+	$: currentTheme = $globalTheme;
 
 	let profile: any = null;
 	let links: Link[] = [];
 	let blocks: any[] = [];
 	let loading = true;
 	let error = '';
+	
+	// Helper to get card properties from theme (NEVER use link values for card background)
+	// This ensures consistent styling across all link groups based on theme
+	function getCardProps() {
+		const t = currentTheme;
+		return {
+			hasCustomBg: t.enableCardBackground ?? true,
+			bgColor: t.cardBackground || '#ffffff',
+			bgOpacity: t.cardBackgroundOpacity ?? 100,
+			borderRadius: t.cardBorderRadius ?? 12,
+			textColor: t.cardTextColor || '#000000',
+			showShadow: t.cardShadow ?? false,
+			shadowX: t.cardShadowX ?? 0,
+			shadowY: t.cardShadowY ?? 4,
+			shadowBlur: t.cardShadowBlur ?? 10,
+			hasBorder: t.cardBorder ?? false,
+			borderColor: t.cardBorderColor || '#e5e7eb',
+			borderWidth: t.cardBorderWidth ?? 1
+		};
+	}
 
 	// Helper function to parse padding from style
 	function getPaddingStyle(style: string | null | undefined): string {
@@ -381,21 +402,14 @@
 									{@const gridCols = link.grid_columns || 2}
 									{@const aspectRatio = link.grid_aspect_ratio || '3:2'}
 									{@const textSize = link.text_size || 'M'}
-									{@const hasCustomBg = link.has_card_background !== undefined ? link.has_card_background : true}
-									{@const bgColor = link.card_background_color || '#ffffff'}
-									{@const bgOpacity = link.card_background_opacity !== undefined ? link.card_background_opacity : 100}
-									{@const borderRadius = link.card_border_radius !== undefined ? link.card_border_radius : 12}
-									{@const textColor = link.card_text_color || '#000000'}
-									{@const shadowX = link.shadow_x ?? 0}
-									{@const shadowY = link.shadow_y ?? 4}
-									{@const shadowBlur = link.shadow_blur ?? 10}
-									{@const r = parseInt(bgColor.slice(1,3), 16)}
-									{@const g = parseInt(bgColor.slice(3,5), 16)}
-									{@const b = parseInt(bgColor.slice(5,7), 16)}
-									{@const shadowStyle = link.show_shadow ? `box-shadow: ${shadowX}px ${shadowY}px ${shadowBlur}px rgba(0,0,0,0.2);` : ''}
-									{@const borderStyle = link.has_card_border ? `border: ${link.card_border_width || 1}px ${link.card_border_style || 'solid'} ${link.card_border_color || '#e5e7eb'};` : ''}
+									{@const cardProps = getCardProps()}
+									{@const r = parseInt(cardProps.bgColor.slice(1,3), 16)}
+									{@const g = parseInt(cardProps.bgColor.slice(3,5), 16)}
+									{@const b = parseInt(cardProps.bgColor.slice(5,7), 16)}
+									{@const shadowStyle = cardProps.showShadow ? `box-shadow: ${cardProps.shadowX}px ${cardProps.shadowY}px ${cardProps.shadowBlur}px rgba(0,0,0,0.2);` : ''}
+									{@const borderStyle = cardProps.hasBorder ? `border: ${cardProps.borderWidth}px solid ${cardProps.borderColor};` : ''}
 									{@const cardSpacing = getMarginValue(link.style)}
-									{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}` : `padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}`}
+									{@const bgStyle = cardProps.hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${cardProps.bgOpacity / 100}); border-radius: ${cardProps.borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}` : `padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}`}
 									{@const getAspectStyle = (ratio) => {
 										const map = { '1:1': '1/1', '3:2': '3/2', '16:9': '16/9', '3:1': '3/1', '2:3': '2/3' };
 										return `aspect-ratio: ${map[ratio] || '3/2'}`;
@@ -407,9 +421,9 @@
 												target="{child.open_in_new_tab ? '_blank' : '_self'}"
 												rel="noopener noreferrer"
 												class="block transition-all"
-												class:hover:bg-gray-50={hasCustomBg}
-												class:border-2={link.show_outline && !link.has_card_border}
-												class:border-gray-200={link.show_outline && !link.has_card_border}
+												class:hover:bg-gray-50={cardProps.hasCustomBg}
+												class:border-2={link.show_outline && !cardProps.hasBorder}
+												class:border-gray-200={link.show_outline && !cardProps.hasBorder}
 												style={bgStyle}
 											>
 												{#if child.thumbnail_url}
@@ -420,10 +434,10 @@
 													class:text-sm={textSize === 'M'}
 													class:text-base={textSize === 'L'}
 													class:text-lg={textSize === 'XL'}
-													style="text-align: {link.text_alignment || 'center'}; color: {textColor};"
+													style="text-align: {link.text_alignment || 'center'}; color: {cardProps.textColor};"
 												>{child.title}</p>
 												{#if link.show_description !== false && child.description}
-													<p class="text-xs mt-1 line-clamp-2" style="text-align: {link.text_alignment || 'center'}; color: {textColor}; opacity: 0.7;">{child.description}</p>
+													<p class="text-xs mt-1 line-clamp-2" style="text-align: {link.text_alignment || 'center'}; color: {cardProps.textColor}; opacity: 0.7;">{child.description}</p>
 												{/if}
 											</a>
 										{/each}
@@ -433,6 +447,13 @@
 									{@const aspectRatio = link.grid_aspect_ratio || '3:2'}
 									{@const cardSpacing = getMarginValue(link.style)}
 									{@const carouselId = `public-carousel-${link.id}`}
+									{@const cardProps = getCardProps()}
+									{@const r = parseInt(cardProps.bgColor.slice(1,3), 16)}
+									{@const g = parseInt(cardProps.bgColor.slice(3,5), 16)}
+									{@const b = parseInt(cardProps.bgColor.slice(5,7), 16)}
+									{@const shadowStyle = cardProps.showShadow ? `box-shadow: ${cardProps.shadowX}px ${cardProps.shadowY}px ${cardProps.shadowBlur}px rgba(0,0,0,0.2);` : ''}
+									{@const borderStyle = cardProps.hasBorder ? `border: ${cardProps.borderWidth}px solid ${cardProps.borderColor};` : ''}
+									{@const bgStyle = cardProps.hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${cardProps.bgOpacity / 100}); border-radius: ${cardProps.borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}` : `padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}`}
 									{@const getAspectStyle = (ratio) => {
 										const map = { '1:1': '1/1', '3:2': '3/2', '16:9': '16/9', '3:1': '3/1', '2:3': '2/3' };
 										return `aspect-ratio: ${map[ratio] || '3/2'}`;
@@ -442,26 +463,12 @@
 										<div id={carouselId} class="overflow-x-scroll snap-x snap-mandatory scrollbar-hide" style="scroll-behavior: smooth;">
 											<div class="flex px-4" style="gap: {cardSpacing ?? 12}px;">
 												{#each sortedChildren as child, idx}
-													{@const hasCustomBg = link.has_card_background !== undefined ? link.has_card_background : true}
-													{@const bgColor = link.card_background_color || '#ffffff'}
-													{@const bgOpacity = link.card_background_opacity !== undefined ? link.card_background_opacity : 100}
-													{@const borderRadius = link.card_border_radius !== undefined ? link.card_border_radius : 12}
-													{@const textColor = link.card_text_color || '#000000'}
-													{@const shadowX = link.shadow_x ?? 0}
-													{@const shadowY = link.shadow_y ?? 4}
-													{@const shadowBlur = link.shadow_blur ?? 10}
-													{@const r = parseInt(bgColor.slice(1,3), 16)}
-													{@const g = parseInt(bgColor.slice(3,5), 16)}
-													{@const b = parseInt(bgColor.slice(5,7), 16)}
-													{@const shadowStyle = link.show_shadow ? `box-shadow: ${shadowX}px ${shadowY}px ${shadowBlur}px rgba(0,0,0,0.2);` : ''}
-													{@const borderStyle = link.has_card_border ? `border: ${link.card_border_width || 1}px ${link.card_border_style || 'solid'} ${link.card_border_color || '#e5e7eb'};` : ''}
-													{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}` : `padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}`}
 													<a
 														href={child.url}
 														target="{child.open_in_new_tab ? '_blank' : '_self'}"
 														rel="noopener noreferrer"
 														class="block transition-all flex-shrink-0 snap-center w-[85%]"
-														class:hover:bg-gray-50={hasCustomBg}
+														class:hover:bg-gray-50={cardProps.hasCustomBg}
 														style={bgStyle}
 													>
 														{#if child.thumbnail_url}
@@ -473,10 +480,10 @@
 																class:text-sm={textSize === 'M'}
 																class:text-base={textSize === 'L'}
 																class:text-lg={textSize === 'XL'}
-																style="text-align: {link.text_alignment || 'center'}; color: {textColor};"
+																style="text-align: {link.text_alignment || 'center'}; color: {cardProps.textColor};"
 															>{child.title}</p>
 															{#if child.description}
-																<p class="text-xs line-clamp-2" style="text-align: {link.text_alignment || 'center'}; color: {textColor}; opacity: 0.7;">{child.description}</p>
+																<p class="text-xs line-clamp-2" style="text-align: {link.text_alignment || 'center'}; color: {cardProps.textColor}; opacity: 0.7;">{child.description}</p>
 															{/if}
 														{/if}
 													</a>
@@ -534,31 +541,24 @@
 									{@const textSize = link.text_size || 'M'}
 									{@const imagePlacement = link.image_placement || 'alternating'}
 									{@const cardSpacing = getMarginValue(link.style)}
+									{@const cardProps = getCardProps()}
+									{@const r = parseInt(cardProps.bgColor.slice(1,3), 16)}
+									{@const g = parseInt(cardProps.bgColor.slice(3,5), 16)}
+									{@const b = parseInt(cardProps.bgColor.slice(5,7), 16)}
+									{@const shadowStyle = cardProps.showShadow ? `box-shadow: ${cardProps.shadowX}px ${cardProps.shadowY}px ${cardProps.shadowBlur}px rgba(0,0,0,0.1);` : ''}
+									{@const borderStyle = cardProps.hasBorder ? `border: ${cardProps.borderWidth}px solid ${cardProps.borderColor};` : ''}
+									{@const bgStyle = cardProps.hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${cardProps.bgOpacity / 100}); border-radius: ${cardProps.borderRadius}px; ${shadowStyle} ${borderStyle}` : `${shadowStyle} ${borderStyle}`}
 									<div style="display: flex; flex-direction: column; gap: {cardSpacing ?? 12}px;">
 										{#each sortedChildren as child, index}
 											{@const shouldReverse = imagePlacement === 'right' || (imagePlacement === 'alternating' && index % 2 === 0)}
-											{@const hasCustomBg = link.has_card_background !== undefined ? link.has_card_background : true}
-											{@const bgColor = link.card_background_color || '#ffffff'}
-											{@const bgOpacity = link.card_background_opacity !== undefined ? link.card_background_opacity : 100}
-											{@const borderRadius = link.card_border_radius !== undefined ? link.card_border_radius : 12}
-											{@const textColor = link.card_text_color || '#000000'}
-											{@const shadowX = link.shadow_x ?? 0}
-											{@const shadowY = link.shadow_y ?? 4}
-											{@const shadowBlur = link.shadow_blur ?? 10}
-											{@const r = parseInt(bgColor.slice(1,3), 16)}
-											{@const g = parseInt(bgColor.slice(3,5), 16)}
-											{@const b = parseInt(bgColor.slice(5,7), 16)}
-											{@const shadowStyle = link.show_shadow ? `box-shadow: ${shadowX}px ${shadowY}px ${shadowBlur}px rgba(0,0,0,0.1);` : ''}
-											{@const borderStyle = link.has_card_border ? `border: ${link.card_border_width || 1}px ${link.card_border_style || 'solid'} ${link.card_border_color || '#e5e7eb'};` : ''}
-											{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px; ${shadowStyle} ${borderStyle}` : `${shadowStyle} ${borderStyle}`}
 											<a
 												href={child.url}
 												target="{child.open_in_new_tab ? '_blank' : '_self'}"
 												rel="noopener noreferrer"
 												class="block overflow-hidden transition-all"
-												class:hover:bg-gray-50={hasCustomBg}
-												class:border-2={link.show_outline && !link.has_card_border}
-												class:border-gray-200={link.show_outline && !link.has_card_border}
+												class:hover:bg-gray-50={cardProps.hasCustomBg}
+												class:border-2={link.show_outline && !cardProps.hasBorder}
+												class:border-gray-200={link.show_outline && !cardProps.hasBorder}
 												style={bgStyle}
 											>
 												<div class="flex items-stretch" class:flex-row-reverse={shouldReverse}>
@@ -573,10 +573,10 @@
 															class:text-base={textSize === 'M'}
 															class:text-lg={textSize === 'L'}
 															class:text-xl={textSize === 'XL'}
-															style="text-align: {link.text_alignment || 'left'}; color: {textColor};"
+															style="text-align: {link.text_alignment || 'left'}; color: {cardProps.textColor};"
 														>{child.title}</p>
 														{#if link.show_description !== false && child.description}
-															<p class="text-xs" style="text-align: {link.text_alignment || 'left'}; color: {textColor}; opacity: 0.7;">{child.description}</p>
+															<p class="text-xs" style="text-align: {link.text_alignment || 'left'}; color: {cardProps.textColor}; opacity: 0.7;">{child.description}</p>
 														{/if}
 													</div>
 												</div>
@@ -588,30 +588,23 @@
 									{@const textSize = link.text_size || 'M'}
 									{@const imageShape = link.image_shape || 'square'}
 									{@const cardSpacing = getMarginValue(link.style)}
+									{@const cardProps = getCardProps()}
+									{@const r = parseInt(cardProps.bgColor.slice(1,3), 16)}
+									{@const g = parseInt(cardProps.bgColor.slice(3,5), 16)}
+									{@const b = parseInt(cardProps.bgColor.slice(5,7), 16)}
+									{@const shadowStyle = cardProps.showShadow ? `box-shadow: ${cardProps.shadowX}px ${cardProps.shadowY}px ${cardProps.shadowBlur}px rgba(0,0,0,0.2);` : ''}
+									{@const borderStyle = cardProps.hasBorder ? `border: ${cardProps.borderWidth}px solid ${cardProps.borderColor};` : ''}
+									{@const bgStyle = cardProps.hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${cardProps.bgOpacity / 100}); border-radius: ${cardProps.borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}` : `padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}`}
 									<div style="display: flex; flex-direction: column; gap: {cardSpacing ?? 12}px;">
 										{#each sortedChildren as child}
-											{@const hasCustomBg = link.has_card_background !== undefined ? link.has_card_background : true}
-											{@const bgColor = link.card_background_color || '#ffffff'}
-											{@const bgOpacity = link.card_background_opacity !== undefined ? link.card_background_opacity : 100}
-											{@const borderRadius = link.card_border_radius !== undefined ? link.card_border_radius : 12}
-											{@const textColor = link.card_text_color || '#000000'}
-											{@const shadowX = link.shadow_x ?? 0}
-											{@const shadowY = link.shadow_y ?? 4}
-											{@const shadowBlur = link.shadow_blur ?? 10}
-											{@const r = parseInt(bgColor.slice(1,3), 16)}
-											{@const g = parseInt(bgColor.slice(3,5), 16)}
-											{@const b = parseInt(bgColor.slice(5,7), 16)}
-											{@const shadowStyle = link.show_shadow ? `box-shadow: ${shadowX}px ${shadowY}px ${shadowBlur}px rgba(0,0,0,0.2);` : ''}
-											{@const borderStyle = link.has_card_border ? `border: ${link.card_border_width || 1}px ${link.card_border_style || 'solid'} ${link.card_border_color || '#e5e7eb'};` : ''}
-											{@const bgStyle = hasCustomBg ? `background-color: rgba(${r}, ${g}, ${b}, ${bgOpacity / 100}); border-radius: ${borderRadius}px; padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}` : `padding: ${getPaddingStyle(link.style)}; ${shadowStyle} ${borderStyle}`}
 											<a
 												href={child.url}
 												target="{child.open_in_new_tab ? '_blank' : '_self'}"
 												rel="noopener noreferrer"
 												class="block transition-all"
-												class:hover:bg-gray-50={hasCustomBg}
-												class:border-2={link.show_outline && !link.has_card_border}
-												class:border-gray-200={link.show_outline && !link.has_card_border}
+												class:hover:bg-gray-50={cardProps.hasCustomBg}
+												class:border-2={link.show_outline && !cardProps.hasBorder}
+												class:border-gray-200={link.show_outline && !cardProps.hasBorder}
 												style={bgStyle}
 											>
 												<div class="flex items-center gap-3">
@@ -624,10 +617,10 @@
 															class:text-sm={textSize === 'M'}
 															class:text-base={textSize === 'L'}
 															class:text-lg={textSize === 'XL'}
-															style="text-align: {link.text_alignment || 'left'}; color: {textColor};"
+															style="text-align: {link.text_alignment || 'left'}; color: {cardProps.textColor};"
 														>{child.title}</p>
 														{#if link.show_description !== false && child.description}
-															<p class="text-xs mt-0.5" style="text-align: {link.text_alignment || 'left'}; color: {textColor}; opacity: 0.7;">{child.description}</p>
+															<p class="text-xs mt-0.5" style="text-align: {link.text_alignment || 'left'}; color: {cardProps.textColor}; opacity: 0.7;">{child.description}</p>
 														{/if}
 													</div>
 												</div>
