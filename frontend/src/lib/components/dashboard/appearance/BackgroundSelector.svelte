@@ -105,67 +105,67 @@
 	<div>
 		<h3 class="text-lg font-bold text-gray-900 mb-4">Wallpaper</h3>
 		
-		<!-- Type Selector -->
-		<div class="grid grid-cols-5 gap-3 mb-6">
+		<!-- iOS-style Type Selector -->
+		<div class="flex gap-2 mb-4">
 			<button
 				onclick={() => selectedType = 'solid'}
-				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all {selectedType === 'solid' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
+				class="flex-1 flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all {selectedType === 'solid' ? 'border-indigo-500 bg-indigo-50 shadow-sm' : 'border-gray-200 bg-white hover:border-gray-300'}"
 			>
-				<div class="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-100 to-indigo-200 flex items-center justify-center">
-					<div class="w-6 h-6 rounded bg-indigo-600"></div>
+				<div class="w-10 h-10 rounded-lg {selectedType === 'solid' ? 'bg-indigo-600' : 'bg-gray-200'} flex items-center justify-center">
+					<div class="w-5 h-5 rounded {selectedType === 'solid' ? 'bg-white' : 'bg-gray-400'}"></div>
 				</div>
-				<span class="text-xs font-medium text-gray-700">Solid</span>
+				<span class="text-[11px] font-semibold {selectedType === 'solid' ? 'text-indigo-700' : 'text-gray-600'}">Solid</span>
 			</button>
 
 			<button
 				onclick={() => selectedType = 'gradient'}
-				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all {selectedType === 'gradient' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
+				class="flex-1 flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all {selectedType === 'gradient' ? 'border-indigo-500 bg-indigo-50 shadow-sm' : 'border-gray-200 bg-white hover:border-gray-300'}"
 			>
-				<div class="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
-					<svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+				<div class="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+					<svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
 						<path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z"/>
 						<path fill-rule="evenodd" d="M3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clip-rule="evenodd"/>
 					</svg>
 				</div>
-				<span class="text-xs font-medium text-gray-700">Gradient</span>
+				<span class="text-[11px] font-semibold {selectedType === 'gradient' ? 'text-indigo-700' : 'text-gray-600'}">Gradient</span>
 			</button>
 
 			<button
 				onclick={() => selectedType = 'image'}
-				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all {selectedType === 'image' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
+				class="flex-1 flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all {selectedType === 'image' ? 'border-indigo-500 bg-indigo-50 shadow-sm' : 'border-gray-200 bg-white hover:border-gray-300'}"
 			>
-				<div class="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center">
-					<svg class="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+				<div class="w-10 h-10 rounded-lg {selectedType === 'image' ? 'bg-gray-700' : 'bg-gray-200'} flex items-center justify-center">
+					<svg class="w-5 h-5 {selectedType === 'image' ? 'text-white' : 'text-gray-500'}" fill="currentColor" viewBox="0 0 20 20">
 						<path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
 					</svg>
 				</div>
-				<span class="text-xs font-medium text-gray-700">Image</span>
+				<span class="text-[11px] font-semibold {selectedType === 'image' ? 'text-indigo-700' : 'text-gray-600'}">Image</span>
 			</button>
 
 			<button
 				onclick={() => selectedType = 'video'}
-				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all {selectedType === 'video' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
+				class="flex-1 flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all {selectedType === 'video' ? 'border-indigo-500 bg-indigo-50 shadow-sm' : 'border-gray-200 bg-white hover:border-gray-300'}"
 			>
-				<div class="w-12 h-12 rounded-lg bg-gray-300 flex items-center justify-center">
-					<svg class="w-6 h-6 text-gray-700" fill="currentColor" viewBox="0 0 20 20">
+				<div class="w-10 h-10 rounded-lg {selectedType === 'video' ? 'bg-gray-700' : 'bg-gray-200'} flex items-center justify-center">
+					<svg class="w-5 h-5 {selectedType === 'video' ? 'text-white' : 'text-gray-500'}" fill="currentColor" viewBox="0 0 20 20">
 						<path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"/>
 					</svg>
 				</div>
-				<span class="text-xs font-medium text-gray-700">Video</span>
+				<span class="text-[11px] font-semibold {selectedType === 'video' ? 'text-indigo-700' : 'text-gray-600'}">Video</span>
 			</button>
 
 			<button
 				disabled
-				class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-gray-200 opacity-50 cursor-not-allowed relative group"
+				class="flex-1 flex flex-col items-center gap-1.5 p-3 rounded-xl border border-gray-200 bg-gray-50 opacity-40 cursor-not-allowed"
 				title="AI-generated backgrounds coming soon!"
 			>
-				<div class="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
-					<svg class="w-6 h-6 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+				<div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
+					<svg class="w-5 h-5 text-indigo-400" fill="currentColor" viewBox="0 0 20 20">
 						<path d="M13 7H7v6h6V7z"/>
 						<path fill-rule="evenodd" d="M7 2a1 1 0 012 0v1h2V2a1 1 0 112 0v1h2a2 2 0 012 2v2h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v2a2 2 0 01-2 2h-2v1a1 1 0 11-2 0v-1H9v1a1 1 0 11-2 0v-1H5a2 2 0 01-2-2v-2H2a1 1 0 110-2h1V9H2a1 1 0 010-2h1V5a2 2 0 012-2h2V2zM5 5h10v10H5V5z" clip-rule="evenodd"/>
 					</svg>
 				</div>
-				<span class="text-xs font-medium text-gray-400">AI (Soon)</span>
+				<span class="text-[11px] font-semibold text-gray-400">AI Soon</span>
 			</button>
 		</div>
 

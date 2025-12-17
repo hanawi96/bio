@@ -608,44 +608,47 @@
 		<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 			<!-- Settings Section (2/3) -->
 			<div class="lg:col-span-2 space-y-6">
-				<!-- Profile & Social Card -->
-				<div class="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-					<div class="flex items-start justify-between mb-4">
-						<h3 class="text-base font-semibold text-gray-900">Profile & Social</h3>
+				<!-- Profile & Social Card - iOS Style -->
+				<div class="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+					<!-- Header -->
+					<div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+						<h3 class="text-sm font-semibold text-gray-900">Profile & Social</h3>
 						<button
 							onclick={() => showProfileModal = true}
-							class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+							class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
 						>
-							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
 							</svg>
 							Edit
 						</button>
 					</div>
 					
-					<div class="flex items-start gap-4">
-						<!-- Avatar -->
-						<div class="relative flex-shrink-0">
-							{#if avatarPreview}
-								<img src={avatarPreview} alt="Avatar" class="w-20 h-20 rounded-2xl object-cover ring-2 ring-gray-100 shadow-sm" />
-							{:else}
-								<div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 ring-2 ring-gray-100 shadow-sm"></div>
-							{/if}
-						</div>
-						
-						<!-- Info -->
-						<div class="flex-1 min-w-0">
-							<p class="text-sm font-medium text-gray-500">@{profile?.username || 'username'}</p>
-							{#if bio}
-								<p class="text-sm text-gray-700 mt-1.5 line-clamp-2 leading-relaxed">{bio}</p>
-							{:else}
-								<p class="text-sm text-gray-400 mt-1.5 italic">No bio yet</p>
-							{/if}
+					<!-- Content -->
+					<div class="p-5">
+						<div class="flex items-start gap-4">
+							<!-- Avatar -->
+							<div class="relative flex-shrink-0">
+								{#if avatarPreview}
+									<img src={avatarPreview} alt="Avatar" class="w-16 h-16 rounded-2xl object-cover border-2 border-gray-100" />
+								{:else}
+									<div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 border-2 border-gray-100"></div>
+								{/if}
+							</div>
 							
-							<!-- Social Icons -->
-							{#if socialLinks.length > 0}
-								<div class="flex items-center gap-2 mt-3 flex-wrap">
-									{#each socialLinks as link}
+							<!-- Info -->
+							<div class="flex-1 min-w-0">
+								<p class="text-xs font-semibold text-gray-500">@{profile?.username || 'username'}</p>
+								{#if bio}
+									<p class="text-sm text-gray-700 mt-1 line-clamp-2 leading-relaxed">{bio}</p>
+								{:else}
+									<p class="text-sm text-gray-400 mt-1 italic">No bio yet</p>
+								{/if}
+								
+								<!-- Social Icons -->
+								{#if socialLinks.length > 0}
+									<div class="flex items-center gap-1.5 mt-2.5 flex-wrap">
+										{#each socialLinks as link}
 										{@const platform = [
 											{ id: 'twitter', icon: 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z' },
 											{ id: 'facebook', icon: 'M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z' },
@@ -669,11 +672,12 @@
 												<path d={platform?.icon || ''}/>
 											</svg>
 										</a>
-									{/each}
-								</div>
-							{:else}
-								<p class="text-xs text-gray-400 mt-3 italic">No social links added</p>
-							{/if}
+										{/each}
+									</div>
+								{:else}
+									<p class="text-xs text-gray-400 mt-2.5 italic">No social links</p>
+								{/if}
+							</div>
 						</div>
 					</div>
 				</div>
@@ -845,55 +849,59 @@
 </div>
 
 
-<!-- Profile Edit Modal -->
+<!-- Profile Edit Modal - iOS Style -->
 {#if showProfileModal}
-	<div class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4" onclick={(e) => e.target === e.currentTarget && (showProfileModal = false)}>
-		<div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-			<!-- Modal Header -->
-			<div class="flex-shrink-0 bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-6 flex items-center justify-between">
-				<div>
-					<h2 class="text-2xl font-bold text-white">Edit Profile</h2>
-					<p class="text-indigo-100 text-sm mt-1">Update your profile information and social links</p>
+	<div class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200" onclick={(e) => e.target === e.currentTarget && (showProfileModal = false)}>
+		<div class="bg-white rounded-[28px] shadow-2xl max-w-4xl w-full max-h-[92vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+			<!-- Modal Header - iOS Style -->
+			<div class="flex-shrink-0 px-6 py-4 border-b border-gray-100 bg-white/80 backdrop-blur-xl">
+				<div class="flex items-center justify-between">
+					<div class="flex-1">
+						<h2 class="text-xl font-semibold text-gray-900">Edit Profile</h2>
+						<p class="text-xs text-gray-500 mt-0.5">Update your information</p>
+					</div>
+					<button
+						onclick={() => showProfileModal = false}
+						class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-all active:scale-95"
+					>
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+						</svg>
+					</button>
 				</div>
-				<button
-					onclick={() => showProfileModal = false}
-					class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
-				>
-					<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-					</svg>
-				</button>
 			</div>
 			
-			<!-- Modal Content -->
-			<div class="flex-1 overflow-y-auto">
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-8 p-8">
-					<!-- Left Column: Avatar & Bio -->
-					<div class="space-y-6">
-						<!-- Avatar Section -->
-						<div>
-							<label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Profile Picture</label>
+			<!-- Modal Content - iOS Style -->
+			<div class="flex-1 overflow-y-auto bg-gray-50/50">
+				<div class="p-6 space-y-5">
+					<!-- Avatar Section - Compact iOS Style -->
+					<div class="bg-white rounded-2xl p-5 border border-gray-100">
+						<div class="flex items-center gap-5">
+							<!-- Avatar Preview -->
+							<div class="relative group flex-shrink-0">
+								{#if avatarPreview}
+									<img 
+										src={avatarPreview} 
+										alt="Avatar" 
+										class="w-24 h-24 rounded-[20px] object-cover ring-4 ring-gray-100 transition-all group-hover:ring-indigo-200" 
+									/>
+								{:else}
+									<div class="w-24 h-24 rounded-[20px] bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 ring-4 ring-gray-100 transition-all group-hover:ring-indigo-200"></div>
+								{/if}
+								
+								<label for="modal-avatar-upload" class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-[20px] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+									<svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+									</svg>
+								</label>
+							</div>
 							
-							<div class="relative group">
-								<div class="flex items-center justify-center mb-4">
-									<div class="relative">
-										{#if avatarPreview}
-											<img 
-												src={avatarPreview} 
-												alt="Avatar" 
-												class="w-40 h-40 rounded-3xl object-cover shadow-xl transition-all group-hover:shadow-2xl" 
-											/>
-										{:else}
-											<div class="w-40 h-40 rounded-3xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 shadow-xl transition-all group-hover:shadow-2xl"></div>
-										{/if}
-										
-										<div class="absolute inset-0 flex items-center justify-center bg-black/50 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-											<svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-											</svg>
-										</div>
-									</div>
+							<!-- Avatar Actions -->
+							<div class="flex-1 space-y-2.5">
+								<div>
+									<p class="text-sm font-semibold text-gray-900">Profile Picture</p>
+									<p class="text-xs text-gray-500 mt-0.5">JPG, PNG or GIF • Max 5MB</p>
 								</div>
 								
 								<input
@@ -904,147 +912,139 @@
 									id="modal-avatar-upload"
 								/>
 								
-								<div class="space-y-2">
+								<div class="flex gap-2">
 									<label
 										for="modal-avatar-upload"
-										class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium cursor-pointer transition-all"
+										class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-medium cursor-pointer transition-all active:scale-95"
 									>
-										<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
 										</svg>
-										Choose Image
+										Choose
 									</label>
 									
 									{#if avatarFile}
 										<button
 											onclick={uploadAvatar}
 											disabled={uploadingAvatar}
-											class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+											class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
 										>
 											{#if uploadingAvatar}
-												<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+												<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
 													<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
 													<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 												</svg>
-												Uploading...
+												Uploading
 											{:else}
-												<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
 												</svg>
 												Upload
 											{/if}
 										</button>
 									{/if}
-									
-									<p class="text-xs text-gray-500 text-center">JPG, PNG or GIF • Max 5MB</p>
-								</div>
-							</div>
-						</div>
-
-						<!-- Bio Section -->
-						<div>
-							<label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Bio</label>
-							<div class="relative">
-								<textarea
-									bind:value={bio}
-									placeholder="Tell people about yourself..."
-									rows="6"
-									maxlength="200"
-									class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white transition-all resize-none text-sm"
-								></textarea>
-								
-								<div class="absolute bottom-3 right-3">
-									<span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium {bio.length >= 180 ? 'bg-amber-100 text-amber-700' : bio.length >= 200 ? 'bg-red-100 text-red-700' : 'bg-gray-200 text-gray-600'}">
-										{bio.length}/200
-									</span>
 								</div>
 							</div>
 						</div>
 					</div>
 
-					<!-- Right Column: Social Links -->
-
-					<div class="space-y-6">
-						<div>
-							<label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Social Links</label>
+					<!-- Bio Section - iOS Style -->
+					<div class="bg-white rounded-2xl p-5 border border-gray-100">
+						<label class="block text-sm font-semibold text-gray-900 mb-3">Bio</label>
+						<div class="relative">
+							<textarea
+								bind:value={bio}
+								placeholder="Tell people about yourself..."
+								rows="4"
+								maxlength="200"
+								class="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all resize-none text-sm text-gray-900 placeholder:text-gray-400"
+							></textarea>
 							
-							<div class="flex items-center justify-between mb-4">
-								<p class="text-sm text-gray-600">Connect your social profiles</p>
-								<button
-									onclick={() => {
-										socialLinks = [...socialLinks, { platform: '', url: '' }];
-									}}
-									class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
-								>
-									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-									</svg>
-									Add
-								</button>
+							<div class="absolute bottom-2.5 right-2.5">
+								<span class="inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-semibold {bio.length >= 180 ? 'bg-amber-100 text-amber-700' : bio.length >= 200 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'}">
+									{bio.length}/200
+								</span>
 							</div>
-
-							{#if socialLinks.length > 0}
-								<div class="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-									{#each socialLinks as link, index}
-										<div class="flex gap-2 items-start p-3 bg-gray-50 rounded-xl border border-gray-200">
-											<div class="flex-1 space-y-2">
-												<select 
-													bind:value={link.platform}
-													class="w-full px-3 py-2.5 text-sm bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-												>
-													<option value="">Select platform...</option>
-													<option value="twitter">Twitter/X</option>
-													<option value="facebook">Facebook</option>
-													<option value="instagram">Instagram</option>
-													<option value="linkedin">LinkedIn</option>
-													<option value="github">GitHub</option>
-													<option value="youtube">YouTube</option>
-													<option value="tiktok">TikTok</option>
-													<option value="telegram">Telegram</option>
-													<option value="discord">Discord</option>
-													<option value="website">Website</option>
-												</select>
-												<input
-													type="url"
-													bind:value={link.url}
-													placeholder="https://..."
-													class="w-full px-3 py-2.5 text-sm bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-												/>
-											</div>
-											<button
-												onclick={() => {
-													socialLinks = socialLinks.filter((_, i) => i !== index);
-												}}
-												class="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-											>
-												<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-												</svg>
-											</button>
-										</div>
-									{/each}
-								</div>
-							{:else}
-								<div class="text-center py-12 px-4 bg-gray-50 rounded-xl border border-gray-200">
-									<svg class="w-16 h-16 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-									</svg>
-									<p class="text-sm text-gray-500 font-medium">No social links</p>
-									<p class="text-xs text-gray-400 mt-1">Click "Add" to get started</p>
-								</div>
-							{/if}
 						</div>
+					</div>
+
+					<!-- Social Links Section - iOS Style -->
+					<div class="bg-white rounded-2xl p-5 border border-gray-100">
+						<div class="flex items-center justify-between mb-4">
+							<label class="text-sm font-semibold text-gray-900">Social Links</label>
+							<button
+								onclick={() => {
+									socialLinks = [...socialLinks, { platform: '', url: '' }];
+								}}
+								class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-all active:scale-95"
+							>
+								<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+								</svg>
+								Add
+							</button>
+						</div>
+
+						{#if socialLinks.length > 0}
+							<div class="space-y-2.5 max-h-[320px] overflow-y-auto">
+								{#each socialLinks as link, index}
+									<div class="flex gap-2 items-start p-3 bg-gray-50 rounded-xl border border-gray-100 hover:border-gray-200 transition-colors">
+										<div class="flex-1 space-y-2">
+											<select 
+												bind:value={link.platform}
+												class="w-full px-3 py-2 text-xs bg-white border-0 rounded-lg focus:ring-2 focus:ring-indigo-500/20 transition-all font-medium text-gray-900"
+											>
+												<option value="">Select platform...</option>
+												<option value="twitter">Twitter/X</option>
+												<option value="facebook">Facebook</option>
+												<option value="instagram">Instagram</option>
+												<option value="linkedin">LinkedIn</option>
+												<option value="github">GitHub</option>
+												<option value="youtube">YouTube</option>
+												<option value="tiktok">TikTok</option>
+												<option value="telegram">Telegram</option>
+												<option value="discord">Discord</option>
+												<option value="website">Website</option>
+											</select>
+											<input
+												type="url"
+												bind:value={link.url}
+												placeholder="https://..."
+												class="w-full px-3 py-2 text-xs bg-white border-0 rounded-lg focus:ring-2 focus:ring-indigo-500/20 transition-all text-gray-900 placeholder:text-gray-400"
+											/>
+										</div>
+										<button
+											onclick={() => {
+												socialLinks = socialLinks.filter((_, i) => i !== index);
+											}}
+											class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all active:scale-95"
+										>
+											<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+											</svg>
+										</button>
+									</div>
+								{/each}
+							</div>
+						{:else}
+							<div class="text-center py-10 px-4 bg-gray-50 rounded-xl">
+								<svg class="w-12 h-12 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+								</svg>
+								<p class="text-xs text-gray-500 font-medium">No social links yet</p>
+								<p class="text-[10px] text-gray-400 mt-0.5">Click "Add" to connect your profiles</p>
+							</div>
+						{/if}
 					</div>
 				</div>
 			</div>
 			
-			<!-- Modal Footer -->
-			<div class="flex-shrink-0 bg-gray-50 border-t border-gray-200 px-8 py-5 flex items-center justify-between">
-				<p class="text-sm text-gray-500">Changes will be saved to your profile</p>
-				<div class="flex items-center gap-3">
+			<!-- Modal Footer - iOS Style -->
+			<div class="flex-shrink-0 bg-white border-t border-gray-100 px-6 py-4">
+				<div class="flex items-center justify-end gap-2.5">
 					<button
 						onclick={() => showProfileModal = false}
-						class="px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-200 bg-gray-100 rounded-xl transition-colors"
+						class="px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 bg-gray-50 rounded-xl transition-all active:scale-95"
 					>
 						Cancel
 					</button>
@@ -1054,7 +1054,7 @@
 							showProfileModal = false;
 						}}
 						disabled={savingProfile}
-						class="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-indigo-500/30"
+						class="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 shadow-sm"
 					>
 						{#if savingProfile}
 							<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -1063,6 +1063,9 @@
 							</svg>
 							Saving...
 						{:else}
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+							</svg>
 							Save Changes
 						{/if}
 					</button>
