@@ -236,148 +236,144 @@
 				</div>
 			</div>
 		{:else if selectedType === 'gradient'}
-			<div class="space-y-4">
-				<!-- Gradient Presets -->
-				<div class="flex flex-wrap gap-1.5 items-center">
-					{#each [
-						{ from: '#667EEA', to: '#764BA2', name: 'Purple Dream' },
-						{ from: '#F093FB', to: '#F5576C', name: 'Pink Sunset' },
-						{ from: '#4FACFE', to: '#00F2FE', name: 'Ocean Blue' },
-						{ from: '#43E97B', to: '#38F9D7', name: 'Mint Fresh' },
-						{ from: '#FA709A', to: '#FEE140', name: 'Peach Glow' },
-						{ from: '#30CFD0', to: '#330867', name: 'Deep Sea' },
-						{ from: '#A8EDEA', to: '#FED6E3', name: 'Cotton Candy' },
-						{ from: '#FF9A9E', to: '#FAD0C4', name: 'Soft Coral' },
-						{ from: '#FBC2EB', to: '#A6C1EE', name: 'Lavender Sky' },
-						{ from: '#FDCBF1', to: '#E6DEE9', name: 'Pastel Pink' },
-						{ from: '#A1C4FD', to: '#C2E9FB', name: 'Sky Blue' },
-						{ from: '#D299C2', to: '#FEF9D7', name: 'Spring Bloom' },
-						{ from: '#FEE140', to: '#FA709A', name: 'Sunset Vibes' },
-						{ from: '#CE9FFC', to: '#7367F0', name: 'Royal Purple' },
-						{ from: '#90F7EC', to: '#32CCBC', name: 'Aqua Marine' },
-						{ from: '#FFF1EB', to: '#ACE0F9', name: 'Soft Sky' }
-					] as preset}
-						<button
-							onclick={() => {
-								gradientFrom = preset.from;
-								gradientTo = preset.to;
-								showGradientCustom = false;
-							}}
-							class="relative w-6 h-10 rounded border-2 transition-all hover:scale-110 flex-shrink-0 {gradientFrom.toUpperCase() === preset.from && gradientTo.toUpperCase() === preset.to && !showGradientCustom ? 'border-indigo-600 ring-2 ring-indigo-200' : 'border-gray-300 hover:border-gray-400'}"
-							style="background: linear-gradient(to bottom, {preset.from}, {preset.to});"
-							title={preset.name}
-						>
-							{#if gradientFrom.toUpperCase() === preset.from && gradientTo.toUpperCase() === preset.to && !showGradientCustom}
-								<div class="absolute inset-0 flex items-center justify-center">
-									<svg class="w-3 h-3 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20">
-										<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-									</svg>
-								</div>
-							{/if}
-						</button>
-					{/each}
-					
-					<!-- Custom Button -->
+			<div class="space-y-3">
+				<!-- iOS-style Segmented Control for Direction -->
+				<div class="inline-flex p-0.5 bg-gray-100 rounded-lg">
 					<button
-						onclick={() => showGradientCustom = !showGradientCustom}
-						class="w-6 h-10 rounded border-2 transition-all hover:scale-110 flex-shrink-0 flex items-center justify-center {showGradientCustom ? 'border-indigo-600 bg-indigo-50' : 'border-gray-300 hover:border-gray-400 bg-gray-50'}"
-						title="Custom Gradient"
+						onclick={() => gradientDirection = 'up'}
+						class="px-4 py-1.5 rounded-md text-xs font-semibold transition-all {gradientDirection === 'up' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}"
 					>
-						<svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-						</svg>
+						↑ Up
+					</button>
+					<button
+						onclick={() => gradientDirection = 'down'}
+						class="px-4 py-1.5 rounded-md text-xs font-semibold transition-all {gradientDirection === 'down' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}"
+					>
+						↓ Down
+					</button>
+					<button
+						onclick={() => gradientDirection = 'radial'}
+						class="px-4 py-1.5 rounded-md text-xs font-semibold transition-all {gradientDirection === 'radial' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}"
+					>
+						◉ Radial
 					</button>
 				</div>
-				
-				<!-- Direction Selector - Always visible -->
-				<div>
-					<div class="grid grid-cols-3 gap-2">
-						<button
-							onclick={() => gradientDirection = 'up'}
-							class="flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all {gradientDirection === 'up' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
-						>
-							<svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
-							</svg>
-							<span class="text-xs font-medium text-gray-700">Up</span>
-						</button>
-						<button
-							onclick={() => gradientDirection = 'down'}
-							class="flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all {gradientDirection === 'down' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
-						>
-							<svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
-							</svg>
-							<span class="text-xs font-medium text-gray-700">Down</span>
-						</button>
-						<button
-							onclick={() => gradientDirection = 'radial'}
-							class="flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all {gradientDirection === 'radial' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}"
-						>
-							<svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<circle cx="12" cy="12" r="10" stroke-width="2"/>
-								<circle cx="12" cy="12" r="6" stroke-width="2"/>
-								<circle cx="12" cy="12" r="2" stroke-width="2"/>
-							</svg>
-							<span class="text-xs font-medium text-gray-700">Radial</span>
-						</button>
+
+				<!-- Toggle between Presets and Custom -->
+				{#if !showGradientCustom}
+					<!-- Presets Grid - iOS Style -->
+					<div>
+						<div class="flex items-center justify-between mb-2">
+							<span class="text-xs font-medium text-gray-600">Presets</span>
+							<button
+								onclick={() => showGradientCustom = true}
+								class="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold text-indigo-600 hover:bg-indigo-50 transition-all"
+							>
+								<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+								</svg>
+								Custom
+							</button>
+						</div>
+						<div class="grid grid-cols-8 gap-2">
+							{#each [
+								{ from: '#667EEA', to: '#764BA2', name: 'Purple' },
+								{ from: '#F093FB', to: '#F5576C', name: 'Pink' },
+								{ from: '#4FACFE', to: '#00F2FE', name: 'Ocean' },
+								{ from: '#43E97B', to: '#38F9D7', name: 'Mint' },
+								{ from: '#FA709A', to: '#FEE140', name: 'Peach' },
+								{ from: '#30CFD0', to: '#330867', name: 'Deep' },
+								{ from: '#A8EDEA', to: '#FED6E3', name: 'Cotton' },
+								{ from: '#FF9A9E', to: '#FAD0C4', name: 'Coral' },
+								{ from: '#FBC2EB', to: '#A6C1EE', name: 'Lavender' },
+								{ from: '#FDCBF1', to: '#E6DEE9', name: 'Pastel' },
+								{ from: '#A1C4FD', to: '#C2E9FB', name: 'Sky' },
+								{ from: '#D299C2', to: '#FEF9D7', name: 'Spring' },
+								{ from: '#FEE140', to: '#FA709A', name: 'Sunset' },
+								{ from: '#CE9FFC', to: '#7367F0', name: 'Royal' },
+								{ from: '#90F7EC', to: '#32CCBC', name: 'Aqua' },
+								{ from: '#FFF1EB', to: '#ACE0F9', name: 'Soft' }
+							] as preset}
+								<button
+									onclick={() => {
+										gradientFrom = preset.from;
+										gradientTo = preset.to;
+									}}
+									class="relative aspect-square rounded-lg border-2 transition-all hover:scale-105 {gradientFrom.toUpperCase() === preset.from && gradientTo.toUpperCase() === preset.to ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200 hover:border-gray-300'}"
+									style="background: linear-gradient(135deg, {preset.from}, {preset.to});"
+									title={preset.name}
+								>
+									{#if gradientFrom.toUpperCase() === preset.from && gradientTo.toUpperCase() === preset.to}
+										<div class="absolute inset-0 flex items-center justify-center">
+											<div class="w-5 h-5 bg-white rounded-full shadow-lg flex items-center justify-center">
+												<svg class="w-3 h-3 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+													<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+												</svg>
+											</div>
+										</div>
+									{/if}
+								</button>
+							{/each}
+						</div>
 					</div>
-				</div>
-				
-				{#if showGradientCustom}
-					<div class="space-y-3 p-4 bg-gray-50 rounded-lg">
+				{:else}
+					<!-- iOS-style Custom Color Picker -->
+					<div class="space-y-3">
+						<!-- Back to Presets Button -->
+						<button
+							onclick={() => showGradientCustom = false}
+							class="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition-colors"
+						>
+							<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+							</svg>
+							Back to Presets
+						</button>
+
+						<!-- Gradient Preview Strip -->
+						<div 
+							class="w-full h-20 rounded-2xl border-2 border-gray-200 shadow-sm overflow-hidden"
+							style="background: {gradientDirection === 'radial' 
+								? `radial-gradient(circle at center, ${gradientFrom}, ${gradientTo})` 
+								: gradientDirection === 'down'
+								? `linear-gradient(to bottom, ${gradientFrom}, ${gradientTo})`
+								: `linear-gradient(to top, ${gradientFrom}, ${gradientTo})`};"
+						></div>
+
+						<!-- Color Pickers - iOS Style -->
 						<div class="grid grid-cols-2 gap-4">
-							<div>
-								<label class="block text-xs font-medium text-gray-700 mb-2">From Color</label>
-								<div class="flex gap-2 items-center">
-									<div class="w-8 h-8 rounded border-2 border-gray-300 overflow-hidden bg-white flex-shrink-0">
+							<!-- Start Color -->
+							<div class="text-center">
+								<div class="relative inline-block">
+									<div class="w-20 h-20 rounded-full border-4 border-white shadow-lg overflow-hidden cursor-pointer hover:scale-105 transition-transform mx-auto">
 										<input
 											type="color"
 											value={gradientFrom}
 											oninput={(e) => gradientFrom = normalizeHex(e.currentTarget.value)}
-											class="w-full h-full cursor-pointer block"
-											style="-webkit-appearance: none; appearance: none; border: none; padding: 0; margin: 0;"
+											class="w-full h-full cursor-pointer"
+											style="-webkit-appearance: none; appearance: none; border: none;"
 										/>
 									</div>
-									<input
-										type="text"
-										value={gradientFrom}
-										oninput={(e) => {
-											const val = e.currentTarget.value.toUpperCase();
-											if (/^#[0-9A-F]{6}$/.test(val)) gradientFrom = val;
-											else if (/^#[0-9A-F]{0,6}$/.test(val)) e.currentTarget.value = val;
-										}}
-										class="flex-1 px-2 py-1.5 bg-white border border-gray-200 rounded text-xs font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-										placeholder="#FAF5FF"
-										maxlength="7"
-									/>
 								</div>
+								<div class="mt-2 text-xs font-medium text-gray-500">Start Color</div>
+								<div class="mt-1 text-sm font-mono font-bold text-gray-900">{gradientFrom}</div>
 							</div>
-							<div>
-								<label class="block text-xs font-medium text-gray-700 mb-2">To Color</label>
-								<div class="flex gap-2 items-center">
-									<div class="w-8 h-8 rounded border-2 border-gray-300 overflow-hidden bg-white flex-shrink-0">
+
+							<!-- End Color -->
+							<div class="text-center">
+								<div class="relative inline-block">
+									<div class="w-20 h-20 rounded-full border-4 border-white shadow-lg overflow-hidden cursor-pointer hover:scale-105 transition-transform mx-auto">
 										<input
 											type="color"
 											value={gradientTo}
 											oninput={(e) => gradientTo = normalizeHex(e.currentTarget.value)}
-											class="w-full h-full cursor-pointer block"
-											style="-webkit-appearance: none; appearance: none; border: none; padding: 0; margin: 0;"
+											class="w-full h-full cursor-pointer"
+											style="-webkit-appearance: none; appearance: none; border: none;"
 										/>
 									</div>
-									<input
-										type="text"
-										value={gradientTo}
-										oninput={(e) => {
-											const val = e.currentTarget.value.toUpperCase();
-											if (/^#[0-9A-F]{6}$/.test(val)) gradientTo = val;
-											else if (/^#[0-9A-F]{0,6}$/.test(val)) e.currentTarget.value = val;
-										}}
-										class="flex-1 px-2 py-1.5 bg-white border border-gray-200 rounded text-xs font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-										placeholder="#EFF6FF"
-										maxlength="7"
-									/>
 								</div>
+								<div class="mt-2 text-xs font-medium text-gray-500">End Color</div>
+								<div class="mt-1 text-sm font-mono font-bold text-gray-900">{gradientTo}</div>
 							</div>
 						</div>
 					</div>
