@@ -16,10 +16,6 @@
 			card_background_opacity: card.cardBackgroundOpacity,
 			card_text_color: card.cardTextColor,
 			card_border_radius: card.cardBorderRadius,
-			show_shadow: card.cardShadow,
-			shadow_x: card.cardShadowX,
-			shadow_y: card.cardShadowY,
-			shadow_blur: card.cardShadowBlur,
 			has_card_border: card.cardBorder,
 			card_border_color: card.cardBorderColor,
 			card_border_width: card.cardBorderWidth,
@@ -43,7 +39,6 @@
 	let lastGroupId: string = '';
 	let showCustomPadding = false;
 	let showCustomSpacing = false;
-	let showCustomShadow = false;
 	let showCustomOpacity = false;
 	let showCustomBorderRadius = false;
 	
@@ -53,7 +48,6 @@
 		localMarginValue = null;
 		showCustomPadding = false;
 		showCustomSpacing = false;
-		showCustomShadow = false;
 		showCustomOpacity = false;
 		showCustomBorderRadius = false;
 		lastGroupId = group.id;
@@ -62,27 +56,7 @@
 	// Use group properties directly - no local state needed
 	$: layout = group.group_layout || 'list';
 	$: textAlignment = group.text_alignment || 'center';
-	// Shadow: Use theme from globalTheme first, then group-specific override
-	// This ensures consistency when theme changes, until user explicitly customizes this group
-	$: showShadow = group.show_shadow ?? $globalTheme.cardShadow ?? false;
 	$: showText = group.show_text !== undefined ? group.show_text : true;
-	
-	// Shadow values from theme for preset detection
-	$: shadowX = group.shadow_x ?? $globalTheme.cardShadowX ?? 0;
-	$: shadowY = group.shadow_y ?? $globalTheme.cardShadowY ?? 4;
-	$: shadowBlur = group.shadow_blur ?? $globalTheme.cardShadowBlur ?? 10;
-	
-	// Detect which preset matches current theme shadow values
-	$: currentShadowPreset = 
-		shadowX === 0 && shadowY === 2 && shadowBlur === 4 ? 'subtle' :
-		shadowX === 0 && shadowY === 4 && shadowBlur === 10 ? 'medium' :
-		shadowX === 0 && shadowY === 8 && shadowBlur === 20 ? 'strong' :
-		'custom';
-	
-	// Reset showCustomShadow when preset changes (when theme changes)
-	$: if (currentShadowPreset !== 'custom') {
-		showCustomShadow = false;
-	}
 	
 	// Reactive padding and margin values
 	$: currentPadding = getPadding();
@@ -105,13 +79,6 @@
 		dispatch('update', {
 			groupId: group.id,
 			text_alignment: value
-		});
-	}
-	
-	function updateShowShadow() {
-		dispatch('update', {
-			groupId: group.id,
-			show_shadow: !showShadow
 		});
 	}
 	
@@ -199,16 +166,6 @@
 		dispatch('update', {
 			groupId: group.id,
 			style: JSON.stringify(style)
-		});
-	}
-
-	function updateShadowPreset(x: number, y: number, blur: number) {
-		dispatch('update', {
-			groupId: group.id,
-			show_shadow: true,
-			shadow_x: x,
-			shadow_y: y,
-			shadow_blur: blur
 		});
 	}
 
@@ -676,135 +633,6 @@
 			</div>
 		</div>
 	{/if}
-
-	<!-- Toggles Section -->
-	<div class="space-y-4">
-		<div>
-			<div class="flex items-center gap-3 mb-3">
-				<h3 class="text-base font-semibold text-gray-900">Link shadow</h3>
-				<button
-					type="button"
-					onclick={updateShowShadow}
-					class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
-					class:bg-gray-900={showShadow}
-					class:bg-gray-300={!showShadow}
-				>
-					<span
-						class="inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform"
-						class:translate-x-5={showShadow}
-						class:translate-x-0.5={!showShadow}
-					></span>
-				</button>
-			</div>
-			
-			{#if showShadow}
-				<!-- Preset Buttons -->
-				<div class="flex gap-2 mb-4">
-					<button 
-						onclick={() => {
-							showCustomShadow = false;
-							updateShadowPreset(0, 2, 4);
-						}} 
-						class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
-						class:border-emerald-500={!showCustomShadow && currentShadowPreset === 'subtle'}
-						class:bg-emerald-50={!showCustomShadow && currentShadowPreset === 'subtle'}
-						class:border-gray-200={showCustomShadow || currentShadowPreset !== 'subtle'}
-						class:bg-white={showCustomShadow || currentShadowPreset !== 'subtle'}
-					>
-						Subtle
-					</button>
-					<button 
-						onclick={() => {
-							showCustomShadow = false;
-							updateShadowPreset(0, 4, 10);
-						}} 
-						class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
-						class:border-emerald-500={!showCustomShadow && currentShadowPreset === 'medium'}
-						class:bg-emerald-50={!showCustomShadow && currentShadowPreset === 'medium'}
-						class:border-gray-200={showCustomShadow || currentShadowPreset !== 'medium'}
-						class:bg-white={showCustomShadow || currentShadowPreset !== 'medium'}
-					>
-						Medium
-					</button>
-					<button 
-						onclick={() => {
-							showCustomShadow = false;
-							updateShadowPreset(0, 8, 20);
-						}} 
-						class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
-						class:border-emerald-500={!showCustomShadow && currentShadowPreset === 'strong'}
-						class:bg-emerald-50={!showCustomShadow && currentShadowPreset === 'strong'}
-						class:border-gray-200={showCustomShadow || currentShadowPreset !== 'strong'}
-						class:bg-white={showCustomShadow || currentShadowPreset !== 'strong'}
-					>
-						Strong
-					</button>
-					<button 
-						onclick={() => showCustomShadow = !showCustomShadow} 
-						class="flex-1 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50 transition-colors"
-						class:border-emerald-500={showCustomShadow || currentShadowPreset === 'custom'}
-						class:bg-emerald-50={showCustomShadow || currentShadowPreset === 'custom'}
-						class:border-gray-200={!showCustomShadow && currentShadowPreset !== 'custom'}
-						class:bg-white={!showCustomShadow && currentShadowPreset !== 'custom'}
-					>
-						Custom
-					</button>
-				</div>
-
-				{#if showCustomShadow}
-					<div class="grid grid-cols-3 gap-4 pl-4 border-l-2 border-gray-200">
-						<!-- Shadow X (Horizontal) -->
-						<div>
-							<div class="flex items-center justify-between mb-1.5">
-								<span class="text-xs font-medium text-gray-700">Horizontal</span>
-								<span class="text-xs font-mono text-gray-500">{group.shadow_x ?? 0}px</span>
-							</div>
-							<input 
-								type="range" 
-								min="-20" 
-								max="20" 
-								value={group.shadow_x ?? 0}
-								oninput={(e) => dispatchDebounced({ groupId: group.id, show_shadow: true, shadow_x: parseInt(e.currentTarget.value) })}
-								class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-900"
-							/>
-						</div>
-						
-						<!-- Shadow Y (Vertical) -->
-						<div>
-							<div class="flex items-center justify-between mb-1.5">
-								<span class="text-xs font-medium text-gray-700">Vertical</span>
-								<span class="text-xs font-mono text-gray-500">{group.shadow_y ?? 4}px</span>
-							</div>
-							<input 
-								type="range" 
-								min="0" 
-								max="20" 
-								value={group.shadow_y ?? 4}
-								oninput={(e) => dispatchDebounced({ groupId: group.id, show_shadow: true, shadow_y: parseInt(e.currentTarget.value) })}
-								class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-900"
-							/>
-						</div>
-						
-						<!-- Shadow Blur -->
-						<div>
-							<div class="flex items-center justify-between mb-1.5">
-								<span class="text-xs font-medium text-gray-700">Blur</span>
-								<span class="text-xs font-mono text-gray-500">{group.shadow_blur ?? 10}px</span>
-							</div>
-							<input 
-								type="range" 
-								min="0" 
-								max="40" 
-								value={group.shadow_blur ?? 10}
-								oninput={(e) => dispatchDebounced({ groupId: group.id, show_shadow: true, shadow_blur: parseInt(e.currentTarget.value) })}
-								class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-900"
-							/>
-						</div>
-					</div>
-				{/if}
-			{/if}
-		</div>
-	</div>
 
 	<!-- Link Card Background Section -->
 	<div class="space-y-4">

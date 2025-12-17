@@ -5,6 +5,7 @@ export interface PreviewStyles {
 	text_size?: 'S' | 'M' | 'L' | 'XL';
 	card_text_color?: string;
 	image_shape?: 'sharp' | 'square' | 'circle';
+	enableCardBackground?: boolean;
 	show_shadow?: boolean;
 	shadow_x?: number;
 	shadow_y?: number;

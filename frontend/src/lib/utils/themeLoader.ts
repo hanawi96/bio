@@ -128,10 +128,12 @@ export function loadThemeFromProfile(profileData: Profile | null) {
  */
 export function syncPreviewStylesFromTheme() {
 	const theme = globalTheme.getCurrent();
+	// Sync all theme properties to preview store for real-time preview updates
 	previewStyles.update({
 		text_alignment: theme.textAlignment,
 		text_size: theme.textSize,
 		image_shape: theme.imageShape,
+		enableCardBackground: theme.enableCardBackground,
 		card_background_color: theme.cardBackground,
 		card_background_opacity: theme.cardBackgroundOpacity,
 		card_text_color: theme.cardTextColor,

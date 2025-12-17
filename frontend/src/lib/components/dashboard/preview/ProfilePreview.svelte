@@ -58,8 +58,15 @@
 	function getCardProps(link: any) {
 		const t = currentTheme;
 		const p = preview;
+		
+		// Priority: preview > theme > link (link is lowest priority for card background)
+		// This ensures theme changes are immediately visible without needing to update each link
+		const hasCustomBg = p.enableCardBackground !== undefined 
+			? p.enableCardBackground 
+			: (t.enableCardBackground !== undefined ? t.enableCardBackground : (link?.has_card_background ?? true));
+		
 		return {
-			hasCustomBg: p.enableCardBackground ?? link?.has_card_background ?? t.enableCardBackground ?? true,
+			hasCustomBg,
 			bgColor: p.card_background_color || link?.card_background_color || t.cardBackground,
 			bgOpacity: p.card_background_opacity ?? link?.card_background_opacity ?? t.cardBackgroundOpacity,
 			borderRadius: p.card_border_radius ?? link?.card_border_radius ?? t.cardBorderRadius,
