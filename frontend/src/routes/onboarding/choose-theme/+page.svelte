@@ -80,6 +80,7 @@
 
 			// Prepare theme data
 			const themeData = {
+				theme_name: selectedTheme,
 				theme_config: preset.page,
 				card_styles: preset.card,
 				text_styles: JSON.stringify(preset.text),

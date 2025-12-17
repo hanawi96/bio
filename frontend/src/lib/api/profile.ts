@@ -20,6 +20,7 @@ export interface Profile {
 }
 
 export interface ApplyThemeRequest {
+	theme_name: string;
 	theme_config: object;
 	card_styles: object;
 	text_styles: string;
