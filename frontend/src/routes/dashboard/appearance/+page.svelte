@@ -144,11 +144,31 @@
 					custom_theme_config: JSON.stringify(customThemeWithPresets)
 				}, token);
 			} else {
+				// When deleting preset on a preset theme, preserve existing custom_theme_config
+				const currentProfile = await profileApi.getMyProfile(token);
+				let existingCustomConfig = {};
+				
+				if (currentProfile?.custom_theme_config) {
+					try {
+						existingCustomConfig = typeof currentProfile.custom_theme_config === 'string'
+							? JSON.parse(currentProfile.custom_theme_config)
+							: currentProfile.custom_theme_config;
+					} catch (e) {
+						console.warn('Failed to parse existing custom_theme_config:', e);
+					}
+				}
+				
+				// Merge: Keep existing custom theme config, only update customHeaderPresets
+				const mergedCustomConfig = {
+					...existingCustomConfig,
+					customHeaderPresets: updatedPresets
+				};
+				
 				await profileApi.updateProfile({
 					theme_name: currentTheme,
 					theme_config: null,
 					header_config: JSON.stringify(updatedHeader),
-					custom_theme_config: JSON.stringify({ customHeaderPresets: updatedPresets })
+					custom_theme_config: JSON.stringify(mergedCustomConfig)
 				}, token);
 			}
 			
@@ -225,12 +245,35 @@
 					toast.info('Switched to custom theme due to modifications');
 				} else {
 					// Theme not modified → save as preset with header override
+					// IMPORTANT: When saving preset theme, we need to preserve the existing custom_theme_config
+					// but update the customHeaderPresets within it
+					
+					// First, get the current custom_theme_config from profile
+					const currentProfile = await profileApi.getMyProfile(token);
+					let existingCustomConfig = {};
+					
+					if (currentProfile?.custom_theme_config) {
+						try {
+							existingCustomConfig = typeof currentProfile.custom_theme_config === 'string'
+								? JSON.parse(currentProfile.custom_theme_config)
+								: currentProfile.custom_theme_config;
+						} catch (e) {
+							console.warn('Failed to parse existing custom_theme_config:', e);
+						}
+					}
+					
+					// Merge: Keep existing custom theme config, only update customHeaderPresets
+					const mergedCustomConfig = {
+						...existingCustomConfig,
+						customHeaderPresets: customHeaderPresetsSnapshot
+					};
+					
 					savePromises.push(
 						profileApi.updateProfile({
 							theme_name: currentTheme,
 							theme_config: null,
 							header_config: JSON.stringify(updatedHeader),
-							custom_theme_config: JSON.stringify({ customHeaderPresets: customHeaderPresetsSnapshot })
+							custom_theme_config: JSON.stringify(mergedCustomConfig)
 						}, token)
 					);
 					savedThemeName = currentTheme;
