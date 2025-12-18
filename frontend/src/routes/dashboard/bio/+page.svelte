@@ -28,6 +28,7 @@
 	let blocks: Block[] = [];
 	let initialLoading = true;
 	let selectedIds = new Set<string>();
+	let socialLinks: Array<{ platform: string; url: string }> = [];
 
 	// Combined items for drag & drop
 	type CombinedItem = 
@@ -131,6 +132,19 @@
 			links = linksData;
 			allLinks = linksData;
 			blocks = blocksData;
+			
+			// Load social links from profile
+			if (profileData?.social_links) {
+				try {
+					socialLinks = typeof profileData.social_links === 'string' 
+						? JSON.parse(profileData.social_links) 
+						: profileData.social_links;
+				} catch {
+					socialLinks = [];
+				}
+			} else {
+				socialLinks = [];
+			}
 		} catch (error: any) {
 			console.error('Failed to load dashboard data:', error);
 			toast.error(error.message || 'Failed to load data');
@@ -1708,7 +1722,7 @@
 					<div class="relative">
 						<div class="absolute inset-0 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-3xl blur-2xl opacity-20"></div>
 						<div class="relative">
-							<ProfilePreview profile={displayProfile} {links} {blocks} showInactive={false} />
+							<ProfilePreview profile={displayProfile} {links} {blocks} {socialLinks} showInactive={false} />
 						</div>
 					</div>
 

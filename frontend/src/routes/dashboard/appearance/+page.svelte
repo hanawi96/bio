@@ -45,16 +45,32 @@
 	let saving = $state(false);
 	let loading = $state(true);
 	let isInitialLoad = $state(true);
+	let userHasModified = $state(false);  // Track if user has made any changes
 	let customHeaderPresets = $state<any[]>([]);
 	
 	const hasUnsavedChanges = $derived($pendingChanges.hasChanges);
 	
+	// Track if we're programmatically changing theme (to avoid marking as modified)
+	let isProgrammaticChange = $state(false);
+	let previousThemeSnapshot = $state<string | null>(null);
+	
 	// Sync preview styles whenever theme changes
 	$effect(() => {
+		const currentThemeSnapshot = JSON.stringify($globalTheme);
+		
 		if (!loading && !isInitialLoad) {
 			syncPreviewStylesFromTheme();
+			
+			// Only mark as modified if theme ACTUALLY changed (not just effect re-running)
+			if (!userHasModified && !isProgrammaticChange && previousThemeSnapshot !== null && previousThemeSnapshot !== currentThemeSnapshot) {
+				userHasModified = true;
+			}
 		}
-		const _ = $globalTheme;
+		
+		// Update snapshot for next comparison
+		if (!loading && !isProgrammaticChange) {
+			previousThemeSnapshot = currentThemeSnapshot;
+		}
 	});
 	
 	// Auto-update current snapshot when theme or header changes
@@ -65,9 +81,10 @@
 		const header = $currentHeaderStyle;
 		const presets = customHeaderPresets;
 		
-		if (loading || isInitialLoad) return;
+		// Skip during initial load or if user hasn't modified anything
+		if (loading || isInitialLoad || !userHasModified) return;
 		
-		// Check if preset theme was modified
+		// Only check if preset theme was modified when user has actively made changes
 		if (currentTheme !== 'custom' && savedThemeName !== 'custom') {
 			const preset = themePresets[currentTheme];
 			if (preset) {
@@ -227,7 +244,6 @@
 					for (const key in updatedTheme) {
 						if (updatedTheme[key] !== presetTheme[key]) {
 							isThemeModified = true;
-							console.log(`💾 [saveAllChanges] Theme modified: ${key} = ${updatedTheme[key]} (preset: ${presetTheme[key]})`);
 							break;
 						}
 					}
@@ -235,7 +251,6 @@
 				
 				if (isThemeModified) {
 					// Theme was modified → switch to custom theme
-					console.log('💾 [saveAllChanges] Theme modified, switching to custom');
 					savePromises.push(
 						profileApi.updateProfile({ 
 							theme_name: 'custom',
@@ -299,6 +314,10 @@
 				header: get(currentHeaderStyle),
 				customHeaderPresets: JSON.parse(JSON.stringify(customHeaderPresets))
 			});
+			
+			// Reset modification flag and snapshot after successful save
+			userHasModified = false;
+			previousThemeSnapshot = JSON.stringify(globalTheme.getCurrent());
 			
 			toast.success('All changes saved!');
 		} catch (e: any) {
@@ -400,6 +419,9 @@
 				customHeaderPresets: JSON.parse(JSON.stringify(customHeaderPresets))
 			});
 			
+			// Initialize theme snapshot after loading
+			previousThemeSnapshot = JSON.stringify(globalTheme.getCurrent());
+			
 		} catch (e: any) {
 			console.error('Failed to load data:', e);
 		} finally {
@@ -431,6 +453,9 @@
 				const token = get(auth).token;
 				const profileData = await profileApi.getMyProfile(token!);
 				
+				// Mark as programmatic change
+				isProgrammaticChange = true;
+				
 				if (profileData?.custom_theme_config) {
 					const customConfig = typeof profileData.custom_theme_config === 'string' 
 						? JSON.parse(profileData.custom_theme_config)
@@ -450,6 +475,7 @@
 				}
 				
 				syncPreviewStylesFromTheme();
+				isProgrammaticChange = false;
 				
 				if (!isAlreadySaved) {
 					toast.info('Custom theme loaded. Click "Save All" to apply.');
@@ -459,6 +485,9 @@
 						header: get(currentHeaderStyle),
 						customHeaderPresets: JSON.parse(JSON.stringify(customHeaderPresets))
 					});
+					// Reset modification flag and snapshot when loading saved custom theme
+					userHasModified = false;
+					previousThemeSnapshot = JSON.stringify(globalTheme.getCurrent());
 					toast.info('Custom theme loaded');
 				}
 			} catch (e: any) {
@@ -473,11 +502,14 @@
 
 		currentTheme = themeId;
 		
+		// Mark as programmatic change to avoid triggering userHasModified
+		isProgrammaticChange = true;
 		globalTheme.setPreset(presetName);
 		if (preset.header) {
 			currentHeaderStyle.set(preset.header);
 		}
 		syncPreviewStylesFromTheme();
+		isProgrammaticChange = false;
 
 		if (isAlreadySaved) {
 			pendingChanges.setSavedSnapshot({
@@ -485,6 +517,9 @@
 				header: get(currentHeaderStyle),
 				customHeaderPresets: JSON.parse(JSON.stringify(customHeaderPresets))
 			});
+			// Reset modification flag and snapshot when loading saved theme
+			userHasModified = false;
+			previousThemeSnapshot = JSON.stringify(globalTheme.getCurrent());
 			toast.info('Theme loaded');
 		} else {
 			toast.info('Theme preview applied. Click "Save All" to keep changes.');
