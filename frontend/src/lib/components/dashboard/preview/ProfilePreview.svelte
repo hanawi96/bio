@@ -40,24 +40,42 @@
 	const headerStyle = $derived($currentHeaderStyle);
 	
 	// Apply theme + preview styles to links
-	// Priority: link-specific (if explicitly set) > preview (appearance page) > theme
+	// Priority logic:
+	// 1. If link has_custom_layout = true → Use link config (NEVER override)
+	// 2. If link has_custom_layout = false → Use preview (Appearance page) or theme
 	const previewLinks = $derived(links.map(link => {
 		if (!link.is_group) return link;
 		
-		// Use nullish coalescing (??) instead of OR (||) to properly check for null/undefined
-		// This ensures that only explicitly set link values override theme/preview
-		const textAlignment = link.text_alignment ?? preview.text_alignment ?? currentTheme.textAlignment ?? 'center';
-		const textSize = link.text_size ?? preview.text_size ?? currentTheme.textSize ?? 'M';
-		const imageShape = link.image_shape ?? preview.image_shape ?? currentTheme.imageShape ?? 'square';
+		// Simple and clear: Check the flag
+		const hasCustomLayout = link.has_custom_layout === true;
 		
-		// Build result object - link-specific values should NOT be overridden by preview
+		// If link has custom layout → Use link values
+		// If link uses theme default → Use preview or theme
+		const textAlignment = hasCustomLayout
+			? link.text_alignment
+			: (preview.text_alignment || link.text_alignment || currentTheme.textAlignment || 'center');
+		
+		const textSize = hasCustomLayout
+			? link.text_size
+			: (preview.text_size || link.text_size || currentTheme.textSize || 'M');
+		
+		const imageShape = hasCustomLayout
+			? link.image_shape
+			: (preview.image_shape || link.image_shape || currentTheme.imageShape || 'square');
+		
+		console.log(`[PREVIEW_LINK] ${link.title}:`, {
+			hasCustomLayout: link.has_custom_layout,
+			linkAlignment: link.text_alignment,
+			previewAlignment: preview.text_alignment,
+			themeAlignment: currentTheme.textAlignment,
+			finalAlignment: textAlignment
+		});
+		
 		return { 
 			...link,
-			// Set final computed values (nullish coalescing ensures proper priority)
 			text_alignment: textAlignment,
 			text_size: textSize,
 			image_shape: imageShape,
-			// Override style if preview has it (for padding/spacing reactivity)
 			style: preview.style || link.style
 		};
 	}));

@@ -93,7 +93,7 @@
 			};
 
 			// Apply theme
-			await profileApi.applyTheme(themeData, $auth.token!);
+			const response = await profileApi.applyTheme(themeData, $auth.token!);
 			
 			// Clear onboarding data
 			onboardingData.clear();

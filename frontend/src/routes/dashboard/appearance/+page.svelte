@@ -263,10 +263,6 @@
 					toast.info('Switched to custom theme due to modifications');
 				} else {
 					// Theme not modified → save as preset with header override
-					// IMPORTANT: When saving preset theme, we need to preserve the existing custom_theme_config
-					// but update the customHeaderPresets within it
-					
-					// First, get the current custom_theme_config from profile
 					const currentProfile = await profileApi.getMyProfile(token);
 					let existingCustomConfig = {};
 					
@@ -280,7 +276,6 @@
 						}
 					}
 					
-					// Merge: Keep existing custom theme config, only update customHeaderPresets
 					const mergedCustomConfig = {
 						...existingCustomConfig,
 						customHeaderPresets: customHeaderPresetsSnapshot

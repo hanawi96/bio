@@ -39,6 +39,7 @@ type Link struct {
 	ImagePlacement        string     `json:"image_placement"`
 	TextAlignment         string     `json:"text_alignment"`
 	TextSize              string     `json:"text_size"`
+	HasCustomLayout       bool       `json:"has_custom_layout"`
 	ShowOutline           bool       `json:"show_outline"`
 	ShowShadow            bool       `json:"show_shadow"`
 	ShadowX               int        `json:"shadow_x"`

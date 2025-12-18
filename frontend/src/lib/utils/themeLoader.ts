@@ -9,10 +9,9 @@ import { getThemeById } from '$lib/config/themes';
  */
 export function loadThemeFromProfile(profileData: Profile | null) {
 	if (!profileData) {
-		// No profile - use defaults
 		globalTheme.setPreset('default');
 		currentHeaderStyle.set(defaultHeaderStyles);
-		syncPreviewStylesFromTheme(); // Sync preview styles
+		syncPreviewStylesFromTheme();
 		return { themeName: 'default', category: 'cozy' };
 	}
 

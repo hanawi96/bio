@@ -145,5 +145,6 @@ func (r *ProfileRepository) Update(userID string, data map[string]interface{}) (
 	if err != nil {
 		return nil, err
 	}
+	
 	return r.GetByUserID(userID)
 }

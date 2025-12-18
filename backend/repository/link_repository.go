@@ -21,7 +21,7 @@ func (r *LinkRepository) GetByUserIDWithFilters(userID, search, status, layoutTy
 	query := `
 		SELECT l.id, l.profile_id, l.parent_id, l.is_group, l.group_title, l.group_layout, l.grid_columns, l.grid_aspect_ratio,
 		       l.title, l.url, l.description, l.thumbnail_url, l.image_shape, l.layout_type, 
-		       l.image_placement, l.text_alignment, l.text_size, l.show_outline, l.show_shadow, l.shadow_x, l.shadow_y, l.shadow_blur, l.show_description, l.show_text,
+		       l.image_placement, l.text_alignment, l.text_size, l.has_custom_layout, l.show_outline, l.show_shadow, l.shadow_x, l.shadow_y, l.shadow_blur, l.show_description, l.show_text,
 		       l.has_card_background, l.card_background_color, l.card_background_opacity, l.card_border_radius, l.card_text_color,
 		       l.has_card_border, l.card_border_color, l.card_border_style, l.card_border_width, l.style,
 		       l.position, l.clicks, l.is_active, l.is_pinned, l.scheduled_at, l.expires_at, 
@@ -87,7 +87,7 @@ func (r *LinkRepository) GetByUserIDWithFilters(userID, search, status, layoutTy
 		err := rows.Scan(
 			&link.ID, &link.ProfileID, &link.ParentID, &link.IsGroup, &link.GroupTitle, &link.GroupLayout, &link.GridColumns, &link.GridAspectRatio,
 			&link.Title, &link.URL, &link.Description, &link.ThumbnailURL, &link.ImageShape, &link.LayoutType,
-			&link.ImagePlacement, &link.TextAlignment, &link.TextSize, &link.ShowOutline, &link.ShowShadow, &link.ShadowX, &link.ShadowY, &link.ShadowBlur, &link.ShowDescription, &link.ShowText,
+			&link.ImagePlacement, &link.TextAlignment, &link.TextSize, &link.HasCustomLayout, &link.ShowOutline, &link.ShowShadow, &link.ShadowX, &link.ShadowY, &link.ShadowBlur, &link.ShowDescription, &link.ShowText,
 			&link.HasCardBackground, &link.CardBackgroundColor, &link.CardBackgroundOpacity, &link.CardBorderRadius, &link.CardTextColor,
 			&link.HasCardBorder, &link.CardBorderColor, &link.CardBorderStyle, &link.CardBorderWidth, &link.Style,
 			&link.Position, &link.Clicks, &link.IsActive, &link.IsPinned, &link.ScheduledAt, &link.ExpiresAt,
@@ -150,6 +150,9 @@ func (r *LinkRepository) Create(userID string, data map[string]interface{}) (*Li
 }
 
 func (r *LinkRepository) Update(linkID string, data map[string]interface{}) (*Link, error) {
+	// Auto-set has_custom_layout flag if layout fields are being updated
+	hasCustomLayout := data["text_alignment"] != nil || data["text_size"] != nil || data["image_shape"] != nil
+	
 	query := `
 		UPDATE links
 		SET title = COALESCE($2, title),
@@ -160,33 +163,34 @@ func (r *LinkRepository) Update(linkID string, data map[string]interface{}) (*Li
 		    image_placement = COALESCE($7, image_placement),
 		    text_alignment = COALESCE($8, text_alignment),
 		    text_size = COALESCE($9, text_size),
-		    show_outline = COALESCE($10, show_outline),
-		    show_shadow = COALESCE($11, show_shadow),
-		    shadow_x = COALESCE($12, shadow_x),
-		    shadow_y = COALESCE($13, shadow_y),
-		    shadow_blur = COALESCE($14, shadow_blur),
-		    show_description = COALESCE($15, show_description),
-		    show_text = COALESCE($16, show_text),
-		    is_active = COALESCE($17, is_active),
-		    scheduled_at = CASE WHEN $18::text IS NOT NULL THEN $18::timestamp ELSE scheduled_at END,
-		    expires_at = CASE WHEN $19::text IS NOT NULL THEN $19::timestamp ELSE expires_at END,
-		    group_title = COALESCE($20, group_title),
-		    group_layout = COALESCE($21, group_layout),
-		    has_card_background = COALESCE($22, has_card_background),
-		    card_background_color = COALESCE($23, card_background_color),
-		    card_background_opacity = COALESCE($24, card_background_opacity),
-		    card_border_radius = COALESCE($25, card_border_radius),
-		    card_text_color = COALESCE($26, card_text_color),
-		    has_card_border = COALESCE($27, has_card_border),
-		    card_border_color = COALESCE($28, card_border_color),
-		    card_border_style = COALESCE($29, card_border_style),
-		    card_border_width = COALESCE($30, card_border_width),
-		    style = COALESCE($31, style),
+		    has_custom_layout = CASE WHEN $10::boolean IS NOT NULL THEN $10 ELSE has_custom_layout END,
+		    show_outline = COALESCE($11, show_outline),
+		    show_shadow = COALESCE($12, show_shadow),
+		    shadow_x = COALESCE($13, shadow_x),
+		    shadow_y = COALESCE($14, shadow_y),
+		    shadow_blur = COALESCE($15, shadow_blur),
+		    show_description = COALESCE($16, show_description),
+		    show_text = COALESCE($17, show_text),
+		    is_active = COALESCE($18, is_active),
+		    scheduled_at = CASE WHEN $19::text IS NOT NULL THEN $19::timestamp ELSE scheduled_at END,
+		    expires_at = CASE WHEN $20::text IS NOT NULL THEN $20::timestamp ELSE expires_at END,
+		    group_title = COALESCE($21, group_title),
+		    group_layout = COALESCE($22, group_layout),
+		    has_card_background = COALESCE($23, has_card_background),
+		    card_background_color = COALESCE($24, card_background_color),
+		    card_background_opacity = COALESCE($25, card_background_opacity),
+		    card_border_radius = COALESCE($26, card_border_radius),
+		    card_text_color = COALESCE($27, card_text_color),
+		    has_card_border = COALESCE($28, has_card_border),
+		    card_border_color = COALESCE($29, card_border_color),
+		    card_border_style = COALESCE($30, card_border_style),
+		    card_border_width = COALESCE($31, card_border_width),
+		    style = COALESCE($32, style),
 		    updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1
 		RETURNING id, profile_id, parent_id, is_group, group_title, group_layout, grid_columns, grid_aspect_ratio,
 		          title, url, thumbnail_url, image_shape, layout_type, image_placement, text_alignment,
-		          text_size, show_outline, show_shadow, shadow_x, shadow_y, shadow_blur, show_description, show_text,
+		          text_size, has_custom_layout, show_outline, show_shadow, shadow_x, shadow_y, shadow_blur, show_description, show_text,
 		          has_card_background, card_background_color, card_background_opacity, card_border_radius, card_text_color,
 		          has_card_border, card_border_color, card_border_style, card_border_width, style,
 		          position, clicks, is_active, is_pinned,
@@ -194,14 +198,14 @@ func (r *LinkRepository) Update(linkID string, data map[string]interface{}) (*Li
 	`
 	var link Link
 	err := r.db.QueryRow(query, linkID, data["title"], data["url"], data["thumbnail_url"], data["image_shape"], data["layout_type"],
-		data["image_placement"], data["text_alignment"], data["text_size"], data["show_outline"], data["show_shadow"], 
+		data["image_placement"], data["text_alignment"], data["text_size"], hasCustomLayout, data["show_outline"], data["show_shadow"], 
 		data["shadow_x"], data["shadow_y"], data["shadow_blur"], data["show_description"],
 		data["show_text"], data["is_active"], data["scheduled_at"], data["expires_at"], data["group_title"], data["group_layout"],
 		data["has_card_background"], data["card_background_color"], data["card_background_opacity"], data["card_border_radius"], data["card_text_color"],
 		data["has_card_border"], data["card_border_color"], data["card_border_style"], data["card_border_width"], data["style"]).Scan(
 		&link.ID, &link.ProfileID, &link.ParentID, &link.IsGroup, &link.GroupTitle, &link.GroupLayout, &link.GridColumns, &link.GridAspectRatio,
 		&link.Title, &link.URL, &link.ThumbnailURL, &link.ImageShape, &link.LayoutType,
-		&link.ImagePlacement, &link.TextAlignment, &link.TextSize, &link.ShowOutline, &link.ShowShadow, &link.ShadowX, &link.ShadowY, &link.ShadowBlur, &link.ShowDescription,
+		&link.ImagePlacement, &link.TextAlignment, &link.TextSize, &link.HasCustomLayout, &link.ShowOutline, &link.ShowShadow, &link.ShadowX, &link.ShadowY, &link.ShadowBlur, &link.ShowDescription,
 		&link.ShowText, &link.HasCardBackground, &link.CardBackgroundColor, &link.CardBackgroundOpacity, &link.CardBorderRadius, &link.CardTextColor,
 		&link.HasCardBorder, &link.CardBorderColor, &link.CardBorderStyle, &link.CardBorderWidth, &link.Style,
 		&link.Position, &link.Clicks, &link.IsActive, &link.IsPinned, &link.ScheduledAt, &link.ExpiresAt,
@@ -500,7 +504,7 @@ func (r *LinkRepository) GetChildrenByParentID(parentID string) ([]Link, error) 
 	query := `
 		SELECT id, profile_id, parent_id, is_group, group_title, group_layout, grid_columns, grid_aspect_ratio,
 		       title, url, description, thumbnail_url, image_shape, layout_type, 
-		       image_placement, text_alignment, text_size, show_outline, show_shadow, shadow_x, shadow_y, shadow_blur, show_description, show_text,
+		       image_placement, text_alignment, text_size, has_custom_layout, show_outline, show_shadow, shadow_x, shadow_y, shadow_blur, show_description, show_text,
 		       has_card_background, card_background_color, card_background_opacity, card_border_radius, card_text_color,
 		       has_card_border, card_border_color, card_border_style, card_border_width, style,
 		       position, clicks, is_active, is_pinned, scheduled_at, expires_at, 
@@ -522,7 +526,7 @@ func (r *LinkRepository) GetChildrenByParentID(parentID string) ([]Link, error) 
 		err := rows.Scan(
 			&child.ID, &child.ProfileID, &child.ParentID, &child.IsGroup, &child.GroupTitle, &child.GroupLayout, &child.GridColumns, &child.GridAspectRatio,
 			&child.Title, &child.URL, &child.Description, &child.ThumbnailURL, &child.ImageShape, &child.LayoutType,
-			&child.ImagePlacement, &child.TextAlignment, &child.TextSize, &child.ShowOutline, &child.ShowShadow, &child.ShadowX, &child.ShadowY, &child.ShadowBlur, &child.ShowDescription, &child.ShowText,
+			&child.ImagePlacement, &child.TextAlignment, &child.TextSize, &child.HasCustomLayout, &child.ShowOutline, &child.ShowShadow, &child.ShadowX, &child.ShadowY, &child.ShadowBlur, &child.ShowDescription, &child.ShowText,
 			&child.HasCardBackground, &child.CardBackgroundColor, &child.CardBackgroundOpacity, &child.CardBorderRadius, &child.CardTextColor,
 			&child.HasCardBorder, &child.CardBorderColor, &child.CardBorderStyle, &child.CardBorderWidth, &child.Style,
 			&child.Position, &child.Clicks, &child.IsActive, &child.IsPinned, &child.ScheduledAt, &child.ExpiresAt,
