@@ -3,10 +3,12 @@
 	import { auth } from '$lib/stores/auth';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
-	import { themePresets } from '$lib/stores/theme';
+	import { themePresets, globalTheme, currentHeaderStyle } from '$lib/stores/theme';
 	import { profileApi } from '$lib/api/profile';
 	import { onboardingData } from '$lib/stores/onboarding';
 	import { themeMetadata } from '$lib/config/themes';
+	import ProfilePreview from '$lib/components/dashboard/preview/ProfilePreview.svelte';
+	import { previewStyles } from '$lib/stores/previewStyles';
 
 	let loading = false;
 	let selectedTheme = 'default';
@@ -16,6 +18,53 @@
 
 	// Use centralized theme metadata
 	const themes = themeMetadata;
+	
+	// Create mock profile for preview
+	$: mockProfile = {
+		username: $auth?.user?.username || 'yourname',
+		bio: profileData.bio || 'Your bio goes here',
+		avatar_url: profileData.avatarPreview || ''
+	};
+	
+	// Mock links for preview (cast to any to avoid type issues)
+	const mockLinks: any[] = [
+		{ id: 1, title: 'My Website', url: '#', is_active: true, is_group: false, position: 0, is_pinned: false },
+		{ id: 2, title: 'Instagram', url: '#', is_active: true, is_group: false, position: 1, is_pinned: false },
+		{ id: 3, title: 'YouTube', url: '#', is_active: true, is_group: false, position: 2, is_pinned: false },
+		{ id: 4, title: 'Twitter', url: '#', is_active: true, is_group: false, position: 3, is_pinned: false },
+		{ id: 5, title: 'TikTok', url: '#', is_active: true, is_group: false, position: 4, is_pinned: false }
+	];
+	
+	// Update theme when selection changes
+	$: if (selectedTheme) {
+		const themeInfo = themes.find(t => t.id === selectedTheme);
+		if (themeInfo) {
+			const preset = themePresets[themeInfo.preset];
+			if (preset) {
+				globalTheme.setPreset(themeInfo.preset);
+				if (preset.header) {
+					currentHeaderStyle.set(preset.header);
+				}
+			}
+		}
+	}
+	
+	// Initialize default theme on mount
+	onMount(() => {
+		// Reset preview styles to ensure clean theme preview
+		previewStyles.reset();
+		
+		const defaultThemeInfo = themes.find(t => t.id === 'default');
+		if (defaultThemeInfo) {
+			const preset = themePresets[defaultThemeInfo.preset];
+			if (preset) {
+				globalTheme.setPreset(defaultThemeInfo.preset);
+				if (preset.header) {
+					currentHeaderStyle.set(preset.header);
+				}
+			}
+		}
+	});
 
 
 
@@ -84,7 +133,7 @@
 						<button
 							type="button"
 							on:click={() => selectedTheme = theme.id}
-							class="relative bg-white rounded-xl p-4 shadow hover:shadow-lg transition-all border-2 group text-left"
+							class="relative bg-white rounded-xl p-4 shadow hover:shadow-lg border-2 group text-left"
 							class:border-violet-600={selectedTheme === theme.id}
 							class:border-gray-200={selectedTheme !== theme.id}
 						>
@@ -121,86 +170,17 @@
 					<p class="text-sm text-gray-600">See how your profile looks</p>
 				</div>
 				
-				<!-- iPhone Mockup -->
-				<div class="relative mx-auto" style="width: 320px;">
-					<!-- Phone Frame -->
-					<div class="relative bg-gray-900 rounded-[3rem] p-3 shadow-2xl">
-						<!-- Screen -->
-						<div class="bg-white rounded-[2.5rem] overflow-hidden" style="height: 600px;">
-							{#each themes.filter(t => t.id === selectedTheme) as currentTheme}
-								{@const preset = themePresets[currentTheme.preset]}
-								{@const header = preset?.header || {}}
-								<div class="h-full overflow-y-auto relative" style="background: {currentTheme.preview.bg}">
-									<!-- Header/Cover (if theme has it) -->
-									{#if header.showCover && header.coverHeight > 0}
-										<div 
-											class="w-full relative"
-											style="height: {header.coverHeight}px; {
-												header.coverType === 'gradient' 
-													? `background: linear-gradient(to bottom, ${header.coverGradientFrom}, ${header.coverGradientTo});`
-													: `background: ${header.coverColor};`
-											}"
-										></div>
-									{/if}
-									
-									<!-- Profile Section -->
-									<div class="px-6 pb-6" style="margin-top: {header.showCover && header.coverHeight > 0 ? `-${(header.avatarSize || 96) / 2}px` : '0'}">
-										<!-- Avatar -->
-										<div class="flex {header.avatarAlign === 'left' ? 'justify-start' : header.avatarAlign === 'right' ? 'justify-end' : 'justify-center'} mb-4" style="position: relative; z-index: 10;">
-											{#if profileData.avatarPreview}
-												<img
-													src={profileData.avatarPreview}
-													alt="Avatar"
-													class="object-cover shadow-lg"
-													style="width: {header.avatarSize || 96}px; height: {header.avatarSize || 96}px; border-radius: {header.avatarShape === 'circle' ? '50%' : header.avatarShape === 'rounded' ? '20%' : '0'}; border: {header.avatarBorder || 4}px solid {header.avatarBorderColor || '#ffffff'};"
-												/>
-											{:else}
-												<div 
-													class="bg-gradient-to-br from-violet-500 to-indigo-500 shadow-lg flex items-center justify-center"
-													style="width: {header.avatarSize || 96}px; height: {header.avatarSize || 96}px; border-radius: {header.avatarShape === 'circle' ? '50%' : header.avatarShape === 'rounded' ? '20%' : '0'}; border: {header.avatarBorder || 4}px solid {header.avatarBorderColor || '#ffffff'};"
-												>
-													<svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-													</svg>
-												</div>
-											{/if}
-										</div>
-
-										<!-- Username & Bio -->
-										<div class="mb-6" style="text-align: {header.bioAlign || 'center'}">
-											<h3 class="text-lg font-bold mb-1" style="color: {currentTheme.preview.text}">
-												@{$auth?.user?.username || 'yourname'}
-											</h3>
-											<p class="text-sm opacity-75" style="color: {currentTheme.preview.text}">
-												{profileData.bio || 'Your bio goes here'}
-											</p>
-										</div>
-
-										<!-- Links Section -->
-										<div class="space-y-3">
-											{#each ['My Website', 'Instagram', 'YouTube', 'Twitter', 'TikTok'] as linkTitle}
-												<div 
-													class="p-3.5 text-center font-medium text-sm shadow-sm transition-transform hover:scale-105" 
-													style="background: {currentTheme.preview.card}; color: {currentTheme.preview.text}; border-radius: {preset?.card?.cardBorderRadius || 12}px;"
-												>
-													{linkTitle}
-												</div>
-											{/each}
-										</div>
-
-										<!-- Footer -->
-										<div class="text-center mt-8 opacity-50">
-											<p class="text-xs font-medium" style="color: {currentTheme.preview.text}">Made with LinkBio</p>
-										</div>
-									</div>
-								</div>
-							{/each}
-						</div>
-						
-						<!-- Notch -->
-						<div class="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-gray-900 rounded-b-2xl"></div>
-					</div>
-				</div>
+				<!-- Use ProfilePreview component for consistency -->
+				<ProfilePreview 
+					profile={mockProfile}
+					links={mockLinks}
+					blocks={[]}
+					socialLinks={[]}
+					showShareButton={false}
+					showSubscribeButton={false}
+					hideBranding={false}
+					showInactive={true}
+				/>
 			</div>
 		</div>
 
@@ -208,7 +188,7 @@
 			<button
 				type="button"
 				on:click={() => goto('/onboarding/setup-profile')}
-				class="px-8 py-4 bg-white text-gray-700 rounded-2xl font-semibold border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all flex items-center gap-2"
+				class="px-8 py-4 bg-white text-gray-700 rounded-2xl font-semibold border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 flex items-center gap-2"
 			>
 				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
@@ -219,7 +199,7 @@
 				type="button"
 				on:click={handleContinue}
 				disabled={loading}
-				class="px-12 py-4 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-2xl font-semibold hover:shadow-lg hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all"
+				class="px-12 py-4 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-2xl font-semibold hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
 			>
 				{loading ? 'Applying theme...' : 'Continue to Dashboard'}
 			</button>

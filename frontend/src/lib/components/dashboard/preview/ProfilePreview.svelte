@@ -50,19 +50,8 @@
 		const textSize = link.text_size ?? preview.text_size ?? currentTheme.textSize ?? 'M';
 		const imageShape = link.image_shape ?? preview.image_shape ?? currentTheme.imageShape ?? 'square';
 		
-		console.log('🎨 ProfilePreview - Processing link:', {
-			linkId: link.id,
-			linkTitle: link.group_title,
-			'link.text_alignment': link.text_alignment,
-			'link.text_alignment === null': link.text_alignment === null,
-			'link.text_alignment === undefined': link.text_alignment === undefined,
-			'preview.text_alignment': preview.text_alignment,
-			'theme.textAlignment': currentTheme.textAlignment,
-			'final textAlignment': textAlignment
-		});
-		
 		// Build result object - link-specific values should NOT be overridden by preview
-		const result = { 
+		return { 
 			...link,
 			// Set final computed values (nullish coalescing ensures proper priority)
 			text_alignment: textAlignment,
@@ -71,13 +60,6 @@
 			// Override style if preview has it (for padding/spacing reactivity)
 			style: preview.style || link.style
 		};
-		
-		console.log('✅ ProfilePreview - Final result:', {
-			linkId: link.id,
-			'result.text_alignment': result.text_alignment
-		});
-		
-		return result;
 	}));
 	
 	// Helper to get merged card properties (preview > theme ONLY, ignore link values)
@@ -303,7 +285,7 @@
 				<div class="absolute top-4 left-4 right-4 flex justify-between items-center z-20">
 					{#if showSubscribeButton}
 						<button 
-							class="flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white rounded-full shadow-lg transition-all hover:shadow-xl border border-gray-200"
+							class="flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-sm hover:bg-white rounded-full shadow-lg border border-gray-200"
 							onclick={() => alert('Subscribe functionality')}
 						>
 							<svg class="w-3.5 h-3.5 text-gray-700" fill="currentColor" viewBox="0 0 20 20">
@@ -317,7 +299,7 @@
 					
 					{#if showShareButton}
 						<button 
-							class="flex items-center justify-center w-8 h-8 bg-white/90 backdrop-blur-sm hover:bg-white rounded-full shadow-lg transition-all hover:shadow-xl border border-gray-200"
+							class="flex items-center justify-center w-8 h-8 bg-white/90 backdrop-blur-sm hover:bg-white rounded-full shadow-lg border border-gray-200"
 							onclick={() => alert('Share functionality')}
 							title="Share"
 						>
@@ -465,8 +447,8 @@
 													href={child.url}
 													target="_blank"
 													rel="noopener noreferrer"
-													class="block transition-all"
-													class:hover:bg-gray-50={cardProps.hasCustomBg}
+													class="block"
+													
 													class:border-2={link.show_outline && !cardProps.hasBorder}
 													class:border-gray-200={link.show_outline && !cardProps.hasBorder}
 													style={bgStyle}
@@ -513,8 +495,8 @@
 															href={child.url}
 															target="_blank"
 															rel="noopener noreferrer"
-															class="block transition-all flex-shrink-0 snap-center w-[85%]"
-															class:hover:bg-gray-50={cardProps.hasCustomBg}
+															class="block flex-shrink-0 snap-center w-[85%]"
+															
 															style={bgStyle}
 														>
 															{#if child.thumbnail_url}
@@ -544,7 +526,7 @@
 														const el = document.getElementById(carouselId);
 														if (el) el.scrollBy({ left: -el.clientWidth * 0.85, behavior: 'smooth' });
 													}}
-													class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 hover:bg-white rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+													class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 hover:bg-white rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 z-10"
 													aria-label="Previous"
 												>
 													<svg class="w-5 h-5 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -556,7 +538,7 @@
 														const el = document.getElementById(carouselId);
 														if (el) el.scrollBy({ left: el.clientWidth * 0.85, behavior: 'smooth' });
 													}}
-													class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 hover:bg-white rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+													class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 hover:bg-white rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 z-10"
 													aria-label="Next"
 												>
 													<svg class="w-5 h-5 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -575,7 +557,7 @@
 																	el.scrollTo({ left: cardWidth * idx, behavior: 'smooth' });
 																}
 															}}
-															class="w-1.5 h-1.5 rounded-full bg-gray-300 hover:bg-gray-500 transition-colors cursor-pointer"
+															class="w-1.5 h-1.5 rounded-full bg-gray-300 hover:bg-gray-500 cursor-pointer"
 															aria-label={`Go to slide ${idx + 1}`}
 														></button>
 													{/each}
@@ -601,8 +583,8 @@
 													href={child.url}
 													target="_blank"
 													rel="noopener noreferrer"
-													class="block overflow-hidden transition-all"
-													class:hover:bg-gray-50={cardProps.hasCustomBg}
+													class="block overflow-hidden"
+													
 													style={bgStyle}
 												>
 													<div class="flex items-stretch" class:flex-row-reverse={shouldReverse}>
@@ -645,8 +627,8 @@
 													href={child.url}
 													target="_blank"
 													rel="noopener noreferrer"
-													class="block transition-all"
-													class:hover:bg-gray-50={cardProps.hasCustomBg}
+													class="block"
+													
 													style={bgStyle}
 												>
 													<div class="flex items-center gap-3">
@@ -677,7 +659,7 @@
 								href={link.url}
 								target="_blank"
 								rel="noopener noreferrer"
-								class="block w-full overflow-hidden transition-all duration-200 {!link.is_active ? 'opacity-50' : ''}"
+								class="block w-full overflow-hidden {!link.is_active ? 'opacity-50' : ''}"
 								style="{getCardStyle(link)} padding: 0;"
 							>
 								{#if link.thumbnail_url}
@@ -706,7 +688,7 @@
 									href={link.url}
 									target="_blank"
 									rel="noopener noreferrer"
-									class="block w-full p-4 transition-all duration-200 {!link.is_active ? 'opacity-50' : ''}"
+									class="block w-full p-4 {!link.is_active ? 'opacity-50' : ''}"
 									style="{getCardStyle(link)}"
 								>
 									<div class="flex items-center gap-3">

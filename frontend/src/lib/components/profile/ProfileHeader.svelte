@@ -17,17 +17,6 @@
 	const bio = $derived(profile?.bio || '');
 	const bioFontSize = $derived(headerStyle.bioSize === 'sm' ? '0.875rem' : headerStyle.bioSize === 'lg' ? '1.125rem' : '1rem');
 	
-	// Debug logs
-	$effect(() => {
-		console.log('[ProfileHeader] headerStyle:', {
-			bioAlign: headerStyle.bioAlign,
-			avatarAlign: headerStyle.avatarAlign,
-			layout: headerStyle.layout,
-			bioSize: headerStyle.bioSize,
-			bioTextColor: headerStyle.bioTextColor
-		});
-	});
-	
 	// Helper to get alignment classes for BIO
 	const getAlignClass = $derived(headerStyle.bioAlign === 'left' ? 'text-left' : headerStyle.bioAlign === 'right' ? 'text-right' : 'text-center');
 	const getJustifyClass = $derived(headerStyle.bioAlign === 'left' ? 'justify-start' : headerStyle.bioAlign === 'right' ? 'justify-end' : 'justify-center');
@@ -88,7 +77,7 @@
 				{#if socialLinks.length > 0}
 					<div class="flex gap-2 mt-2" style="justify-content: {headerStyle.avatarAlign};">
 						{#each socialLinks as link}
-							<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110" title={link.platform}>
+							<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center " title={link.platform}>
 								<svg class="w-3.5 h-3.5" style="color: {textColor};" fill="currentColor" viewBox="0 0 24 24">
 									<path d={socialIcons[link.platform] || socialIcons.website}/>
 								</svg>
@@ -114,7 +103,7 @@
 				{#if socialLinks.length > 0}
 					<div class="flex gap-2 mt-2" style="justify-content: {headerStyle.avatarAlign};">
 						{#each socialLinks as link}
-							<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110" title={link.platform}>
+							<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center " title={link.platform}>
 								<svg class="w-3.5 h-3.5" style="color: {textColor};" fill="currentColor" viewBox="0 0 24 24">
 									<path d={socialIcons[link.platform] || socialIcons.website}/>
 								</svg>
@@ -140,7 +129,7 @@
 				{#if socialLinks.length > 0}
 					<div class="flex gap-2 mt-2" style="justify-content: {headerStyle.avatarAlign};">
 						{#each socialLinks as link}
-							<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-5 h-5 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all hover:scale-110" title={link.platform}>
+							<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-5 h-5 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center " title={link.platform}>
 								<svg class="w-3 h-3 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
 									<path d={socialIcons[link.platform] || socialIcons.website}/>
 								</svg>
@@ -167,7 +156,7 @@
 					{#if socialLinks.length > 0}
 						<div class="flex gap-2 mt-2" style="justify-content: {headerStyle.avatarAlign};">
 							{#each socialLinks as link}
-								<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110" title={link.platform}>
+								<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center " title={link.platform}>
 									<svg class="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
 										<path d={socialIcons[link.platform] || socialIcons.website}/>
 									</svg>
@@ -199,7 +188,7 @@
 				{#if socialLinks.length > 0}
 					<div class="flex gap-2 mt-2" style="justify-content: {headerStyle.avatarAlign};">
 						{#each socialLinks as link}
-							<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110" title={link.platform}>
+							<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center " title={link.platform}>
 								<svg class="w-3.5 h-3.5" style="color: {textColor};" fill="currentColor" viewBox="0 0 24 24">
 									<path d={socialIcons[link.platform] || socialIcons.website}/>
 								</svg>
@@ -220,7 +209,7 @@
 				{#if socialLinks.length > 0}
 					<div class="flex gap-2 mt-1" style="justify-content: {headerStyle.avatarAlign};">
 						{#each socialLinks as link}
-							<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-5 h-5 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110" title={link.platform}>
+							<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-5 h-5 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center " title={link.platform}>
 								<svg class="w-3 h-3" style="color: {textColor};" fill="currentColor" viewBox="0 0 24 24">
 									<path d={socialIcons[link.platform] || socialIcons.website}/>
 								</svg>
@@ -242,7 +231,7 @@
 					{#if socialLinks.length > 0}
 						<div class="flex gap-2 mt-3" style="justify-content: {headerStyle.avatarAlign};">
 							{#each socialLinks as link}
-								<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110" title={link.platform}>
+								<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-7 h-7 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center " title={link.platform}>
 									<svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
 										<path d={socialIcons[link.platform] || socialIcons.website}/>
 									</svg>
@@ -265,7 +254,7 @@
 				{#if socialLinks.length > 0}
 					<div class="flex gap-2 mt-2" style="justify-content: {headerStyle.avatarAlign};">
 						{#each socialLinks as link}
-							<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-5 h-5 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110" title={link.platform}>
+							<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-5 h-5 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center " title={link.platform}>
 								<svg class="w-3 h-3" style="color: {textColor};" fill="currentColor" viewBox="0 0 24 24">
 									<path d={socialIcons[link.platform] || socialIcons.website}/>
 								</svg>
@@ -294,7 +283,7 @@
 				{#if socialLinks.length > 0}
 					<div class="flex gap-2 mt-2" style="justify-content: {headerStyle.avatarAlign};">
 						{#each socialLinks as link}
-							<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110" title={link.platform}>
+							<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center " title={link.platform}>
 								<svg class="w-3.5 h-3.5" style="color: {textColor};" fill="currentColor" viewBox="0 0 24 24">
 									<path d={socialIcons[link.platform] || socialIcons.website}/>
 								</svg>
@@ -321,7 +310,7 @@
 					{#if socialLinks.length > 0}
 						<div class="flex gap-2 mt-2" style="justify-content: {headerStyle.avatarAlign};">
 							{#each socialLinks as link}
-								<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all hover:scale-110" title={link.platform}>
+								<a href={link.url} target="_blank" rel="noopener noreferrer" class="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center " title={link.platform}>
 									<svg class="w-3.5 h-3.5" style="color: {textColor};" fill="currentColor" viewBox="0 0 24 24">
 										<path d={socialIcons[link.platform] || socialIcons.website}/>
 									</svg>
