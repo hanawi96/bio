@@ -228,6 +228,12 @@
 											<div class="rounded-xl p-3.5 text-center font-medium text-sm shadow-sm transition-transform hover:scale-105" style="background: {currentThemePreview.preview.card}; color: {currentThemePreview.preview.text}">
 												YouTube
 											</div>
+											<div class="rounded-xl p-3.5 text-center font-medium text-sm shadow-sm transition-transform hover:scale-105" style="background: {currentThemePreview.preview.card}; color: {currentThemePreview.preview.text}">
+												Twitter
+											</div>
+											<div class="rounded-xl p-3.5 text-center font-medium text-sm shadow-sm transition-transform hover:scale-105" style="background: {currentThemePreview.preview.card}; color: {currentThemePreview.preview.text}">
+												TikTok
+											</div>
 										</div>
 
 										<!-- Footer -->
@@ -246,7 +252,17 @@
 			</div>
 		</div>
 
-		<div class="flex items-center justify-center">
+		<div class="flex items-center justify-center gap-4">
+			<button
+				type="button"
+				on:click={() => goto('/onboarding/setup-profile')}
+				class="px-8 py-4 bg-white text-gray-700 rounded-2xl font-semibold border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all flex items-center gap-2"
+			>
+				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+				</svg>
+				Back
+			</button>
 			<button
 				type="button"
 				on:click={handleContinue}
