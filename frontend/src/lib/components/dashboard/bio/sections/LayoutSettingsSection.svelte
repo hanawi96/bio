@@ -7,12 +7,14 @@
 	
 	const dispatch = createEventDispatcher();
 	
-	// Reset group to default card styles
+	// Reset group to theme defaults
 	function resetToTheme() {
-		const card = defaultCardStyles;
 		dispatch('update', {
 			groupId: group.id,
-			card_text_color: card.cardTextColor
+			text_alignment: null,
+			text_size: null,
+			image_shape: null,
+			has_custom_layout: false
 		});
 	}
 	
@@ -26,14 +28,28 @@
 		}, 300);
 	}
 	
-	// Local state for real-time display
-
+	// Get current theme for fallback values
+	$: currentTheme = globalTheme.getCurrent();
 	
-	// Use group properties directly - no local state needed
+	// Use group properties with theme fallback
+	// Always use theme as fallback if field is null, regardless of has_custom_layout
 	$: layout = group.group_layout || 'list';
-	$: textAlignment = group.text_alignment || 'center';
+	$: textAlignment = group.text_alignment || currentTheme?.textAlignment || 'center';
+	$: imageShape = group.image_shape || currentTheme?.imageShape || 'square';
+	$: textSize = group.text_size || currentTheme?.textSize || 'M';
 	$: showText = group.show_text !== undefined ? group.show_text : true;
 	
+	console.log('[LAYOUT_SETTINGS]', group.group_title, {
+		has_custom: group.has_custom_layout,
+		text_alignment: group.text_alignment,
+		image_shape: group.image_shape,
+		text_size: group.text_size,
+		theme_align: currentTheme?.textAlignment,
+		final_textAlignment: textAlignment,
+		final_imageShape: imageShape
+	});
+	
+
 	function updateLayout(value: string) {
 		dispatch('update', {
 			groupId: group.id,
@@ -42,16 +58,10 @@
 	}
 	
 	function updateTextAlignment(value: string) {
-		console.log('📝 LayoutSettingsSection - updateTextAlignment:', {
-			groupId: group.id,
-			groupTitle: group.group_title,
-			newValue: value,
-			oldValue: group.text_alignment
-		});
-		
 		dispatch('update', {
 			groupId: group.id,
-			text_alignment: value
+			text_alignment: value,
+			has_custom_layout: true
 		});
 	}
 	
@@ -398,14 +408,14 @@
 			{#each ['S', 'M', 'L', 'XL'] as size}
 				<button
 					type="button"
-					onclick={() => dispatch('update', { groupId: group.id, text_size: size })}
+					onclick={() => dispatch('update', { groupId: group.id, text_size: size, has_custom_layout: true })}
 					class="flex-1 px-4 py-2.5 border rounded-lg transition-all font-semibold"
-					class:border-gray-900={(group.text_size || 'M') === size}
-					class:bg-gray-900={(group.text_size || 'M') === size}
-					class:text-white={(group.text_size || 'M') === size}
-					class:border-gray-200={(group.text_size || 'M') !== size}
-					class:bg-white={(group.text_size || 'M') !== size}
-					class:text-gray-700={(group.text_size || 'M') !== size}
+					class:border-gray-900={textSize === size}
+					class:bg-gray-900={textSize === size}
+					class:text-white={textSize === size}
+					class:border-gray-200={textSize !== size}
+					class:bg-white={textSize !== size}
+					class:text-gray-700={textSize !== size}
 					class:text-xs={size === 'S'}
 					class:text-sm={size === 'M'}
 					class:text-base={size === 'L'}
@@ -453,12 +463,12 @@
 			<div class="flex gap-2">
 				<button
 					type="button"
-					onclick={() => dispatch('update', { groupId: group.id, image_shape: 'sharp' })}
+					onclick={() => dispatch('update', { groupId: group.id, image_shape: 'sharp', has_custom_layout: true })}
 					class="flex-1 px-4 py-2.5 border rounded-lg transition-all hover:shadow-md"
-					class:border-emerald-500={(group.image_shape || 'square') === 'sharp'}
-					class:bg-emerald-50={(group.image_shape || 'square') === 'sharp'}
-					class:border-gray-200={(group.image_shape || 'square') !== 'sharp'}
-					class:bg-white={(group.image_shape || 'square') !== 'sharp'}
+					class:border-emerald-500={imageShape === 'sharp'}
+					class:bg-emerald-50={imageShape === 'sharp'}
+					class:border-gray-200={imageShape !== 'sharp'}
+					class:bg-white={imageShape !== 'sharp'}
 				>
 					<div class="flex items-center gap-3">
 						<div class="w-8 h-8 bg-gradient-to-br from-amber-200 to-amber-300 flex-shrink-0"></div>
@@ -467,12 +477,12 @@
 				</button>
 				<button
 					type="button"
-					onclick={() => dispatch('update', { groupId: group.id, image_shape: 'square' })}
+					onclick={() => dispatch('update', { groupId: group.id, image_shape: 'square', has_custom_layout: true })}
 					class="flex-1 px-4 py-2.5 border rounded-lg transition-all hover:shadow-md"
-					class:border-emerald-500={(group.image_shape || 'square') === 'square'}
-					class:bg-emerald-50={(group.image_shape || 'square') === 'square'}
-					class:border-gray-200={(group.image_shape || 'square') !== 'square'}
-					class:bg-white={(group.image_shape || 'square') !== 'square'}
+					class:border-emerald-500={imageShape === 'square'}
+					class:bg-emerald-50={imageShape === 'square'}
+					class:border-gray-200={imageShape !== 'square'}
+					class:bg-white={imageShape !== 'square'}
 				>
 					<div class="flex items-center gap-3">
 						<div class="w-8 h-8 bg-gradient-to-br from-amber-200 to-amber-300 rounded-lg flex-shrink-0"></div>
@@ -481,12 +491,12 @@
 				</button>
 				<button
 					type="button"
-					onclick={() => dispatch('update', { groupId: group.id, image_shape: 'circle' })}
+					onclick={() => dispatch('update', { groupId: group.id, image_shape: 'circle', has_custom_layout: true })}
 					class="flex-1 px-4 py-2.5 border rounded-lg transition-all hover:shadow-md"
-					class:border-emerald-500={(group.image_shape || 'square') === 'circle'}
-					class:bg-emerald-50={(group.image_shape || 'square') === 'circle'}
-					class:border-gray-200={(group.image_shape || 'square') !== 'circle'}
-					class:bg-white={(group.image_shape || 'square') !== 'circle'}
+					class:border-emerald-500={imageShape === 'circle'}
+					class:bg-emerald-50={imageShape === 'circle'}
+					class:border-gray-200={imageShape !== 'circle'}
+					class:bg-white={imageShape !== 'circle'}
 				>
 					<div class="flex items-center gap-3">
 						<div class="w-8 h-8 bg-gradient-to-br from-amber-200 to-amber-300 rounded-full flex-shrink-0"></div>

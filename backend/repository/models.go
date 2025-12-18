@@ -34,11 +34,11 @@ type Link struct {
 	URL                   string     `json:"url"`
 	Description           *string    `json:"description"`
 	ThumbnailURL          *string    `json:"thumbnail_url"`
-	ImageShape            string     `json:"image_shape"`
+	ImageShape            *string    `json:"image_shape"`
 	LayoutType            string     `json:"layout_type"`
 	ImagePlacement        string     `json:"image_placement"`
-	TextAlignment         string     `json:"text_alignment"`
-	TextSize              string     `json:"text_size"`
+	TextAlignment         *string    `json:"text_alignment"`
+	TextSize              *string    `json:"text_size"`
 	HasCustomLayout       bool       `json:"has_custom_layout"`
 	ShowOutline           bool       `json:"show_outline"`
 	ShowShadow            bool       `json:"show_shadow"`

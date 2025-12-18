@@ -150,8 +150,19 @@ func (r *LinkRepository) Create(userID string, data map[string]interface{}) (*Li
 }
 
 func (r *LinkRepository) Update(linkID string, data map[string]interface{}) (*Link, error) {
-	// Auto-set has_custom_layout flag if layout fields are being updated
-	hasCustomLayout := data["text_alignment"] != nil || data["text_size"] != nil || data["image_shape"] != nil
+	// Check if explicitly resetting to theme (has_custom_layout = false)
+	isResettingToTheme := false
+	if hcl, ok := data["has_custom_layout"].(bool); ok && !hcl {
+		isResettingToTheme = true
+	}
+	
+	// Auto-set has_custom_layout flag if layout fields are being updated (and not resetting)
+	hasCustomLayout := false
+	if !isResettingToTheme {
+		if data["text_alignment"] != nil || data["text_size"] != nil || data["image_shape"] != nil {
+			hasCustomLayout = true
+		}
+	}
 	
 	query := `
 		UPDATE links
@@ -161,8 +172,8 @@ func (r *LinkRepository) Update(linkID string, data map[string]interface{}) (*Li
 		    image_shape = COALESCE($5, image_shape),
 		    layout_type = COALESCE($6, layout_type),
 		    image_placement = COALESCE($7, image_placement),
-		    text_alignment = COALESCE($8, text_alignment),
-		    text_size = COALESCE($9, text_size),
+		    text_alignment = CASE WHEN $33::boolean THEN NULL ELSE COALESCE($8, text_alignment) END,
+		    text_size = CASE WHEN $33::boolean THEN NULL ELSE COALESCE($9, text_size) END,
 		    has_custom_layout = CASE WHEN $10::boolean IS NOT NULL THEN $10 ELSE has_custom_layout END,
 		    show_outline = COALESCE($11, show_outline),
 		    show_shadow = COALESCE($12, show_shadow),
@@ -202,7 +213,7 @@ func (r *LinkRepository) Update(linkID string, data map[string]interface{}) (*Li
 		data["shadow_x"], data["shadow_y"], data["shadow_blur"], data["show_description"],
 		data["show_text"], data["is_active"], data["scheduled_at"], data["expires_at"], data["group_title"], data["group_layout"],
 		data["has_card_background"], data["card_background_color"], data["card_background_opacity"], data["card_border_radius"], data["card_text_color"],
-		data["has_card_border"], data["card_border_color"], data["card_border_style"], data["card_border_width"], data["style"]).Scan(
+		data["has_card_border"], data["card_border_color"], data["card_border_style"], data["card_border_width"], data["style"], isResettingToTheme).Scan(
 		&link.ID, &link.ProfileID, &link.ParentID, &link.IsGroup, &link.GroupTitle, &link.GroupLayout, &link.GridColumns, &link.GridAspectRatio,
 		&link.Title, &link.URL, &link.ThumbnailURL, &link.ImageShape, &link.LayoutType,
 		&link.ImagePlacement, &link.TextAlignment, &link.TextSize, &link.HasCustomLayout, &link.ShowOutline, &link.ShowShadow, &link.ShadowX, &link.ShadowY, &link.ShadowBlur, &link.ShowDescription,

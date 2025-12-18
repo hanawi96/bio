@@ -883,35 +883,26 @@
 	async function handleUpdateGroupLayout(event: CustomEvent) {
 		const { groupId, ...settings } = event.detail;
 		
-		console.log('🔄 Bio Page - handleUpdateGroupLayout:', {
-			groupId,
-			settings,
-			'settings.text_alignment': settings.text_alignment
-		});
-		
 		// Optimistic update immediately for smooth UI
 		const oldLinks = links;
 		links = links.map(l => l.id === groupId ? { ...l, ...settings } : l);
 		allLinks = allLinks.map(l => l.id === groupId ? { ...l, ...settings } : l);
-		
-		// Verify update
-		const updatedLink = links.find(l => l.id === groupId);
-		console.log('✅ Bio Page - Links updated:', {
-			groupId,
-			'updatedLink.text_alignment': updatedLink?.text_alignment,
-			'updatedLink.group_title': updatedLink?.group_title
-		});
 		
 		// Debounce API call - only call after user stops dragging
 		if (updateLayoutDebounceTimer) clearTimeout(updateLayoutDebounceTimer);
 		
 		updateLayoutDebounceTimer = setTimeout(async () => {
 			try {
-				console.log('💾 Bio Page - Saving to backend:', { groupId, settings });
 				await linksApi.updateLink(groupId, settings, $auth.token!);
-				console.log('✅ Bio Page - Saved successfully');
+				
+				// If resetting to theme (has_custom_layout = false), silently reload links only
+				if (settings.has_custom_layout === false) {
+					const freshLinks = await linksApi.getLinks($auth.token!);
+					links = freshLinks;
+					allLinks = freshLinks;
+				}
 			} catch (error: any) {
-				console.error('❌ Bio Page - Save failed:', error);
+				console.error('Failed to update group layout:', error);
 				await loadData();
 			}
 		}, 300);

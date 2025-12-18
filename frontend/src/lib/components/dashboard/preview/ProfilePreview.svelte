@@ -49,26 +49,27 @@
 		// Simple and clear: Check the flag
 		const hasCustomLayout = link.has_custom_layout === true;
 		
-		// If link has custom layout → Use link values
+		// If link has custom layout → Use link values (but still fallback to theme if null)
 		// If link uses theme default → Use preview or theme
 		const textAlignment = hasCustomLayout
-			? link.text_alignment
+			? (link.text_alignment || currentTheme.textAlignment || 'center')
 			: (preview.text_alignment || link.text_alignment || currentTheme.textAlignment || 'center');
 		
 		const textSize = hasCustomLayout
-			? link.text_size
+			? (link.text_size || currentTheme.textSize || 'M')
 			: (preview.text_size || link.text_size || currentTheme.textSize || 'M');
 		
 		const imageShape = hasCustomLayout
-			? link.image_shape
+			? (link.image_shape || currentTheme.imageShape || 'square')
 			: (preview.image_shape || link.image_shape || currentTheme.imageShape || 'square');
 		
-		console.log(`[PREVIEW_LINK] ${link.title}:`, {
-			hasCustomLayout: link.has_custom_layout,
-			linkAlignment: link.text_alignment,
-			previewAlignment: preview.text_alignment,
-			themeAlignment: currentTheme.textAlignment,
-			finalAlignment: textAlignment
+		console.log(`[PREVIEW] ${link.title}:`, {
+			has_custom: link.has_custom_layout,
+			text_align: link.text_alignment,
+			image_shape: link.image_shape,
+			text_size: link.text_size,
+			final_align: textAlignment,
+			final_shape: imageShape
 		});
 		
 		return { 
