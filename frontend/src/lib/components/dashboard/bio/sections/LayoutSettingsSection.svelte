@@ -505,7 +505,16 @@
 				<input 
 					type="color" 
 					value={cardTextColor}
-					onchange={(e) => dispatch('update', { groupId: group.id, card_text_color: e.currentTarget.value })}
+					onchange={(e) => {
+						const newColor = e.currentTarget.value;
+						console.log('[COLOR_UPDATE]', {
+							groupId: group.id,
+							groupTitle: group.group_title,
+							oldColor: group.card_text_color,
+							newColor: newColor
+						});
+						dispatch('update', { groupId: group.id, card_text_color: newColor });
+					}}
 					class="w-12 h-12 rounded-lg border-2 border-gray-200 cursor-pointer overflow-hidden" 
 				/>
 				{#if group.card_text_color !== null && group.card_text_color !== undefined}

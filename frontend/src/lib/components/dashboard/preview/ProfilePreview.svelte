@@ -87,6 +87,16 @@
 		const t = currentTheme;
 		const p = preview;
 		
+		// For text color: Check if link has custom value (granular locking)
+		const textColor = link.card_text_color || p.card_text_color || t.cardTextColor;
+		
+		console.log(`[CARD_PROPS] ${link.title}:`, {
+			link_card_text_color: link.card_text_color,
+			preview_card_text_color: p.card_text_color,
+			theme_cardTextColor: t.cardTextColor,
+			final_textColor: textColor
+		});
+		
 		// Priority: preview > theme (NEVER use link values for card background)
 		// This ensures all link groups use consistent theme styling
 		return {
@@ -94,7 +104,7 @@
 			bgColor: p.card_background_color || t.cardBackground,
 			bgOpacity: p.card_background_opacity ?? t.cardBackgroundOpacity,
 			borderRadius: p.card_border_radius ?? t.cardBorderRadius,
-			textColor: p.card_text_color || t.cardTextColor,
+			textColor: textColor,
 			showShadow: p.show_shadow ?? t.cardShadow,
 			shadowX: p.shadow_x ?? t.cardShadowX,
 			shadowY: p.shadow_y ?? t.cardShadowY,

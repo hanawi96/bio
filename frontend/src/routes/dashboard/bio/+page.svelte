@@ -883,10 +883,20 @@
 	async function handleUpdateGroupLayout(event: CustomEvent) {
 		const { groupId, ...settings } = event.detail;
 		
+		console.log('[HANDLE_UPDATE_GROUP_LAYOUT]', {
+			groupId,
+			settings,
+			oldLink: links.find(l => l.id === groupId)
+		});
+		
 		// Optimistic update immediately for smooth UI
 		const oldLinks = links;
 		links = links.map(l => l.id === groupId ? { ...l, ...settings } : l);
 		allLinks = allLinks.map(l => l.id === groupId ? { ...l, ...settings } : l);
+		
+		console.log('[AFTER_UPDATE]', {
+			updatedLink: links.find(l => l.id === groupId)
+		});
 		
 		// Debounce API call - only call after user stops dragging
 		if (updateLayoutDebounceTimer) clearTimeout(updateLayoutDebounceTimer);
