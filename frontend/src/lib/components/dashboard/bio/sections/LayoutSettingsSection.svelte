@@ -24,6 +24,9 @@
 		if (group.image_shape !== null && group.image_shape !== undefined) {
 			updates.image_shape = null;
 		}
+		if (group.card_text_color !== null && group.card_text_color !== undefined) {
+			updates.card_text_color = null;
+		}
 		
 		dispatch('update', updates);
 	}
@@ -32,7 +35,8 @@
 	$: hasCustomProperties = 
 		(group.text_alignment !== null && group.text_alignment !== undefined) ||
 		(group.text_size !== null && group.text_size !== undefined) ||
-		(group.image_shape !== null && group.image_shape !== undefined);
+		(group.image_shape !== null && group.image_shape !== undefined) ||
+		(group.card_text_color !== null && group.card_text_color !== undefined);
 	
 	// Debounce timer for slider updates
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -372,8 +376,8 @@
 			{#if group.text_alignment !== null && group.text_alignment !== undefined}
 				<button
 					onclick={() => dispatch('update', { groupId: group.id, text_alignment: null })}
-					class="text-xs text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1"
-					title="Reset to theme default"
+					class="text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 px-2 py-1 rounded-md font-medium flex items-center gap-1 transition-colors"
+					title="Reset to inherit from theme (currently: {currentTheme?.textAlignment || 'center'})"
 				>
 					<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -449,8 +453,8 @@
 			{#if group.text_size !== null && group.text_size !== undefined}
 				<button
 					onclick={() => dispatch('update', { groupId: group.id, text_size: null })}
-					class="text-xs text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1"
-					title="Reset to theme default"
+					class="text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 px-2 py-1 rounded-md font-medium flex items-center gap-1 transition-colors"
+					title="Reset to inherit from theme (currently: {currentTheme?.textSize || 'M'})"
 				>
 					<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -487,16 +491,33 @@
 
 	<!-- Text Color Section -->
 	<div>
-		<h3 class="text-base font-semibold text-gray-900 mb-3">Text color</h3>
+		<div class="flex items-center justify-between mb-3">
+			<h3 class="text-base font-semibold text-gray-900">Text color</h3>
+			{#if group.card_text_color !== null && group.card_text_color !== undefined}
+				<button
+					onclick={() => dispatch('update', { groupId: group.id, card_text_color: null })}
+					class="text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 px-2 py-1 rounded-md font-medium flex items-center gap-1 transition-colors"
+					title="Reset to inherit from theme (currently: {currentTheme?.cardTextColor || '#000000'})"
+				>
+					<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+					</svg>
+					Reset
+				</button>
+			{/if}
+		</div>
 		<div class="flex gap-3 items-center">
 			<!-- Color Picker (Large) -->
-			<div class="flex items-center gap-2">
+			<div class="flex items-center gap-2 relative">
 				<input 
 					type="color" 
 					value={group.card_text_color || '#000000'}
 					onchange={(e) => dispatch('update', { groupId: group.id, card_text_color: e.currentTarget.value })}
 					class="w-12 h-12 rounded-lg border-2 border-gray-200 cursor-pointer overflow-hidden" 
 				/>
+				{#if group.card_text_color !== null && group.card_text_color !== undefined}
+					<span class="absolute -top-1 -right-1 w-2 h-2 bg-indigo-500 rounded-full" title="Custom value"></span>
+				{/if}
 				<span class="text-xs text-gray-600 font-mono">{group.card_text_color || '#000000'}</span>
 			</div>
 			
@@ -522,8 +543,8 @@
 				{#if group.image_shape !== null && group.image_shape !== undefined}
 					<button
 						onclick={() => dispatch('update', { groupId: group.id, image_shape: null })}
-						class="text-xs text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1"
-						title="Reset to theme default"
+						class="text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 px-2 py-1 rounded-md font-medium flex items-center gap-1 transition-colors"
+						title="Reset to inherit from theme (currently: {currentTheme?.imageShape || 'square'})"
 					>
 						<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>

@@ -31,9 +31,16 @@ text_alignment = CASE WHEN l.text_alignment IS NULL THEN $14 ELSE l.text_alignme
 
 **Thêm:**
 1. ✅ Visual indicator (chấm xanh) cho properties đã custom
-2. ✅ Button "Reset" riêng cho từng property
+2. ✅ Button "Reset" riêng cho từng property (với tooltip hiển thị giá trị theme hiện tại)
 3. ✅ Button "Reset All to Theme" (chỉ hiện khi có custom properties)
 4. ✅ Logic kiểm tra `hasCustomProperties`
+5. ✅ Hover effect cho reset buttons (background indigo-50)
+
+**Properties có reset button:**
+- Text Alignment
+- Text Size
+- Image Shape
+- Text Color
 
 ### 3. Frontend - Appearance Editors
 **Files:**
