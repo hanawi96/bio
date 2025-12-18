@@ -1013,7 +1013,7 @@ func (r *LinkRepository) UpdateAllGroupsCardStyles(userID string, cardStyles map
 		SET 
 			card_background_color = COALESCE($2, card_background_color),
 			card_background_opacity = COALESCE($3, card_background_opacity),
-			card_text_color = COALESCE($4, card_text_color),
+			card_text_color = CASE WHEN l.card_text_color IS NULL THEN $4 ELSE l.card_text_color END,
 			card_border_radius = COALESCE($5, card_border_radius),
 			show_shadow = COALESCE($6, show_shadow),
 			shadow_x = COALESCE($7, shadow_x),

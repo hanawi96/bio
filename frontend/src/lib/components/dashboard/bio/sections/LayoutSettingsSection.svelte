@@ -57,17 +57,10 @@
 	$: textAlignment = group.text_alignment || currentTheme?.textAlignment || 'center';
 	$: imageShape = group.image_shape || currentTheme?.imageShape || 'square';
 	$: textSize = group.text_size || currentTheme?.textSize || 'M';
+	$: cardTextColor = group.card_text_color || currentTheme?.cardTextColor || '#000000';
 	$: showText = group.show_text !== undefined ? group.show_text : true;
 	
-	console.log('[LAYOUT_SETTINGS]', group.group_title, {
-		has_custom: group.has_custom_layout,
-		text_alignment: group.text_alignment,
-		image_shape: group.image_shape,
-		text_size: group.text_size,
-		theme_align: currentTheme?.textAlignment,
-		final_textAlignment: textAlignment,
-		final_imageShape: imageShape
-	});
+
 	
 
 	function updateLayout(value: string) {
@@ -511,14 +504,14 @@
 			<div class="flex items-center gap-2 relative">
 				<input 
 					type="color" 
-					value={group.card_text_color || '#000000'}
+					value={cardTextColor}
 					onchange={(e) => dispatch('update', { groupId: group.id, card_text_color: e.currentTarget.value })}
 					class="w-12 h-12 rounded-lg border-2 border-gray-200 cursor-pointer overflow-hidden" 
 				/>
 				{#if group.card_text_color !== null && group.card_text_color !== undefined}
 					<span class="absolute -top-1 -right-1 w-2 h-2 bg-indigo-500 rounded-full" title="Custom value"></span>
 				{/if}
-				<span class="text-xs text-gray-600 font-mono">{group.card_text_color || '#000000'}</span>
+				<span class="text-xs text-gray-600 font-mono">{cardTextColor}</span>
 			</div>
 			
 			<!-- Color Presets (Small) -->
