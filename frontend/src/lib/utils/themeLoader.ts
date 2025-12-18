@@ -1,6 +1,7 @@
 import { globalTheme, themePresets, currentHeaderStyle, defaultHeaderStyles } from '$lib/stores/theme';
 import { previewStyles } from '$lib/stores/previewStyles';
 import type { Profile } from '$lib/api/profile';
+import { getThemeById } from '$lib/config/themes';
 
 /**
  * Load theme from profile data into stores
@@ -101,21 +102,9 @@ export function loadThemeFromProfile(profileData: Profile | null) {
 			}
 		}
 
-		// Find category for preset
-		const themes = {
-			classic: ['mcalpine', 'yoga', 'jerry'],
-			vibrant: ['vibrant'],
-			cozy: ['minimal', 'default'],
-			bold: ['dark']
-		};
-
-		let category = 'cozy';
-		for (const [cat, themeList] of Object.entries(themes)) {
-			if (themeList.includes(themeName)) {
-				category = cat;
-				break;
-			}
-		}
+		// Find category from centralized theme metadata
+		const themeMetadata = getThemeById(themeName);
+		const category = themeMetadata?.category || 'cozy';
 
 		syncPreviewStylesFromTheme(); // Sync preview styles
 		return { themeName, category };

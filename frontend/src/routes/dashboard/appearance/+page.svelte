@@ -32,6 +32,9 @@
 	import SpacingEditor from '$lib/components/dashboard/appearance/SpacingEditor.svelte';
 	import ShadowEditor from '$lib/components/dashboard/appearance/ShadowEditor.svelte';
 	import BorderEditor from '$lib/components/dashboard/appearance/BorderEditor.svelte';
+	import { themeCategories, getThemesGroupedByCategory } from '$lib/config/themes';
+	import { generatePreviewColors } from '$lib/utils/themePreview';
+	import type { ThemePreviewColors } from '$lib/utils/themePreview';
 
 	let profile = $state<Profile | null>(null);
 	let links = $state<Link[]>([]);
@@ -118,7 +121,7 @@
 	
 
 
-	const presetColorsCache = new Map<string, ReturnType<typeof getPresetColors>>();
+	const presetColorsCache = new Map<string, ThemePreviewColors>();
 
 
 
@@ -305,37 +308,8 @@
 		}
 	}
 
-	const categories = [
-		{ id: 'all', label: 'All' },
-		{ id: 'classic', label: 'Classic' },
-		{ id: 'vibrant', label: 'Vibrant' },
-		{ id: 'cozy', label: 'Cozy' },
-		{ id: 'bold', label: 'Bold' },
-		{ id: 'custom', label: 'Custom' }
-	];
-
-
-
-	const themes: Record<string, Array<{ id: string; name: string; preset: string; isCustom?: boolean }>> = {
-		classic: [
-			{ id: 'mcalpine', name: 'McAlpine', preset: 'mcalpine' },
-			{ id: 'yoga', name: 'Yoga', preset: 'yoga' },
-			{ id: 'jerry', name: 'Jerry', preset: 'jerry' }
-		],
-		vibrant: [
-			{ id: 'vibrant', name: 'Vibrant', preset: 'vibrant' }
-		],
-		cozy: [
-			{ id: 'minimal', name: 'Minimal', preset: 'minimal' },
-			{ id: 'default', name: 'Default', preset: 'default' }
-		],
-		bold: [
-			{ id: 'dark', name: 'Dark Mode', preset: 'dark' }
-		],
-		custom: [
-			{ id: 'custom', name: 'Your Custom Theme', preset: 'custom', isCustom: true }
-		]
-	};
+	const categories = themeCategories;
+	const themes = getThemesGroupedByCategory();
 
 	async function loadProfile() {
 		const token = get(auth).token;
@@ -565,21 +539,14 @@
 	}
 
 	// Get preview colors from preset (memoized)
-	function getPresetColors(presetName: string) {
+	// Uses centralized generatePreviewColors() for 100% consistency
+	function getPresetColors(presetName: string): ThemePreviewColors {
 		if (presetColorsCache.has(presetName)) {
 			return presetColorsCache.get(presetName)!;
 		}
 		
 		const preset = themePresets[presetName];
-		const colors = !preset?.page || !preset?.card
-			? { bg: '#ffffff', accent: '#000000', cardBg: '#ffffff', cardText: '#000000', textColor: '#000000' }
-			: {
-				bg: preset.page.pageBackground,
-				accent: preset.page.accentColor,
-				cardBg: preset.card.cardBackground,
-				cardText: preset.card.cardTextColor,
-				textColor: preset.page.textColor
-			};
+		const colors = generatePreviewColors(preset);
 		
 		presetColorsCache.set(presetName, colors);
 		return colors;

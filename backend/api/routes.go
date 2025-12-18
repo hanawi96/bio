@@ -22,12 +22,14 @@ func SetupRoutes(api fiber.Router, db *sql.DB, cfg *config.Config) {
 	profileRepo := repository.NewProfileRepository(db)
 	linkRepo := repository.NewLinkRepository(db)
 	blockRepo := repository.NewBlockRepository(db)
+	themeRepo := repository.NewThemeRepository(db)
 
 	// Initialize services
 	authService := service.NewAuthService(userRepo, cfg)
 	profileService := service.NewProfileService(profileRepo, userRepo, linkRepo, blockRepo)
 	linkService := service.NewLinkService(linkRepo)
 	blockService := service.NewBlockService(blockRepo)
+	themeService := service.NewThemeService(themeRepo)
 	schedulerInstance = service.NewSchedulerService(db)
 
 	// Initialize handlers
@@ -35,6 +37,7 @@ func SetupRoutes(api fiber.Router, db *sql.DB, cfg *config.Config) {
 	profileHandler := NewProfileHandler(profileService)
 	linkHandler := NewLinkHandler(linkService)
 	blockHandler := NewBlockHandler(blockService)
+	themeHandler := NewThemeHandler(themeService)
 	uploadHandler := NewUploadHandler(linkService, profileService)
 
 	// Public routes
@@ -94,4 +97,19 @@ func SetupRoutes(api fiber.Router, db *sql.DB, cfg *config.Config) {
 	protected.Post("/blocks/bulk-delete", blockHandler.BulkDelete)
 	protected.Put("/blocks/:id", blockHandler.UpdateBlock)
 	protected.Delete("/blocks/:id", blockHandler.DeleteBlock)
+
+	// Theme management
+	protected.Get("/themes/my", themeHandler.GetMyThemes)
+	protected.Post("/themes", themeHandler.CreateTheme)
+	protected.Post("/themes/import", themeHandler.ImportTheme)
+	protected.Get("/themes/:id", themeHandler.GetThemeByID)
+	protected.Put("/themes/:id", themeHandler.UpdateTheme)
+	protected.Delete("/themes/:id", themeHandler.DeleteTheme)
+	protected.Get("/themes/:id/export", themeHandler.ExportTheme)
+	protected.Post("/themes/:id/publish", themeHandler.PublishTheme)
+	protected.Post("/themes/:id/unpublish", themeHandler.UnpublishTheme)
+
+	// Public theme routes (marketplace)
+	api.Get("/themes/public", themeHandler.GetPublicThemes)
+	api.Get("/themes/slug/:slug", themeHandler.GetThemeBySlug)
 }
