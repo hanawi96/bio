@@ -7,16 +7,32 @@
 	
 	const dispatch = createEventDispatcher();
 	
-	// Reset group to theme defaults
+	// Reset group to theme defaults - only reset properties that are currently custom
 	function resetToTheme() {
-		dispatch('update', {
+		const updates: any = {
 			groupId: group.id,
-			text_alignment: null,
-			text_size: null,
-			image_shape: null,
 			has_custom_layout: false
-		});
+		};
+		
+		// Only reset properties that have custom values (not null)
+		if (group.text_alignment !== null && group.text_alignment !== undefined) {
+			updates.text_alignment = null;
+		}
+		if (group.text_size !== null && group.text_size !== undefined) {
+			updates.text_size = null;
+		}
+		if (group.image_shape !== null && group.image_shape !== undefined) {
+			updates.image_shape = null;
+		}
+		
+		dispatch('update', updates);
 	}
+	
+	// Check if any property is custom
+	$: hasCustomProperties = 
+		(group.text_alignment !== null && group.text_alignment !== undefined) ||
+		(group.text_size !== null && group.text_size !== undefined) ||
+		(group.image_shape !== null && group.image_shape !== undefined);
 	
 	// Debounce timer for slider updates
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -77,19 +93,21 @@
 </script>
 
 <div class="p-6 space-y-6">
-	<!-- Reset to Theme Button -->
-	<div class="flex justify-end">
-		<button
-			onclick={resetToTheme}
-			class="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors flex items-center gap-1.5"
-			title="Reset this group's styles to match the current theme"
-		>
-			<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-			</svg>
-			Reset to Theme
-		</button>
-	</div>
+	<!-- Reset to Theme Button - Only show if there are custom properties -->
+	{#if hasCustomProperties}
+		<div class="flex justify-end">
+			<button
+				onclick={resetToTheme}
+				class="px-3 py-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors flex items-center gap-1.5"
+				title="Reset all custom styles to match the current theme"
+			>
+				<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+				</svg>
+				Reset All to Theme
+			</button>
+		</div>
+	{/if}
 
 	<!-- Layout Section -->
 	<div>
@@ -349,12 +367,26 @@
 
 	<!-- Text Alignment Section -->
 	<div>
-		<h3 class="text-base font-semibold text-gray-900 mb-3">Text alignment</h3>
+		<div class="flex items-center justify-between mb-3">
+			<h3 class="text-base font-semibold text-gray-900">Text alignment</h3>
+			{#if group.text_alignment !== null && group.text_alignment !== undefined}
+				<button
+					onclick={() => dispatch('update', { groupId: group.id, text_alignment: null })}
+					class="text-xs text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1"
+					title="Reset to theme default"
+				>
+					<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+					</svg>
+					Reset
+				</button>
+			{/if}
+		</div>
 		<div class="flex gap-2">
 			<button
 				type="button"
 				onclick={() => updateTextAlignment('left')}
-				class="flex-1 px-4 py-2.5 border rounded-lg transition-all flex items-center justify-center"
+				class="flex-1 px-4 py-2.5 border rounded-lg transition-all flex items-center justify-center relative"
 				class:border-gray-900={textAlignment === 'left'}
 				class:bg-gray-900={textAlignment === 'left'}
 				class:text-white={textAlignment === 'left'}
@@ -365,12 +397,15 @@
 				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h14"/>
 				</svg>
+				{#if group.text_alignment === 'left'}
+					<span class="absolute -top-1 -right-1 w-2 h-2 bg-indigo-500 rounded-full" title="Custom value"></span>
+				{/if}
 			</button>
 			
 			<button
 				type="button"
 				onclick={() => updateTextAlignment('center')}
-				class="flex-1 px-4 py-2.5 border rounded-lg transition-all flex items-center justify-center"
+				class="flex-1 px-4 py-2.5 border rounded-lg transition-all flex items-center justify-center relative"
 				class:border-gray-900={textAlignment === 'center'}
 				class:bg-gray-900={textAlignment === 'center'}
 				class:text-white={textAlignment === 'center'}
@@ -381,12 +416,15 @@
 				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M7 12h10M6 18h12"/>
 				</svg>
+				{#if group.text_alignment === 'center'}
+					<span class="absolute -top-1 -right-1 w-2 h-2 bg-indigo-500 rounded-full" title="Custom value"></span>
+				{/if}
 			</button>
 			
 			<button
 				type="button"
 				onclick={() => updateTextAlignment('right')}
-				class="flex-1 px-4 py-2.5 border rounded-lg transition-all flex items-center justify-center"
+				class="flex-1 px-4 py-2.5 border rounded-lg transition-all flex items-center justify-center relative"
 				class:border-gray-900={textAlignment === 'right'}
 				class:bg-gray-900={textAlignment === 'right'}
 				class:text-white={textAlignment === 'right'}
@@ -397,19 +435,36 @@
 				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M10 12h10M8 18h12"/>
 				</svg>
+				{#if group.text_alignment === 'right'}
+					<span class="absolute -top-1 -right-1 w-2 h-2 bg-indigo-500 rounded-full" title="Custom value"></span>
+				{/if}
 			</button>
 		</div>
 	</div>
 
 	<!-- Text Size Section -->
 	<div>
-		<h3 class="text-base font-semibold text-gray-900 mb-3">Text size</h3>
+		<div class="flex items-center justify-between mb-3">
+			<h3 class="text-base font-semibold text-gray-900">Text size</h3>
+			{#if group.text_size !== null && group.text_size !== undefined}
+				<button
+					onclick={() => dispatch('update', { groupId: group.id, text_size: null })}
+					class="text-xs text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1"
+					title="Reset to theme default"
+				>
+					<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+					</svg>
+					Reset
+				</button>
+			{/if}
+		</div>
 		<div class="flex gap-2">
 			{#each ['S', 'M', 'L', 'XL'] as size}
 				<button
 					type="button"
 					onclick={() => dispatch('update', { groupId: group.id, text_size: size, has_custom_layout: true })}
-					class="flex-1 px-4 py-2.5 border rounded-lg transition-all font-semibold"
+					class="flex-1 px-4 py-2.5 border rounded-lg transition-all font-semibold relative"
 					class:border-gray-900={textSize === size}
 					class:bg-gray-900={textSize === size}
 					class:text-white={textSize === size}
@@ -422,6 +477,9 @@
 					class:text-lg={size === 'XL'}
 				>
 					{size}
+					{#if group.text_size === size}
+						<span class="absolute -top-1 -right-1 w-2 h-2 bg-indigo-500 rounded-full" title="Custom value"></span>
+					{/if}
 				</button>
 			{/each}
 		</div>
@@ -459,12 +517,26 @@
 	<!-- Image Shape Section (for Classic layout only) -->
 	{#if layout === 'list'}
 		<div>
-			<h3 class="text-base font-semibold text-gray-900 mb-3">Image shape</h3>
+			<div class="flex items-center justify-between mb-3">
+				<h3 class="text-base font-semibold text-gray-900">Image shape</h3>
+				{#if group.image_shape !== null && group.image_shape !== undefined}
+					<button
+						onclick={() => dispatch('update', { groupId: group.id, image_shape: null })}
+						class="text-xs text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1"
+						title="Reset to theme default"
+					>
+						<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+						</svg>
+						Reset
+					</button>
+				{/if}
+			</div>
 			<div class="flex gap-2">
 				<button
 					type="button"
 					onclick={() => dispatch('update', { groupId: group.id, image_shape: 'sharp', has_custom_layout: true })}
-					class="flex-1 px-4 py-2.5 border rounded-lg transition-all hover:shadow-md"
+					class="flex-1 px-4 py-2.5 border rounded-lg transition-all hover:shadow-md relative"
 					class:border-emerald-500={imageShape === 'sharp'}
 					class:bg-emerald-50={imageShape === 'sharp'}
 					class:border-gray-200={imageShape !== 'sharp'}
@@ -474,11 +546,14 @@
 						<div class="w-8 h-8 bg-gradient-to-br from-amber-200 to-amber-300 flex-shrink-0"></div>
 						<span class="text-sm font-medium text-gray-700">Sharp</span>
 					</div>
+					{#if group.image_shape === 'sharp'}
+						<span class="absolute -top-1 -right-1 w-2 h-2 bg-indigo-500 rounded-full" title="Custom value"></span>
+					{/if}
 				</button>
 				<button
 					type="button"
 					onclick={() => dispatch('update', { groupId: group.id, image_shape: 'square', has_custom_layout: true })}
-					class="flex-1 px-4 py-2.5 border rounded-lg transition-all hover:shadow-md"
+					class="flex-1 px-4 py-2.5 border rounded-lg transition-all hover:shadow-md relative"
 					class:border-emerald-500={imageShape === 'square'}
 					class:bg-emerald-50={imageShape === 'square'}
 					class:border-gray-200={imageShape !== 'square'}
@@ -488,11 +563,14 @@
 						<div class="w-8 h-8 bg-gradient-to-br from-amber-200 to-amber-300 rounded-lg flex-shrink-0"></div>
 						<span class="text-sm font-medium text-gray-700">Rounded</span>
 					</div>
+					{#if group.image_shape === 'square'}
+						<span class="absolute -top-1 -right-1 w-2 h-2 bg-indigo-500 rounded-full" title="Custom value"></span>
+					{/if}
 				</button>
 				<button
 					type="button"
 					onclick={() => dispatch('update', { groupId: group.id, image_shape: 'circle', has_custom_layout: true })}
-					class="flex-1 px-4 py-2.5 border rounded-lg transition-all hover:shadow-md"
+					class="flex-1 px-4 py-2.5 border rounded-lg transition-all hover:shadow-md relative"
 					class:border-emerald-500={imageShape === 'circle'}
 					class:bg-emerald-50={imageShape === 'circle'}
 					class:border-gray-200={imageShape !== 'circle'}
@@ -502,6 +580,9 @@
 						<div class="w-8 h-8 bg-gradient-to-br from-amber-200 to-amber-300 rounded-full flex-shrink-0"></div>
 						<span class="text-sm font-medium text-gray-700">Circle</span>
 					</div>
+					{#if group.image_shape === 'circle'}
+						<span class="absolute -top-1 -right-1 w-2 h-2 bg-indigo-500 rounded-full" title="Custom value"></span>
+					{/if}
 				</button>
 			</div>
 		</div>

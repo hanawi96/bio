@@ -79,7 +79,17 @@
 
 	<!-- Text Alignment -->
 	<div>
-		<label class="text-sm font-semibold text-gray-900 mb-3 block">Text alignment</label>
+		<div class="flex items-center justify-between mb-3">
+			<label class="text-sm font-semibold text-gray-900">Text alignment</label>
+			{#if links.filter(l => l.is_group && l.text_alignment !== null && l.text_alignment !== undefined).length > 0}
+				<span class="text-xs text-amber-600 font-medium flex items-center gap-1">
+					<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+						<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+					</svg>
+					{links.filter(l => l.is_group && l.text_alignment !== null && l.text_alignment !== undefined).length} group(s) have custom values
+				</span>
+			{/if}
+		</div>
 		<div class="flex gap-2">
 			<button
 				onclick={() => updateTypography('text_alignment', 'left')}
@@ -127,7 +137,17 @@
 
 	<!-- Text Size -->
 	<div>
-		<label class="text-sm font-semibold text-gray-900 mb-3 block">Text size</label>
+		<div class="flex items-center justify-between mb-3">
+			<label class="text-sm font-semibold text-gray-900">Text size</label>
+			{#if links.filter(l => l.is_group && l.text_size !== null && l.text_size !== undefined).length > 0}
+				<span class="text-xs text-amber-600 font-medium flex items-center gap-1">
+					<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+						<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+					</svg>
+					{links.filter(l => l.is_group && l.text_size !== null && l.text_size !== undefined).length} group(s) have custom values
+				</span>
+			{/if}
+		</div>
 		<div class="flex gap-2">
 			{#each ['S', 'M', 'L', 'XL'] as size}
 				<button

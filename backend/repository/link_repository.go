@@ -1005,6 +1005,8 @@ func (r *LinkRepository) ReorderGroupLinks(userID string, groupID string, linkID
 
 
 // UpdateAllGroupsCardStyles updates card styles for all link groups of a user
+// Uses granular locking: only updates properties that are currently NULL (inheriting from theme)
+// Properties with non-NULL values are considered custom and won't be overwritten
 func (r *LinkRepository) UpdateAllGroupsCardStyles(userID string, cardStyles map[string]interface{}) error {
 	query := `
 		UPDATE links l
@@ -1021,9 +1023,9 @@ func (r *LinkRepository) UpdateAllGroupsCardStyles(userID string, cardStyles map
 			card_border_color = COALESCE($11, card_border_color),
 			card_border_width = COALESCE($12, card_border_width),
 			has_card_background = COALESCE($13, has_card_background),
-			text_alignment = COALESCE($14, text_alignment),
-			text_size = COALESCE($15, text_size),
-			image_shape = COALESCE($16, image_shape),
+			text_alignment = CASE WHEN l.text_alignment IS NULL THEN $14 ELSE l.text_alignment END,
+			text_size = CASE WHEN l.text_size IS NULL THEN $15 ELSE l.text_size END,
+			image_shape = CASE WHEN l.image_shape IS NULL THEN $16 ELSE l.image_shape END,
 			style = COALESCE($17, style),
 			updated_at = CURRENT_TIMESTAMP
 		FROM profiles p
